@@ -743,11 +743,8 @@ func installDependency(id uint, depType, name string) {
 		cmd = exec.Command("npm", "install", "--prefix", filepath.Join(depsDir, "nodejs"), name)
 		cmd.Env = service.NpmInstallEnv(service.AppendProxyEnv(os.Environ()), service.CurrentNpmMirror())
 	case model.DepTypePython:
-		pipBin := service.ResolveManagedPipBinary()
-		if strings.TrimSpace(pipBin) == "" {
-			pipBin = "pip"
-		}
-		cmd = exec.Command(pipBin, "install", name)
+		pipBin, extraFlags, _ := service.ResolvePipInstallCommand()
+		cmd = exec.Command(pipBin, service.BuildPipInstallArgs(extraFlags, name)...)
 		cmd.Env = append(service.PipInstallEnv(service.AppendProxyEnv(os.Environ()), service.CurrentPipMirror()), "TMPDIR=/tmp")
 	case model.DepTypeLinux:
 		linuxPackageOperationMu.Lock()
@@ -792,11 +789,8 @@ func uninstallDependency(id uint, depType, name string) {
 		cmd = exec.Command("npm", "uninstall", "--prefix", filepath.Join(depsDir, "nodejs"), name)
 		cmd.Env = service.AppendProxyEnv(os.Environ())
 	case model.DepTypePython:
-		pipBin := service.ResolveManagedPipBinary()
-		if strings.TrimSpace(pipBin) == "" {
-			pipBin = "pip"
-		}
-		cmd = exec.Command(pipBin, "uninstall", "-y", name)
+		pipBin, extraFlags, _ := service.ResolvePipInstallCommand()
+		cmd = exec.Command(pipBin, service.BuildPipUninstallArgs(extraFlags, name)...)
 		cmd.Env = service.SanitizePipEnv(service.AppendProxyEnv(os.Environ()))
 	case model.DepTypeLinux:
 		linuxPackageOperationMu.Lock()
@@ -829,11 +823,8 @@ func forceUninstallDependency(depType, name string) {
 		cmd = exec.Command("npm", "uninstall", "--prefix", filepath.Join(depsDir, "nodejs"), "--force", name)
 		cmd.Env = service.AppendProxyEnv(os.Environ())
 	case model.DepTypePython:
-		pipBin := service.ResolveManagedPipBinary()
-		if strings.TrimSpace(pipBin) == "" {
-			pipBin = "pip"
-		}
-		cmd = exec.Command(pipBin, "uninstall", "-y", "--no-deps", name)
+		pipBin, extraFlags, _ := service.ResolvePipInstallCommand()
+		cmd = exec.Command(pipBin, service.BuildPipUninstallArgs(extraFlags, name, "--no-deps")...)
 		cmd.Env = service.SanitizePipEnv(service.AppendProxyEnv(os.Environ()))
 	case model.DepTypeLinux:
 		linuxPackageOperationMu.Lock()

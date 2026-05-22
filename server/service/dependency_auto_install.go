@@ -149,13 +149,27 @@ func InstallAutoDependency(candidate *AutoInstallCandidate, envVars map[string]s
 
 	switch candidate.Manager {
 	case "python":
-		venvPip := ResolveManagedPipBinary()
-		if strings.TrimSpace(venvPip) == "" {
-			venvPip = "pip3"
-		}
-		cmd := exec.Command(venvPip, "install", candidate.PackageName)
-		cmd.Env = PipInstallEnv(baseEnv, CurrentPipMirror())
+		pipEnv := PipInstallEnv(baseEnv, CurrentPipMirror())
+		pipBin, extraFlags, _ := ResolvePipInstallCommand()
+
+		cmd := exec.Command(pipBin, BuildPipInstallArgs(extraFlags, candidate.PackageName)...)
+		cmd.Env = pipEnv
 		out, err := cmd.CombinedOutput()
+
+		// 二次兜底：即使 ResolvePipInstallCommand 用的是 venv pip，某些极端场景下
+		// （venv 被外部破坏、用户改了 sys.prefix 等）仍可能撞到 PEP 668。检测到就加
+		// --break-system-packages --user 重跑一次。
+		if err != nil && IsExternallyManagedError(out) {
+			retryFlags := append([]string{"--break-system-packages", "--user"}, extraFlags...)
+			retry := exec.Command(pipBin, BuildPipInstallArgs(dedupFlags(retryFlags), candidate.PackageName)...)
+			retry.Env = pipEnv
+			retryOut, retryErr := retry.CombinedOutput()
+			combined := append([]byte{}, out...)
+			combined = append(combined, []byte("\n[PEP 668 检测到 externally-managed-environment，自动加 --break-system-packages --user 重试]\n")...)
+			combined = append(combined, retryOut...)
+			return completeAutoInstall(candidate, combined, retryErr)
+		}
+
 		return completeAutoInstall(candidate, out, err)
 	case "nodejs":
 		nodeDir := filepath.Join(depsDir, "nodejs")
@@ -173,6 +187,63 @@ func InstallAutoDependency(candidate *AutoInstallCandidate, envVars map[string]s
 	default:
 		return AutoInstallResult{Error: fmt.Sprintf("不支持的自动安装类型: %s", candidate.Manager)}
 	}
+}
+
+// IsExternallyManagedError 判断 pip 输出是否命中 PEP 668
+// （Alpine/Debian 等系统从 Python 3.11+ 起默认拒绝在系统 site-packages 上执行 pip install）。
+func IsExternallyManagedError(out []byte) bool {
+	text := strings.ToLower(string(out))
+	return strings.Contains(text, "externally-managed-environment") ||
+		strings.Contains(text, "this environment is externally managed")
+}
+
+// ResolvePipInstallCommand 选 pip 二进制 + 自动决定 PEP 668 兜底参数。
+// 优先用托管 venv 里的 pip；venv 建不出来时 fallback 到系统 pip3 并预先加
+// --break-system-packages --user（避免触发 PEP 668 拒绝 + 装到 ~/.local 不污染系统）。
+// 返回值：pip 二进制路径、自动安装的附加 flag、是否使用系统 pip。
+func ResolvePipInstallCommand() (binary string, extraFlags []string, usingSystemPip bool) {
+	binary = ResolveManagedPipBinary()
+	if strings.TrimSpace(binary) != "" {
+		return binary, nil, false
+	}
+	// venv 创建失败的兜底
+	return "pip3", []string{"--break-system-packages", "--user"}, true
+}
+
+// BuildPipInstallArgs 把 install 子命令、附加 flag、包名拼成完整的 args。
+func BuildPipInstallArgs(extraFlags []string, packageName string) []string {
+	args := []string{"install"}
+	args = append(args, extraFlags...)
+	args = append(args, packageName)
+	return args
+}
+
+// BuildPipUninstallArgs 类似 BuildPipInstallArgs，但用于卸载场景。
+// 注意：--user 在 uninstall 时无意义，--break-system-packages 仍需要传以绕过 PEP 668。
+func BuildPipUninstallArgs(extraFlags []string, packageName string, extraOptions ...string) []string {
+	args := []string{"uninstall", "-y"}
+	args = append(args, extraOptions...)
+	for _, flag := range extraFlags {
+		if flag == "--user" {
+			continue
+		}
+		args = append(args, flag)
+	}
+	args = append(args, packageName)
+	return args
+}
+
+func dedupFlags(flags []string) []string {
+	seen := map[string]struct{}{}
+	result := make([]string, 0, len(flags))
+	for _, flag := range flags {
+		if _, exists := seen[flag]; exists {
+			continue
+		}
+		seen[flag] = struct{}{}
+		result = append(result, flag)
+	}
+	return result
 }
 
 func completeAutoInstall(candidate *AutoInstallCandidate, out []byte, err error) AutoInstallResult {

@@ -16,7 +16,7 @@ COPY server/go.mod server/go.sum ./
 ENV GOPROXY=https://goproxy.cn,direct
 RUN go mod download
 COPY server/ ./
-ARG VERSION=2.2.9
+ARG VERSION=2.2.10
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETVARIANT

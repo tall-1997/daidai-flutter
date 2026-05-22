@@ -124,6 +124,63 @@ if [ -d "$rootfs/app/Dumb-Panel" ]; then
   ui_print "- 数据已备份到 $TMPDIR/backup_data ($backup_count 项)"
   mkdir -p "$PERSIST_DIR"
   echo "$current_ver" > "$UPDATE_FLAG"
+
+  # ---- 持久化"上次更新前快照"：模块每次更新都会重写 $MODPATH，但 $PERSIST_DIR
+  # 不会被 Magisk 触碰。把关键数据镜像一份到这里，下次升级前清空重写——
+  # 即使安装中途出错 / 数据被回填覆盖 / 用户手滑误删 rootfs，仍能从这里翻回最近一次的状态。
+  # 体积大的 logs/ deps/ 不备份（可重建，且会让备份动辄上 GB）。
+  PERSIST_BACKUP_DIR="$PERSIST_DIR/last-update-backup"
+  PERSIST_BACKUP_PREV="$PERSIST_DIR/last-update-backup.prev"
+  ui_print "- 同步持久化快照到 $PERSIST_BACKUP_DIR ..."
+  # 原子切换：先把现有快照重命名为 .prev，新快照完整建好后再删 prev。
+  # 避免新快照建到一半失败导致"两份都丢"。
+  rm -rf "$PERSIST_BACKUP_PREV" 2>/dev/null
+  if [ -d "$PERSIST_BACKUP_DIR" ]; then
+    mv "$PERSIST_BACKUP_DIR" "$PERSIST_BACKUP_PREV" 2>/dev/null
+  fi
+  mkdir -p "$PERSIST_BACKUP_DIR"
+  snapshot_items=0
+  for item in daidai.db daidai.db-shm daidai.db-wal scripts backups .jwt_secret config.yaml panel.log; do
+    src="$rootfs/app/Dumb-Panel/$item"
+    if [ -e "$src" ]; then
+      if cp -rf "$src" "$PERSIST_BACKUP_DIR/" 2>/dev/null; then
+        snapshot_items=$((snapshot_items + 1))
+      fi
+    fi
+  done
+  snapshot_size=$(du -sh "$PERSIST_BACKUP_DIR" 2>/dev/null | awk '{print $1}')
+  cat > "$PERSIST_BACKUP_DIR/BACKUP_INFO.txt" <<META
+呆呆面板 - 上次更新前数据快照
+================================================================
+备份时间: $(date '+%Y-%m-%d %H:%M:%S')
+源版本:   $current_ver
+目标版本: $new_ver
+源路径:   $rootfs/app/Dumb-Panel
+项目数:   $snapshot_items
+总大小:   ${snapshot_size:-?}
+
+包含: daidai.db (+wal/-shm)、scripts/、backups/、.jwt_secret、config.yaml、panel.log
+跳过: logs/、deps/（体积大且可重建，省存储空间）
+
+恢复方法（任选其一）：
+  方式 A —— 一键脚本：
+    su -c "sh $PERSIST_DIR/restore-last-update.sh"
+
+  方式 B —— 手动：
+    su -c "pkill -f daidai-server"
+    su -c "cp -rf $PERSIST_BACKUP_DIR/. $rootfs/app/Dumb-Panel/"
+    # 重启设备，或：
+    su -c "sh /data/adb/modules/$MODID/service.sh"
+
+⚠️ 注意：
+  - 此快照在每次模块更新时会被清空重写，只保留"最近一次更新前"的版本
+  - 卸载模块默认会一并删除此目录；如想保留，卸载前执行：
+      su -c "touch $PERSIST_DIR/.keep_on_uninstall"
+META
+  # 新快照建好，可以安全删除上一份的 prev 副本
+  rm -rf "$PERSIST_BACKUP_PREV" 2>/dev/null
+  ui_print "- 持久化快照完成（$snapshot_items 项，约 ${snapshot_size:-?}）"
+  ui_print "- 万一数据丢了：su -c \"sh $PERSIST_DIR/restore-last-update.sh\""
 fi
 
 # 极少数情况下 /data 挂载异常，提示用户重启后重试
@@ -287,6 +344,76 @@ CUR_SSH_PORT=22
 . "$PERSIST_DIR/ports.conf" 2>/dev/null || true
 CUR_PANEL_PORT="${PANEL_PORT:-5700}"
 CUR_SSH_PORT="${SSH_PORT:-22}"
+
+# ---- 一键恢复脚本（指向 PERSIST_DIR/last-update-backup） ------------------
+# 每次安装都重写，保证脚本里硬编码的 rootfs / MODID 与本次一致。
+cat > "$PERSIST_DIR/restore-last-update.sh" <<RESTORE
+#!/system/bin/sh
+# 呆呆面板 - 一键恢复"上次更新前"的数据快照。
+# 使用：su -c "sh /data/adb/daidai-panel/restore-last-update.sh"
+set -e
+
+MODID=$MODID
+PERSIST_DIR=$PERSIST_DIR
+BACKUP_DIR="\$PERSIST_DIR/last-update-backup"
+ROOTFS_CANDIDATES="/data/daidai /data/local/daidai"
+
+log()  { echo "[restore] \$*"; }
+fail() { echo "[restore][FATAL] \$*" >&2; exit 1; }
+
+if [ ! -d "\$BACKUP_DIR" ]; then
+  fail "找不到备份目录 \$BACKUP_DIR；说明还没经历过任何一次模块更新"
+fi
+if [ ! -s "\$BACKUP_DIR/BACKUP_INFO.txt" ]; then
+  log "警告：\$BACKUP_DIR 存在但没有 BACKUP_INFO.txt，可能是不完整快照"
+fi
+
+# 找当前 rootfs
+ROOTFS=""
+for candidate in \$ROOTFS_CANDIDATES; do
+  if [ -d "\$candidate/app/Dumb-Panel" ] || [ -d "\$candidate/app" ]; then
+    ROOTFS="\$candidate"
+    break
+  fi
+done
+[ -n "\$ROOTFS" ] || fail "找不到 rootfs（试过：\$ROOTFS_CANDIDATES）；请确认模块已安装"
+
+TARGET="\$ROOTFS/app/Dumb-Panel"
+log "rootfs: \$ROOTFS"
+log "目标: \$TARGET"
+
+cat "\$BACKUP_DIR/BACKUP_INFO.txt" 2>/dev/null | head -n 8
+echo
+
+# 安全检查：当前目录已存在且非空 → 二次确认
+if [ -d "\$TARGET" ] && [ -n "\$(ls -A "\$TARGET" 2>/dev/null)" ]; then
+  log "目标目录已存在数据；恢复会覆盖同名文件（其他文件保留）"
+  if [ -z "\$FORCE" ]; then
+    printf "确认恢复？(y/N): "
+    read -r ans
+    case "\$ans" in
+      y|Y|yes|YES) ;;
+      *) fail "用户取消" ;;
+    esac
+  fi
+fi
+
+# 停面板
+log "停止 daidai-server ..."
+pkill -f /usr/local/bin/daidai-server 2>/dev/null || true
+pkill -f daidai-server 2>/dev/null || true
+sleep 1
+
+# 回拷（覆盖式 cp，但用 -a 保留属性；不删 TARGET 里的额外文件）
+mkdir -p "\$TARGET"
+log "从快照复制 ..."
+( cd "\$BACKUP_DIR" && cp -af \$(ls -A | grep -v '^BACKUP_INFO.txt\$') "\$TARGET/" )
+
+log "恢复完成"
+log "下一步：重启模块（推荐重启设备），或："
+log "  su -c \"sh /data/adb/modules/\$MODID/service.sh\""
+RESTORE
+chmod +x "$PERSIST_DIR/restore-last-update.sh" 2>/dev/null
 
 # ---- 收尾 --------------------------------------------------------------
 "$RURIMA" ruri -w -U $rootfs 2>/dev/null || true

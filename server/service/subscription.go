@@ -568,11 +568,23 @@ func matchesSubscriptionFilters(sub *model.Subscription, filename string) bool {
 func syncSubscriptionTasks(sub *model.Subscription, emit PullCallback) {
 	options := getSubscriptionTaskSyncOptions(sub)
 	if !options.autoAdd && !options.autoDelete {
+		emit("[跳过自动同步任务] 订阅与系统设置中均未启用 auto_add_cron / auto_del_cron")
 		return
 	}
 
+	saveDir := subscriptionSaveDir(sub)
+	scriptsDir := filepath.Join(config.C.Data.ScriptsDir, saveDir)
 	candidates := collectSubscriptionTaskCandidates(sub, options)
 	label := subscriptionTaskLabel(sub.ID)
+
+	// 可观测兜底：v2.2.8 之前任何空候选 / DB 创建失败都被静默吞掉，用户只看到
+	// "[完成]" 就以为同步成功了。这里把每一步都打日志出来。
+	scannedFileCount := countSubscriptionScriptFiles(scriptsDir, options.allowedExts, sub)
+	emit(fmt.Sprintf("[扫描脚本] 目录 %s 共扫描 %d 个候选文件（按白/黑名单过滤后），识别出 %d 个含 cron 的脚本",
+		scriptsDir, scannedFileCount, len(candidates)))
+	if len(candidates) == 0 && scannedFileCount > 0 {
+		emit("[提示] 仓库内有脚本但没有识别到 cron 表达式：请检查脚本头部是否含 `cron <表达式>` 注释，或在系统设置 default_cron_rule 里配置默认 cron")
+	}
 
 	var managedTasks []model.Task
 	queryTasksByLabel(label).Find(&managedTasks)
@@ -585,6 +597,7 @@ func syncSubscriptionTasks(sub *model.Subscription, emit PullCallback) {
 	updated := 0
 	deleted := 0
 	adopted := 0
+	failed := 0
 
 	if options.autoAdd {
 		for command, candidate := range candidates {
@@ -599,10 +612,14 @@ func syncSubscriptionTasks(sub *model.Subscription, emit PullCallback) {
 					existing.CronExpression = candidate.CronExpression
 				}
 				if len(changes) > 0 {
-					database.DB.Model(existing).Updates(changes)
-					GetSchedulerV2().UpdateJob(existing)
-					updated++
-					emit(fmt.Sprintf("[自动更新任务] %s (cron: %s)", candidate.Name, candidate.CronExpression))
+					if err := database.DB.Model(existing).Updates(changes).Error; err != nil {
+						failed++
+						emit(fmt.Sprintf("[自动更新任务失败] %s: %v", candidate.Name, err))
+					} else {
+						GetSchedulerV2().UpdateJob(existing)
+						updated++
+						emit(fmt.Sprintf("[自动更新任务] %s (cron: %s)", candidate.Name, candidate.CronExpression))
+					}
 				}
 				continue
 			}
@@ -611,10 +628,14 @@ func syncSubscriptionTasks(sub *model.Subscription, emit PullCallback) {
 			if err := database.DB.Where("command = ?", command).First(&existing).Error; err == nil {
 				labels := withLabel(existing.GetLabels(), label)
 				existing.SetLabelsFromSlice(labels)
-				database.DB.Model(&existing).Update("labels", existing.Labels)
-				managedByCommand[command] = &existing
-				adopted++
-				emit(fmt.Sprintf("[关联已有任务] %s", existing.Name))
+				if err := database.DB.Model(&existing).Update("labels", existing.Labels).Error; err != nil {
+					failed++
+					emit(fmt.Sprintf("[关联已有任务失败] %s: %v", existing.Name, err))
+				} else {
+					managedByCommand[command] = &existing
+					adopted++
+					emit(fmt.Sprintf("[关联已有任务] %s", existing.Name))
+				}
 				continue
 			}
 
@@ -628,7 +649,11 @@ func syncSubscriptionTasks(sub *model.Subscription, emit PullCallback) {
 				NotifyOnFailure: true,
 			}
 			task.SetLabelsFromSlice([]string{label})
-			if database.DB.Select("*").Create(&task).Error == nil {
+			if err := database.DB.Select("*").Create(&task).Error; err != nil {
+				failed++
+				emit(fmt.Sprintf("[自动添加任务失败] %s (cron: %s) command=%s err=%v",
+					candidate.Name, candidate.CronExpression, candidate.Command, err))
+			} else {
 				GetSchedulerV2().AddJob(&task)
 				managedByCommand[command] = &task
 				created++
@@ -667,12 +692,58 @@ func syncSubscriptionTasks(sub *model.Subscription, emit PullCallback) {
 	if deleted > 0 {
 		emit(fmt.Sprintf("[共自动删除 %d 个失效任务]", deleted))
 	}
+	if failed > 0 {
+		emit(fmt.Sprintf("[警告] 共 %d 个任务操作失败，详见上方日志", failed))
+	}
+	if created == 0 && updated == 0 && adopted == 0 && deleted == 0 && failed == 0 {
+		emit("[同步完成] 本次未对定时任务做任何变更")
+	}
 }
+
+// countSubscriptionScriptFiles 统计 scriptsDir 下符合扩展名 + 白/黑名单过滤的文件数。
+// 仅用于日志可观测：让用户知道"扫到了 X 个候选文件、识别出 Y 个 cron"——
+// 当 X>0 而 Y=0 时能立刻看出是 cron 解析问题而不是路径问题。
+func countSubscriptionScriptFiles(scriptsDir string, allowedExts map[string]bool, sub *model.Subscription) int {
+	if _, err := os.Stat(scriptsDir); err != nil {
+		return 0
+	}
+	count := 0
+	filepath.Walk(scriptsDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if info.IsDir() {
+			switch strings.ToLower(info.Name()) {
+			case ".git", "node_modules", "__pycache__":
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if shouldManageSubscriptionFile(sub, info.Name(), allowedExts) {
+			count++
+		}
+		return nil
+	})
+	return count
+}
+
+// FallbackSubscriptionCron 是订阅脚本未声明 cron 时使用的"硬兜底"。
+// 用户既没在脚本头部写 cron 注释、也没在系统设置 default_cron_rule 里配自定义默认值时，
+// 用这个兜底——每天 0 点跑一次，保证 git 拉到的脚本都会变成定时任务。
+// 用户可以在任务详情里手动改 cron，或者把脚本注释加上 cron 头让下次同步用真值覆盖。
+const FallbackSubscriptionCron = "0 0 * * *"
 
 func getSubscriptionTaskSyncOptions(sub *model.Subscription) subscriptionTaskSyncOptions {
 	defaultCron := strings.TrimSpace(model.GetRegisteredConfig("default_cron_rule"))
 	if defaultCron != "" && !cron.Parse(defaultCron).Valid {
 		defaultCron = ""
+	}
+	// 系统设置里 default_cron_rule 是空时，落到硬兜底。这是用户"git 拉了但一个任务都没建"
+	// 困惑的根因：原默认是 "" → cron 头没识别就 skip，整个仓库一个任务都建不出来。
+	// v2.2.10 起改为：默认兜底 = 每天 0 点。用户想关闭兜底，可以把 default_cron_rule
+	// 设成非法值（比如 "off"），代码会回退到 "" 然后跳过没 cron 的脚本。
+	if defaultCron == "" {
+		defaultCron = FallbackSubscriptionCron
 	}
 
 	return subscriptionTaskSyncOptions{
@@ -718,6 +789,36 @@ func getSubscriptionAllowedExtensions(raw string) map[string]bool {
 	}
 }
 
+// subscriptionHelperScriptNames 列出"通知辅助脚本"——这些脚本本身不是定时任务，
+// 而是被业务脚本 require/import 调用的工具。订阅同步时不应该为它们建定时任务，
+// 即使没有 cron 头并且系统配置了 default_cron_rule 兜底也不建。
+// 名字按"去掉扩展名后的 basename，小写"匹配。
+var subscriptionHelperScriptNames = map[string]bool{
+	"sendnotify":   true, // QLScriptPublic / jdpro 风格的通知 helper（多种大小写拼写都收）
+	"sendnofity":   true, // 实际仓库里 sendNofity.js 这种笔误也常见
+	"notify":       true, // 青龙原版 notify.py
+	"sendnotify_":  true, // sendNotify_.js 这种带下划线后缀的变体
+	"jdcookie":     true,
+	"ql":           true,
+	"qlapi":        true,
+	"utils":        true,
+	"util":         true,
+	"common":       true,
+	"helper":       true,
+	"sign":         true, // 通用签名 helper
+	"magic":        true, // jd_magic 类
+	"jsencrypt":    true,
+	"cryptojs":     true,
+}
+
+// isSubscriptionHelperScript 判断"该脚本是不是被业务脚本调用的辅助脚本"。
+// 注意：只在脚本本身没有 cron 头注释时才用——脚本明确写了 cron 表达式
+// 视为用户主动声明"这是定时任务"，必须建。
+func isSubscriptionHelperScript(filename string) bool {
+	base := strings.ToLower(strings.TrimSuffix(filename, filepath.Ext(filename)))
+	return subscriptionHelperScriptNames[base]
+}
+
 func shouldManageSubscriptionFile(sub *model.Subscription, filename string, allowedExts map[string]bool) bool {
 	ext := strings.ToLower(filepath.Ext(filename))
 	if !allowedExts[ext] {
@@ -751,9 +852,20 @@ func collectSubscriptionTaskCandidates(sub *model.Subscription, options subscrip
 			return nil
 		}
 
-		cronExpr := resolveCronForSubscriptionTask(path, options.defaultCron)
+		// 先尝试从脚本头部识别 cron。脚本明确写了 cron 就完全按它来。
+		cronExpr := resolveCronForSubscriptionTask(path, "")
 		if cronExpr == "" {
-			return nil
+			// 脚本头没 cron 注释。两种处理：
+			//   1) 已知是通知/工具辅助脚本（sendNotify.js / notify.py 等）→ 不建任务
+			//   2) 否则用兜底 cron（系统配置 default_cron_rule，或硬兜底每天 0 点）
+			//      —— 保证 git 拉到的业务脚本必定变成任务，不会"明明拉成功但任务列表空"
+			if isSubscriptionHelperScript(info.Name()) {
+				return nil
+			}
+			cronExpr = options.defaultCron
+			if cronExpr == "" {
+				return nil
+			}
 		}
 
 		relPath, err := filepath.Rel(config.C.Data.ScriptsDir, path)

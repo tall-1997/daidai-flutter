@@ -107,3 +107,73 @@ func TestDetectAutoInstallCandidate(t *testing.T) {
 		}
 	})
 }
+
+// 回归：v2.2.4 重构托管 venv bootstrap 时漏了 venvDir 参数，导致 venv 永远建不出来，
+// 自动安装走到系统 pip 触发 Alpine/Debian 的 PEP 668 "externally-managed-environment"。
+// 修复后 ResolvePipInstallCommand 必须在 venv 缺失时回 fallback flag。
+func TestIsExternallyManagedErrorMatches(t *testing.T) {
+	samples := []string{
+		"error: externally-managed-environment\n\nThis environment is externally managed",
+		"× This environment is externally managed",
+		"  externally-managed-environment\n",
+	}
+	for _, s := range samples {
+		if !IsExternallyManagedError([]byte(s)) {
+			t.Fatalf("should detect PEP 668 in: %q", s)
+		}
+	}
+
+	negatives := []string{
+		"ERROR: Could not find a version that satisfies the requirement foo",
+		"WARNING: pip is configured with locations that require TLS/SSL",
+		"",
+	}
+	for _, s := range negatives {
+		if IsExternallyManagedError([]byte(s)) {
+			t.Fatalf("should NOT detect PEP 668 in: %q", s)
+		}
+	}
+}
+
+func TestBuildPipInstallArgsKeepsOrder(t *testing.T) {
+	got := BuildPipInstallArgs([]string{"--break-system-packages", "--user"}, "requests")
+	want := []string{"install", "--break-system-packages", "--user", "requests"}
+	if len(got) != len(want) {
+		t.Fatalf("len mismatch: got=%v want=%v", got, want)
+	}
+	for i := range got {
+		if got[i] != want[i] {
+			t.Fatalf("arg %d mismatch: got=%q want=%q", i, got[i], want[i])
+		}
+	}
+}
+
+func TestBuildPipUninstallArgsDropsUserFlag(t *testing.T) {
+	// --user 在 uninstall 时是非法的，必须被剥离；--break-system-packages 仍要保留。
+	got := BuildPipUninstallArgs([]string{"--break-system-packages", "--user"}, "requests", "--no-deps")
+	for _, arg := range got {
+		if arg == "--user" {
+			t.Fatalf("--user should be stripped from uninstall args, got %v", got)
+		}
+	}
+	if got[0] != "uninstall" || got[1] != "-y" {
+		t.Fatalf("uninstall args should start with `uninstall -y`, got %v", got)
+	}
+
+	hasBreak := false
+	hasNoDeps := false
+	hasPkg := false
+	for _, arg := range got {
+		switch arg {
+		case "--break-system-packages":
+			hasBreak = true
+		case "--no-deps":
+			hasNoDeps = true
+		case "requests":
+			hasPkg = true
+		}
+	}
+	if !hasBreak || !hasNoDeps || !hasPkg {
+		t.Fatalf("expected --break-system-packages, --no-deps, requests all present, got %v", got)
+	}
+}

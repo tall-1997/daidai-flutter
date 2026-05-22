@@ -1222,11 +1222,8 @@ func reinstallDependency(dep model.Dependency, logPrefix string) {
 		cmd = exec.Command("npm", "install", "--prefix", filepath.Join(depsDir, "nodejs"), dep.Name)
 		cmd.Env = NpmInstallEnv(AppendProxyEnv(os.Environ()), CurrentNpmMirror())
 	case model.DepTypePython:
-		pipBin := ResolveManagedPipBinary()
-		if strings.TrimSpace(pipBin) == "" {
-			pipBin = "pip3"
-		}
-		cmd = exec.Command(pipBin, "install", dep.Name)
+		pipBin, extraFlags, _ := ResolvePipInstallCommand()
+		cmd = exec.Command(pipBin, BuildPipInstallArgs(extraFlags, dep.Name)...)
 		cmd.Env = append(PipInstallEnv(AppendProxyEnv(os.Environ()), CurrentPipMirror()), "TMPDIR=/tmp")
 	case model.DepTypeLinux:
 		var err error
