@@ -33,3 +33,8 @@ Thumbs.db
 /scripts/
 
 "daidai-panel.exe" 
+
+# Android build files
+daidai-app/app/build/
+daidai-app/build/
+daidai-app/.gradle/
