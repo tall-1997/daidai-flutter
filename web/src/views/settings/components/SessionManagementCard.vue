@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import { Monitor, Refresh } from '@element-plus/icons-vue'
 import { useResponsive } from '@/composables/useResponsive'
+import type { SettingsConfigForm } from '../types'
 
 const { isMobile } = useResponsive()
 
 defineProps<{
   sessions: any[]
   sessionsLoading: boolean
+  configForm: SettingsConfigForm
+  configSaving: boolean
   onLoadSessions: () => void | Promise<void>
   onRevokeAllSessions: () => void | Promise<void>
   onRevokeSession: (id: number) => void | Promise<void>
+  onSaveSessionConfig: () => void | Promise<void>
 }>()
 </script>
 
@@ -24,6 +28,37 @@ defineProps<{
         </div>
       </div>
     </template>
+    <div class="session-limit-section">
+      <el-form :label-width="isMobile ? 'auto' : '120px'" :label-position="isMobile ? 'top' : 'right'">
+        <el-form-item label="网页端会话上限">
+          <el-input-number
+            :model-value="configForm.max_web_sessions"
+            @update:model-value="configForm.max_web_sessions = $event ?? 1"
+            :min="1"
+            :max="20"
+            controls-position="right"
+          />
+        </el-form-item>
+        <el-form-item label="APP 端会话上限">
+          <el-input-number
+            :model-value="configForm.max_app_sessions"
+            @update:model-value="configForm.max_app_sessions = $event ?? 1"
+            :min="1"
+            :max="20"
+            controls-position="right"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" :loading="configSaving" @click="onSaveSessionConfig">保存</el-button>
+        </el-form-item>
+      </el-form>
+      <div class="session-limit-hint">
+        设置同一用户可同时保持的最大会话数，超出限制时最早的会话将被自动踢下线。默认 1 表示每次登录会顶掉之前的会话。
+      </div>
+    </div>
+
+    <el-divider />
+
     <div v-if="isMobile" class="dd-mobile-list">
       <div
         v-for="row in sessions"
@@ -77,6 +112,23 @@ defineProps<{
 
 <style scoped lang="scss">
 @use './config-card-shared.scss' as *;
+
+.session-limit-section {
+  margin-bottom: 4px;
+}
+
+.session-limit-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.session-limit-hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.6;
+  margin-top: 4px;
+}
 
 .card-header-buttons {
   display: flex;

@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import CronInput from './CronInput.vue'
+import StopScheduleInput from './StopScheduleInput.vue'
 import { mergeTaskLabels, splitTaskLabels } from '../taskLabels'
 import { useResponsive } from '@/composables/useResponsive'
 
@@ -185,10 +186,7 @@ function handleSubmit() {
             <CronInput v-model="form.cron_expression" />
           </el-form-item>
           <el-form-item v-if="form.task_type === 'cron'" label="定时停止">
-            <el-input v-model="form.stop_schedule" placeholder="cron 表达式，留空不自动停止（如 0 12 * * *）" />
-            <div style="font-size: 11px; color: var(--el-text-color-secondary); margin-top: 4px; line-height: 1.5">
-              到达设定时间后自动停止正在运行的任务，适合需要在特定时段运行的长驻任务。支持多条，换行分隔。
-            </div>
+            <StopScheduleInput v-model="form.stop_schedule" />
           </el-form-item>
           <el-form-item v-else label="执行说明">
             <div style="font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.7">

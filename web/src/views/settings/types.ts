@@ -38,4 +38,6 @@ export interface SettingsConfigForm {
   backup_schedule_name: string
   backup_schedule_password: string
   backup_schedule_selection: string
+  max_web_sessions: number
+  max_app_sessions: number
 }

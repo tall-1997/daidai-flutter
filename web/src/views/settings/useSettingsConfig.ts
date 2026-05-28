@@ -47,7 +47,9 @@ export function useSettingsConfig() {
     backup_schedule_monthday: 1,
     backup_schedule_name: '',
     backup_schedule_password: '',
-    backup_schedule_selection: 'configs,tasks,subscriptions,env_vars,logs,scripts,dependencies,task_views'
+    backup_schedule_selection: 'configs,tasks,subscriptions,env_vars,logs,scripts,dependencies,task_views',
+    max_web_sessions: 1,
+    max_app_sessions: 1
   })
 
   function readConfigString(cfgs: Record<string, any>, key: string, fallback = ''): string {
@@ -113,7 +115,9 @@ export function useSettingsConfig() {
         backup_schedule_monthday: readConfigNumber(cfgs, 'backup_schedule_monthday', 1),
         backup_schedule_name: readConfigString(cfgs, 'backup_schedule_name', ''),
         backup_schedule_password: readConfigString(cfgs, 'backup_schedule_password', ''),
-        backup_schedule_selection: readConfigString(cfgs, 'backup_schedule_selection', 'configs,tasks,subscriptions,env_vars,logs,scripts,dependencies,task_views')
+        backup_schedule_selection: readConfigString(cfgs, 'backup_schedule_selection', 'configs,tasks,subscriptions,env_vars,logs,scripts,dependencies,task_views'),
+        max_web_sessions: readConfigNumber(cfgs, 'max_web_sessions', 1),
+        max_app_sessions: readConfigNumber(cfgs, 'max_app_sessions', 1)
       }
       applyPanelAppearance(configForm.value)
     } catch (err: any) {
@@ -210,6 +214,10 @@ export function useSettingsConfig() {
     void saveConfigKeys(['captcha_enabled', 'captcha_id', 'captcha_key', 'captcha_fail_mode'])
   }
 
+  function handleSaveSessionConfig() {
+    void saveConfigKeys(['max_web_sessions', 'max_app_sessions'])
+  }
+
   function handleSaveBackupSchedule(selectionCSV?: string) {
     const normalizedSelection = selectionCSV?.trim() || configForm.value.backup_schedule_selection
     configForm.value.backup_schedule_selection = normalizedSelection
@@ -239,6 +247,7 @@ export function useSettingsConfig() {
     handleSaveTaskConfig,
     handleSaveProxy,
     handleSaveCaptcha,
+    handleSaveSessionConfig,
     handleSaveBackupSchedule
   }
 }

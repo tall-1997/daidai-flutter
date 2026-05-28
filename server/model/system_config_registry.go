@@ -130,6 +130,8 @@ var registeredSystemConfigSpecs = []systemConfigSpec{
 		},
 	),
 	newTrimmedStringConfig("panel_service_name", "daidai-panel", "systemd 服务名称", "branding"),
+	newIntConfig("max_web_sessions", "1", "同一用户最大网页端会话数（多设备同时在线）", "security", 1, 20),
+	newIntConfig("max_app_sessions", "1", "同一用户最大 APP 端会话数（多设备同时在线）", "security", 1, 20),
 	newBoolConfig("captcha_enabled", "false", "极验验证码开关（连续失败 3 次后触发）", "security"),
 	newTrimmedStringConfig("captcha_id", "", "验证码平台 ID", "security"),
 	newTrimmedStringConfig("captcha_key", "", "验证码平台密钥（服务端 Key）", "security"),
@@ -457,8 +459,9 @@ func normalizeBackupScheduleSelectionValue(value string) (string, error) {
 		"logs":          true,
 		"scripts":       true,
 		"dependencies":  true,
+		"task_views":    true,
 	}
-	defaultValue := "configs,tasks,subscriptions,env_vars,logs,scripts,dependencies"
+	defaultValue := "configs,tasks,subscriptions,env_vars,logs,scripts,dependencies,task_views"
 
 	value = strings.TrimSpace(value)
 	if value == "" {

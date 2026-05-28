@@ -79,6 +79,7 @@ const {
   handleSaveTaskConfig,
   handleSaveProxy,
   handleSaveCaptcha,
+  handleSaveSessionConfig,
   handleSaveBackupSchedule
 } = config
 
@@ -457,9 +458,12 @@ watch(
             <SessionManagementCard
               :sessions="sessions"
               :sessions-loading="sessionsLoading"
+              :config-form="configForm"
+              :config-saving="configsSaving"
               :on-load-sessions="loadSessions"
               :on-revoke-all-sessions="handleRevokeAllSessions"
               :on-revoke-session="handleRevokeSession"
+              :on-save-session-config="handleSaveSessionConfig"
             />
           </el-tab-pane>
 

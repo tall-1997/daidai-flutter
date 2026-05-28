@@ -187,6 +187,12 @@ async function handleSave() {
 async function handleDelete(viewId: number) {
   try {
     await ElMessageBox.confirm('确认删除该视图吗？', '删除确认', { type: 'warning' })
+    await doDeleteView(viewId)
+  } catch {}
+}
+
+async function doDeleteView(viewId: number) {
+  try {
     await taskViewApi.delete(viewId)
     ElMessage.success('已删除')
     if (activeViewId.value === viewId) {
@@ -235,6 +241,8 @@ defineExpose({ loadViews })
       v-model="showManagementDialog"
       :views="views"
       @saved="handleManagementSaved"
+      @edit="openEditDialog"
+      @delete="doDeleteView"
     />
 
     <el-dialog

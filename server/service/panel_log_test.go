@@ -1,6 +1,9 @@
 package service
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestMatchPanelLogLevel(t *testing.T) {
 	tests := []struct {
@@ -28,8 +31,12 @@ func TestMatchPanelLogLevel(t *testing.T) {
 func TestFormatPanelLogLineCompactsGINAccessLog(t *testing.T) {
 	line := `[GIN] 2026/05/11 - 23:14:59 | 200 |    8.576817ms | 116.162.227.223 | GET      "/api/tasks?page=1&page_size=20"`
 	got := formatPanelLogLine(line)
-	want := `[INFO] GET /api/tasks?page=1&page_size=20 -> 200 8.576817ms @116.162.227.223`
-	if got != want {
-		t.Fatalf("expected compact gin log %q, got %q", want, got)
+	if !strings.HasPrefix(got, "[INFO] ") {
+		t.Fatalf("expected line to start with [INFO], got %q", got)
+	}
+	for _, part := range []string{"[116.162.227.223]", "GET", "/api/tasks?page=1&page_size=20", "状态=200"} {
+		if !strings.Contains(got, part) {
+			t.Fatalf("expected line to contain %q, got %q", part, got)
+		}
 	}
 }

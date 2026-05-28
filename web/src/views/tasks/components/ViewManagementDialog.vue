@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Rank, View, Hide } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Rank, View, Hide, Edit, Delete } from '@element-plus/icons-vue'
 import { taskViewApi, type TaskView } from '@/api/taskView'
 import { useResponsive } from '@/composables/useResponsive'
 
@@ -19,6 +19,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   saved: []
+  edit: [view: TaskView]
+  delete: [viewId: number]
 }>()
 
 const { dialogFullscreen } = useResponsive()
@@ -76,6 +78,20 @@ function teardownSortable() {
 
 function toggleHidden(view: ManagedView) {
   view._hidden = !view._hidden
+}
+
+function handleEdit(view: ManagedView) {
+  emit('edit', view as TaskView)
+  emit('update:modelValue', false)
+}
+
+async function handleDelete(view: ManagedView) {
+  try {
+    await ElMessageBox.confirm(`确认删除视图「${view.name}」吗？`, '删除确认', { type: 'warning' })
+    emit('delete', view.id)
+  } catch {
+    // cancelled
+  }
 }
 
 async function handleSave() {
@@ -161,15 +177,27 @@ watch(
             <el-icon><Rank /></el-icon>
           </span>
           <span class="view-row-name">{{ view.name }}</span>
-          <el-tooltip :content="view._hidden ? '在标签栏隐藏' : '在标签栏显示'" placement="top">
-            <el-switch
-              :model-value="!view._hidden"
-              inline-prompt
-              :active-icon="View"
-              :inactive-icon="Hide"
-              @update:model-value="toggleHidden(view)"
-            />
-          </el-tooltip>
+          <div class="view-row-actions">
+            <el-tooltip content="编辑" placement="top">
+              <el-button size="small" type="primary" plain circle @click="handleEdit(view)">
+                <el-icon><Edit /></el-icon>
+              </el-button>
+            </el-tooltip>
+            <el-tooltip content="删除" placement="top">
+              <el-button size="small" type="danger" plain circle @click="handleDelete(view)">
+                <el-icon><Delete /></el-icon>
+              </el-button>
+            </el-tooltip>
+            <el-tooltip :content="view._hidden ? '在标签栏隐藏' : '在标签栏显示'" placement="top">
+              <el-switch
+                :model-value="!view._hidden"
+                inline-prompt
+                :active-icon="View"
+                :inactive-icon="Hide"
+                @update:model-value="toggleHidden(view)"
+              />
+            </el-tooltip>
+          </div>
         </div>
       </div>
     </template>
@@ -255,6 +283,13 @@ watch(
   font-weight: 500;
   color: var(--el-text-color-primary);
   word-break: break-word;
+}
+
+.view-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .view-row-ghost {

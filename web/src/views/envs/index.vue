@@ -720,7 +720,7 @@ watch(showConfigScriptDialog, async (visible) => {
   configScriptLoading.value = true
   try {
     const res = await configScriptApi.get()
-    configScriptContent.value = res.data?.content ?? ''
+    configScriptContent.value = (res as any)?.content ?? ''
   } catch {
     configScriptContent.value = ''
   } finally {

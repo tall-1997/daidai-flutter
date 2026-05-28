@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"sort"
+
 	"daidai-panel/database"
 	"daidai-panel/model"
 	"daidai-panel/pkg/netutil"
@@ -109,7 +111,15 @@ func CreateSessionWithRefresh(userID uint, username, accessJTI, refreshJTI, clie
 	}
 
 	normalizedClientType := NormalizeSessionClientType(clientType)
-	revokeUserSessionsByClientType(userID, normalizedClientType)
+	configKey := "max_web_sessions"
+	if normalizedClientType == SessionClientApp {
+		configKey = "max_app_sessions"
+	}
+	maxSessions := model.GetConfigInt(configKey, 1)
+	if maxSessions < 1 {
+		maxSessions = 1
+	}
+	revokeExcessSessionsByClientType(userID, normalizedClientType, maxSessions)
 
 	session := model.UserSession{
 		UserID:           userID,
@@ -134,19 +144,38 @@ func effectiveSessionClientType(session model.UserSession) string {
 	return DetectSessionClientType(session.ClientType, "", session.UserAgent)
 }
 
-func revokeUserSessionsByClientType(userID uint, clientType string) int64 {
+func revokeExcessSessionsByClientType(userID uint, clientType string, maxSessions int) int64 {
 	targetType := NormalizeSessionClientType(clientType)
+	if maxSessions < 1 {
+		maxSessions = 1
+	}
 
 	var sessions []model.UserSession
 	database.DB.Where("user_id = ?", userID).Find(&sessions)
 
-	var ids []uint
+	var matched []model.UserSession
 	for i := range sessions {
 		if effectiveSessionClientType(sessions[i]) != targetType {
 			continue
 		}
-		BlockSessionTokens(&sessions[i])
-		ids = append(ids, sessions[i].ID)
+		matched = append(matched, sessions[i])
+	}
+
+	// keep (maxSessions - 1) newest, revoke the rest (the new session will fill the last slot)
+	keepCount := maxSessions - 1
+	if len(matched) <= keepCount {
+		return 0
+	}
+
+	sort.Slice(matched, func(i, j int) bool {
+		return matched[i].CreatedAt.After(matched[j].CreatedAt)
+	})
+
+	toRevoke := matched[keepCount:]
+	var ids []uint
+	for i := range toRevoke {
+		BlockSessionTokens(&toRevoke[i])
+		ids = append(ids, toRevoke[i].ID)
 	}
 
 	if len(ids) == 0 {

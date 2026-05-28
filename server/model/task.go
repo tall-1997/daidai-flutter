@@ -88,6 +88,7 @@ func (t *Task) ToDict() map[string]interface{} {
 		"task_before":              t.TaskBefore,
 		"task_after":               t.TaskAfter,
 		"allow_multiple_instances": t.AllowMultipleInstances,
+		"stop_schedule":            t.StopSchedule,
 		"created_at":               t.CreatedAt,
 		"updated_at":               t.UpdatedAt,
 	}

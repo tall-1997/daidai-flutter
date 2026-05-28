@@ -193,7 +193,7 @@ function updateBackupScheduleSelection(key: keyof BackupSelection, value: boolea
       <el-table-column prop="created_at" label="创建时间" width="170">
         <template #default="{ row }">{{ new Date(row.created_at).toLocaleString() }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="220" fixed="right" align="center">
+      <el-table-column label="操作" width="260" fixed="right" align="center">
         <template #default="{ row }">
           <div class="backup-actions">
             <el-button size="small" type="primary" plain @click="onDownloadBackup(row.name)">
@@ -389,6 +389,7 @@ function updateBackupScheduleSelection(key: keyof BackupSelection, value: boolea
 
 .backup-actions {
   justify-content: center;
+  flex-wrap: nowrap;
 }
 
 .backup-selection-grid {
