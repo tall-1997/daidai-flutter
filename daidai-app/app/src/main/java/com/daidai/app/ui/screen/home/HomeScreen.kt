@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daidai.app.data.remote.model.Task
+import com.daidai.app.ui.screen.dependency.DependencyViewModel
 import com.daidai.app.ui.screen.env.EnvViewModel
 import com.daidai.app.ui.screen.log.LogViewModel
 import com.daidai.app.ui.screen.script.ScriptViewModel
@@ -229,66 +230,122 @@ fun EnvironmentsContent(
 
 @Composable
 fun DependenciesContent(
-    viewModel: ScriptViewModel = hiltViewModel()
+    viewModel: DependencyViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (uiState.isLoading && uiState.scripts.isEmpty()) {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center)
+    Column(modifier = Modifier.fillMaxSize()) {
+        // 类型选择标签
+        ScrollableTabRow(
+            selectedTabIndex = when (uiState.selectedType) {
+                "nodejs" -> 0
+                "python" -> 1
+                "linux" -> 2
+                else -> 0
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Tab(
+                selected = uiState.selectedType == "nodejs",
+                onClick = { viewModel.changeType("nodejs") },
+                text = { Text("Node.js") }
             )
-        } else if (uiState.error != null && uiState.scripts.isEmpty()) {
-            Column(
-                modifier = Modifier.align(Alignment.Center),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = uiState.error ?: "未知错误",
-                    color = MaterialTheme.colorScheme.error
+            Tab(
+                selected = uiState.selectedType == "python",
+                onClick = { viewModel.changeType("python") },
+                text = { Text("Python") }
+            )
+            Tab(
+                selected = uiState.selectedType == "linux",
+                onClick = { viewModel.changeType("linux") },
+                text = { Text("Linux") }
+            )
+        }
+        
+        // 内容区域
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (uiState.isLoading && uiState.dependencies.isEmpty()) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = { viewModel.loadScripts() }) {
-                    Text("重试")
+            } else if (uiState.error != null && uiState.dependencies.isEmpty()) {
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = uiState.error ?: "未知错误",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = { viewModel.loadDeps() }) {
+                        Text("重试")
+                    }
                 }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(uiState.scripts) { script ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
+            } else if (uiState.dependencies.isEmpty()) {
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Default.Extension,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "暂无${uiState.selectedType}依赖",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(uiState.dependencies) { dep ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(
-                                if (script.isDir) Icons.Default.Folder else Icons.Default.Extension,
-                                contentDescription = null,
-                                modifier = Modifier.size(40.dp),
-                                tint = if (script.isDir) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = script.name,
-                                    style = MaterialTheme.typography.titleMedium
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Extension,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(40.dp),
+                                    tint = when (dep.status) {
+                                        "installed" -> MaterialTheme.colorScheme.primary
+                                        "installing", "queued" -> MaterialTheme.colorScheme.tertiary
+                                        else -> MaterialTheme.colorScheme.error
+                                    }
                                 )
-                                Text(
-                                    text = script.path,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            if (!script.isDir) {
-                                Text(
-                                    text = formatFileSize(script.size),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = dep.name,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text(
+                                        text = dep.typeText,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                AssistChip(
+                                    onClick = {},
+                                    label = { Text(dep.statusText) },
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        containerColor = when (dep.status) {
+                                            "installed" -> MaterialTheme.colorScheme.primaryContainer
+                                            "installing", "queued" -> MaterialTheme.colorScheme.tertiaryContainer
+                                            else -> MaterialTheme.colorScheme.errorContainer
+                                        }
+                                    )
                                 )
                             }
                         }

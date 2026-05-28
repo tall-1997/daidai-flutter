@@ -1,6 +1,7 @@
 package com.daidai.app;
 
 import com.daidai.app.di.NetworkModule;
+import com.daidai.app.ui.screen.dependency.DependencyViewModel_HiltModules;
 import com.daidai.app.ui.screen.env.EnvViewModel_HiltModules;
 import com.daidai.app.ui.screen.home.TaskViewModel_HiltModules;
 import com.daidai.app.ui.screen.log.LogViewModel_HiltModules;
@@ -149,6 +150,7 @@ public final class DaidaiApplication_HiltComponents {
       modules = {
           ActivityCBuilderModule.class,
           ViewModelCBuilderModule.class,
+          DependencyViewModel_HiltModules.KeyModule.class,
           EnvViewModel_HiltModules.KeyModule.class,
           HiltWrapper_ActivityRetainedComponentManager_LifecycleModule.class,
           LogViewModel_HiltModules.KeyModule.class,
@@ -190,6 +192,7 @@ public final class DaidaiApplication_HiltComponents {
 
   @Subcomponent(
       modules = {
+          DependencyViewModel_HiltModules.BindsModule.class,
           EnvViewModel_HiltModules.BindsModule.class,
           HiltWrapper_HiltViewModelFactory_ViewModelModule.class,
           LogViewModel_HiltModules.BindsModule.class,
