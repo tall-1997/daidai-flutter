@@ -1,5 +1,6 @@
 package com.daidai.app.ui.screen.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -21,13 +23,19 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daidai.app.data.remote.model.Dependency
 import com.daidai.app.data.remote.model.Env
+import com.daidai.app.data.remote.model.Notification
+import com.daidai.app.data.remote.model.Platform
 import com.daidai.app.data.remote.model.Script
 import com.daidai.app.data.remote.model.Task
 import com.daidai.app.data.remote.model.TaskLog
 import com.daidai.app.ui.screen.dependency.DependencyViewModel
 import com.daidai.app.ui.screen.env.EnvViewModel
+import com.daidai.app.ui.screen.config.ConfigViewModel
 import com.daidai.app.ui.screen.log.LogViewModel
+import com.daidai.app.ui.screen.notification.NotificationViewModel
+import com.daidai.app.ui.screen.quickactions.QuickActionsViewModel
 import com.daidai.app.ui.screen.script.ScriptViewModel
+import com.daidai.app.ui.screen.stats.StatsViewModel
 import com.daidai.app.ui.screen.system.SystemViewModel
 import com.daidai.app.ui.screen.login.ServerAddressDialog
 
@@ -37,6 +45,11 @@ sealed class HomeTab(val title: String, val icon: ImageVector) {
     object Dependencies : HomeTab("依赖管理", Icons.Default.Extension)
     object Scripts : HomeTab("脚本", Icons.Default.Code)
     object Logs : HomeTab("日志", Icons.Default.Article)
+    object Notifications : HomeTab("通知", Icons.Default.Notifications)
+    object System : HomeTab("系统", Icons.Default.Computer)
+    object QuickActions : HomeTab("快捷操作", Icons.Default.FlashOn)
+    object Stats : HomeTab("统计", Icons.Default.BarChart)
+    object Config : HomeTab("配置", Icons.Default.Tune)
     object Settings : HomeTab("设置", Icons.Default.Settings)
 }
 
@@ -79,6 +92,11 @@ fun HomeScreen(
                     HomeTab.Dependencies,
                     HomeTab.Scripts,
                     HomeTab.Logs,
+                    HomeTab.Notifications,
+                    HomeTab.System,
+                    HomeTab.QuickActions,
+                    HomeTab.Stats,
+                    HomeTab.Config,
                     HomeTab.Settings
                 )
                 tabs.forEach { tab ->
@@ -131,6 +149,11 @@ fun HomeScreen(
                     is HomeTab.Dependencies -> DependenciesContent()
                     is HomeTab.Scripts -> ScriptsContent()
                     is HomeTab.Logs -> LogsContent()
+                    is HomeTab.Notifications -> NotificationsContent()
+                    is HomeTab.System -> SystemContent()
+                    is HomeTab.QuickActions -> QuickActionsContent()
+                    is HomeTab.Stats -> StatsContent()
+                    is HomeTab.Config -> ConfigContent()
                     is HomeTab.Settings -> SettingsContent(onLogout = onLogout)
                 }
             }
@@ -1203,6 +1226,275 @@ fun CreateScriptDialog(
 }
 
 @Composable
+fun NotificationsContent(
+    viewModel: NotificationViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf<Notification?>(null) }
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (uiState.isLoading && uiState.notifications.isEmpty()) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center)
+            )
+        } else if (uiState.error != null && uiState.notifications.isEmpty()) {
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = uiState.error ?: "未知错误",
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { viewModel.loadNotifications() }) {
+                    Text("重试")
+                }
+            }
+        } else if (uiState.notifications.isEmpty()) {
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    Icons.Default.Notifications,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "暂无通知配置",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { showCreateDialog = true }) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("添加通知")
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(uiState.notifications) { notification ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = notification.name,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text(
+                                        text = notification.type,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Switch(
+                                    checked = notification.enabled,
+                                    onCheckedChange = { enabled ->
+                                        viewModel.toggleNotification(notification.id, enabled)
+                                    }
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                IconButton(
+                                    onClick = { viewModel.testNotification(notification.id) },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Send,
+                                        contentDescription = "测试",
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { showDeleteDialog = notification },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "删除",
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 添加通知按钮
+        FloatingActionButton(
+            onClick = { showCreateDialog = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "添加通知")
+        }
+    }
+    
+    // 创建通知对话框
+    if (showCreateDialog) {
+        CreateNotificationDialog(
+            onDismiss = { showCreateDialog = false },
+            onCreate = { name, type, config ->
+                viewModel.createNotification(name, type, config)
+                showCreateDialog = false
+            }
+        )
+    }
+    
+    // 删除确认对话框
+    showDeleteDialog?.let { notification ->
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = null },
+            title = { Text("确认删除") },
+            text = { Text("确定要删除通知「${notification.name}」吗？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteNotification(notification.id)
+                        showDeleteDialog = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("删除")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = null }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CreateNotificationDialog(
+    onDismiss: () -> Unit,
+    onCreate: (String, String, Map<String, Any?>) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var type by remember { mutableStateOf("webhook") }
+    var config by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+    
+    val notificationTypes = listOf("webhook", "email", "telegram", "bark", "dingtalk", "wechat")
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("添加通知") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("通知名称") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = type,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("通知类型") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        notificationTypes.forEach { notificationType ->
+                            DropdownMenuItem(
+                                text = { Text(notificationType) },
+                                onClick = {
+                                    type = notificationType
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                OutlinedTextField(
+                    value = config,
+                    onValueChange = { config = it },
+                    label = { Text("配置 (JSON)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 5,
+                    placeholder = { Text("{\"url\": \"https://...\"}") }
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { 
+                    try {
+                        val jsonObject = org.json.JSONObject(config)
+                        val configMap = mutableMapOf<String, Any?>()
+                        jsonObject.keys().forEach { key ->
+                            configMap[key] = jsonObject.get(key)
+                        }
+                        onCreate(name, type, configMap)
+                    } catch (e: Exception) {
+                        // 如果JSON解析失败，创建一个包含原始字符串的Map
+                        onCreate(name, type, mapOf("raw" to config))
+                    }
+                },
+                enabled = name.isNotBlank() && config.isNotBlank()
+            ) {
+                Text("添加")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+@Composable
 fun LogsContent(
     viewModel: LogViewModel = hiltViewModel()
 ) {
@@ -1400,6 +1692,1426 @@ fun LogsContent(
     }
 }
 
+@Composable
+fun SystemContent(
+    viewModel: SystemViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (uiState.isLoading && uiState.systemInfo == null) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center)
+            )
+        } else if (uiState.error != null && uiState.systemInfo == null) {
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = uiState.error ?: "未知错误",
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { viewModel.loadSystemInfo() }) {
+                    Text("重试")
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // 系统信息卡片
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = "系统信息",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            uiState.systemInfo?.let { info ->
+                                SystemInfoRow("主机名", info.hostname ?: "-")
+                                SystemInfoRow("操作系统", info.os ?: "-")
+                                SystemInfoRow("架构", info.arch ?: "-")
+                                SystemInfoRow("CPU核心数", info.numCpu?.toString() ?: "-")
+                                SystemInfoRow("Go版本", info.goVersion ?: "-")
+                                SystemInfoRow("运行时间", info.uptime ?: "-")
+                            }
+                        }
+                    }
+                }
+                
+                // 资源使用卡片
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = "资源使用",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            uiState.systemInfo?.let { info ->
+                                // CPU使用率
+                                ResourceProgressBar(
+                                    label = "CPU",
+                                    usage = info.cpuUsage ?: 0.0,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                // 内存使用
+                                ResourceProgressBar(
+                                    label = "内存",
+                                    usage = info.memoryUsage ?: 0.0,
+                                    detail = "${formatBytes(info.memoryUsed)} / ${formatBytes(info.memoryTotal)}",
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                                
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                // 磁盘使用
+                                ResourceProgressBar(
+                                    label = "磁盘",
+                                    usage = info.diskUsage ?: 0.0,
+                                    detail = "${formatBytes(info.diskUsed)} / ${formatBytes(info.diskTotal)}",
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                                
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                // 网络
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = "网络接收",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = "${formatBytes(info.netRxBytes)} (${formatSpeed(info.netRxSpeed)})",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            text = "网络发送",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = "${formatBytes(info.netTxBytes)} (${formatSpeed(info.netTxSpeed)})",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 仪表盘数据卡片
+                uiState.dashboardData?.let { dashboard ->
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                Text(
+                                    text = "任务统计",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    DashboardItem("总任务数", dashboard.taskCount?.toString() ?: "0")
+                                    DashboardItem("运行中", dashboard.runningTasks?.toString() ?: "0")
+                                    DashboardItem("今日执行", dashboard.todayLogs?.toString() ?: "0")
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 版本信息卡片
+                uiState.versionData?.let { version ->
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                Text(
+                                    text = "版本信息",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                SystemInfoRow("版本", version.version ?: "-")
+                                SystemInfoRow("API版本", version.apiVersion ?: "-")
+                                SystemInfoRow("框架", version.framework ?: "-")
+                                
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    Button(onClick = { viewModel.checkUpdate() }) {
+                                        Text("检查更新")
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Button(onClick = { viewModel.updatePanel() }) {
+                                        Text("更新面板")
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Button(
+                                        onClick = { viewModel.restartPanel() },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.error
+                                        )
+                                    ) {
+                                        Text("重启面板")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 健康检查卡片
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "健康检查",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Button(onClick = { viewModel.doHealthCheck() }) {
+                                    Text("执行检查")
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            uiState.healthCheckItems?.let { items ->
+                                items.forEach { item ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = if (item.status == "ok") Icons.Default.CheckCircle else Icons.Default.Error,
+                                            contentDescription = null,
+                                            tint = if (item.status == "ok") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = item.name,
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
+                                            item.message?.let { message ->
+                                                Text(
+                                                    text = message,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            } ?: run {
+                                Text(
+                                    text = "点击「执行检查」进行健康检查",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SystemInfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
+}
+
+@Composable
+fun ResourceProgressBar(
+    label: String,
+    usage: Double,
+    detail: String? = null,
+    color: Color
+) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = detail ?: "${String.format("%.1f", usage)}%",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        LinearProgressIndicator(
+            progress = (usage / 100).toFloat().coerceIn(0f, 1f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp),
+            color = color,
+            trackColor = color.copy(alpha = 0.2f)
+        )
+    }
+}
+
+@Composable
+fun DashboardItem(label: String, value: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+private fun formatBytes(bytes: Long?): String {
+    if (bytes == null) return "-"
+    return when {
+        bytes < 1024 -> "$bytes B"
+        bytes < 1024 * 1024 -> "${String.format("%.1f", bytes / 1024.0)} KB"
+        bytes < 1024 * 1024 * 1024 -> "${String.format("%.1f", bytes / (1024.0 * 1024))} MB"
+        else -> "${String.format("%.2f", bytes / (1024.0 * 1024 * 1024))} GB"
+    }
+}
+
+private fun formatSpeed(bytesPerSecond: Long?): String {
+    if (bytesPerSecond == null) return "-"
+    return when {
+        bytesPerSecond < 1024 -> "$bytesPerSecond B/s"
+        bytesPerSecond < 1024 * 1024 -> "${String.format("%.1f", bytesPerSecond / 1024.0)} KB/s"
+        else -> "${String.format("%.1f", bytesPerSecond / (1024.0 * 1024))} MB/s"
+    }
+}
+
+@Composable
+fun QuickActionsContent(
+    viewModel: QuickActionsViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showImportDialog by remember { mutableStateOf(false) }
+    var showCronDialog by remember { mutableStateOf(false) }
+    var importData by remember { mutableStateOf("") }
+    var cronExpression by remember { mutableStateOf("") }
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // 任务批量操作
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "任务批量操作",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            QuickActionButton(
+                                text = "全部运行",
+                                icon = Icons.Default.PlayArrow,
+                                onClick = { /* TODO: 需要获取所有任务ID */ }
+                            )
+                            QuickActionButton(
+                                text = "全部启用",
+                                icon = Icons.Default.CheckCircle,
+                                onClick = { /* TODO: 需要获取所有任务ID */ }
+                            )
+                            QuickActionButton(
+                                text = "全部禁用",
+                                icon = Icons.Default.Block,
+                                onClick = { /* TODO: 需要获取所有任务ID */ }
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // 导入导出
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "导入导出",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            QuickActionButton(
+                                text = "导出任务",
+                                icon = Icons.Default.FileDownload,
+                                onClick = { viewModel.exportTasks() }
+                            )
+                            QuickActionButton(
+                                text = "导入任务",
+                                icon = Icons.Default.FileUpload,
+                                onClick = { showImportDialog = true }
+                            )
+                        }
+                        
+                        // 显示导出的数据
+                        uiState.exportedData?.let { data ->
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = "导出数据:",
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.small,
+                                color = MaterialTheme.colorScheme.surfaceVariant
+                            ) {
+                                Text(
+                                    text = data,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(8.dp),
+                                    maxLines = 10
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Cron表达式解析
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Cron表达式解析",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        OutlinedTextField(
+                            value = cronExpression,
+                            onValueChange = { cronExpression = it },
+                            label = { Text("Cron表达式") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            placeholder = { Text("例如: 0 0 * * *") }
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Button(
+                            onClick = { viewModel.parseCron(cronExpression) },
+                            enabled = cronExpression.isNotBlank(),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("解析")
+                        }
+                        
+                        // 显示解析结果
+                        uiState.cronNextRuns?.let { nextRuns ->
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = "未来5次执行时间:",
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            nextRuns.forEachIndexed { index, run ->
+                                Text(
+                                    text = "${index + 1}. $run",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 日志清理
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "日志清理",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            QuickActionButton(
+                                text = "清理7天前日志",
+                                icon = Icons.Default.DeleteSweep,
+                                onClick = { /* TODO: 需要实现清理指定天数前的日志 */ }
+                            )
+                            QuickActionButton(
+                                text = "清理全部日志",
+                                icon = Icons.Default.DeleteForever,
+                                onClick = { /* TODO: 需要实现清理全部日志 */ },
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 加载指示器
+        if (uiState.isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center)
+            )
+        }
+    }
+    
+    // 导入对话框
+    if (showImportDialog) {
+        AlertDialog(
+            onDismissRequest = { showImportDialog = false },
+            title = { Text("导入任务") },
+            text = {
+                Column {
+                    Text("请输入要导入的任务数据（JSON格式）:")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = importData,
+                        onValueChange = { importData = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 150.dp),
+                        minLines = 5
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.importTasks(importData)
+                        showImportDialog = false
+                        importData = ""
+                    },
+                    enabled = importData.isNotBlank()
+                ) {
+                    Text("导入")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showImportDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun QuickActionButton(
+    text: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    color: Color = MaterialTheme.colorScheme.primary
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier
+                .size(48.dp)
+                .background(
+                    color = color.copy(alpha = 0.1f),
+                    shape = MaterialTheme.shapes.medium
+                )
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = color,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+fun StatsContent(
+    viewModel: StatsViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (uiState.isLoading && uiState.systemStats == null) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center)
+            )
+        } else if (uiState.error != null && uiState.systemStats == null) {
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = uiState.error ?: "未知错误",
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { viewModel.loadSystemStats() }) {
+                    Text("重试")
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // 任务统计卡片
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = "任务统计",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            uiState.systemStats?.tasks?.let { tasks ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    StatItem("总任务数", tasks.total.toString())
+                                    StatItem("已启用", tasks.enabled.toString())
+                                    StatItem("已禁用", tasks.disabled.toString())
+                                    StatItem("运行中", tasks.running.toString())
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 日志统计卡片
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = "日志统计",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            uiState.systemStats?.logs?.let { logs ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    StatItem("总日志数", logs.total.toString())
+                                    StatItem("成功", logs.success.toString())
+                                    StatItem("失败", logs.failed.toString())
+                                    StatItem("成功率", "${String.format("%.1f", logs.successRate)}%")
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 脚本统计卡片
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = "脚本统计",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            uiState.systemStats?.scripts?.let { scripts ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    StatItem("总脚本数", scripts.total.toString())
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 仪表盘数据卡片
+                uiState.dashboardData?.let { dashboard ->
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                Text(
+                                    text = "今日概览",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    StatItem("总任务数", dashboard.taskCount?.toString() ?: "0")
+                                    StatItem("运行中", dashboard.runningTasks?.toString() ?: "0")
+                                    StatItem("今日执行", dashboard.todayLogs?.toString() ?: "0")
+                                }
+                                
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    StatItem("昨日日志", dashboard.yesterdayLogs?.toString() ?: "0")
+                                    StatItem("昨日成功", dashboard.yesterdaySuccess?.toString() ?: "0")
+                                    StatItem("环境变量", dashboard.envCount?.toString() ?: "0")
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 登录统计卡片
+                uiState.loginStats?.let { loginStats ->
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                Text(
+                                    text = "登录统计",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    StatItem("总登录次数", loginStats.totalLogins?.toString() ?: "0")
+                                    StatItem("失败次数", loginStats.failedLogins?.toString() ?: "0")
+                                    StatItem("唯一IP数", loginStats.uniqueIps?.toString() ?: "0")
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 每日统计图表（简化版）
+                uiState.dashboardData?.dailyStats?.let { dailyStats ->
+                    if (dailyStats.isNotEmpty()) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp)
+                                ) {
+                                    Text(
+                                        text = "每日执行统计",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    
+                                    dailyStats.take(7).forEach { stat ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 4.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = stat.date,
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                            Row {
+                                                Text(
+                                                    text = "成功: ${stat.success}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = "失败: ${stat.failed}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.error
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun StatItem(label: String, value: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+fun ConfigContent(
+    viewModel: ConfigViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showAddConfigDialog by remember { mutableStateOf(false) }
+    var showAddPlatformDialog by remember { mutableStateOf(false) }
+    var showAddTokenDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf<String?>(null) }
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (uiState.isLoading && uiState.configs.isEmpty()) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center)
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // 配置列表
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "系统配置",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                IconButton(onClick = { showAddConfigDialog = true }) {
+                                    Icon(Icons.Default.Add, contentDescription = "添加配置")
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            if (uiState.configs.isEmpty()) {
+                                Text(
+                                    text = "暂无配置",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                uiState.configs.forEach { config ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = config.key,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                            Text(
+                                                text = config.value ?: "",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { showDeleteDialog = config.key },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = "删除",
+                                                tint = MaterialTheme.colorScheme.error,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 平台列表
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "平台管理",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                IconButton(onClick = { showAddPlatformDialog = true }) {
+                                    Icon(Icons.Default.Add, contentDescription = "添加平台")
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            if (uiState.platforms.isEmpty()) {
+                                Text(
+                                    text = "暂无平台",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                uiState.platforms.forEach { platform ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = platform.name,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                            Text(
+                                                text = platform.type ?: "未知类型",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { viewModel.deletePlatform(platform.id) },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = "删除",
+                                                tint = MaterialTheme.colorScheme.error,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 平台Token列表
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "平台Token",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                IconButton(onClick = { showAddTokenDialog = true }) {
+                                    Icon(Icons.Default.Add, contentDescription = "添加Token")
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            if (uiState.platformTokens.isEmpty()) {
+                                Text(
+                                    text = "暂无Token",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                uiState.platformTokens.forEach { token ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = token.name ?: "未命名",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                            Text(
+                                                text = "平台ID: ${token.platformId}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        Row {
+                                            Switch(
+                                                checked = token.enabled,
+                                                onCheckedChange = { enabled ->
+                                                    viewModel.togglePlatformToken(token.id, enabled)
+                                                },
+                                                modifier = Modifier.size(32.dp)
+                                            )
+                                            IconButton(
+                                                onClick = { viewModel.deletePlatformToken(token.id) },
+                                                modifier = Modifier.size(32.dp)
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Delete,
+                                                    contentDescription = "删除",
+                                                    tint = MaterialTheme.colorScheme.error,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // 添加配置对话框
+    if (showAddConfigDialog) {
+        AddConfigDialog(
+            onDismiss = { showAddConfigDialog = false },
+            onAdd = { key, value ->
+                viewModel.setConfig(key, value)
+                showAddConfigDialog = false
+            }
+        )
+    }
+    
+    // 添加平台对话框
+    if (showAddPlatformDialog) {
+        AddPlatformDialog(
+            onDismiss = { showAddPlatformDialog = false },
+            onAdd = { name, type ->
+                viewModel.createPlatform(name, type)
+                showAddPlatformDialog = false
+            }
+        )
+    }
+    
+    // 添加Token对话框
+    if (showAddTokenDialog) {
+        AddTokenDialog(
+            platforms = uiState.platforms,
+            onDismiss = { showAddTokenDialog = false },
+            onAdd = { platformId, name, token ->
+                viewModel.createPlatformToken(platformId, name, token)
+                showAddTokenDialog = false
+            }
+        )
+    }
+    
+    // 删除确认对话框
+    showDeleteDialog?.let { key ->
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = null },
+            title = { Text("确认删除") },
+            text = { Text("确定要删除配置「$key」吗？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteConfig(key)
+                        showDeleteDialog = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("删除")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = null }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun AddConfigDialog(
+    onDismiss: () -> Unit,
+    onAdd: (String, String) -> Unit
+) {
+    var key by remember { mutableStateOf("") }
+    var value by remember { mutableStateOf("") }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("添加配置") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = key,
+                    onValueChange = { key = it },
+                    label = { Text("配置键") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = { value = it },
+                    label = { Text("配置值") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onAdd(key, value) },
+                enabled = key.isNotBlank() && value.isNotBlank()
+            ) {
+                Text("添加")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddPlatformDialog(
+    onDismiss: () -> Unit,
+    onAdd: (String, String) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var type by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+    
+    val platformTypes = listOf("jd", "ele", "meituan", "vip", "alipay", "other")
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("添加平台") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("平台名称") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = type,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("平台类型") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        platformTypes.forEach { platformType ->
+                            DropdownMenuItem(
+                                text = { Text(platformType) },
+                                onClick = {
+                                    type = platformType
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onAdd(name, type) },
+                enabled = name.isNotBlank() && type.isNotBlank()
+            ) {
+                Text("添加")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddTokenDialog(
+    platforms: List<Platform>,
+    onDismiss: () -> Unit,
+    onAdd: (Int, String, String) -> Unit
+) {
+    var selectedPlatformId by remember { mutableStateOf<Int?>(null) }
+    var name by remember { mutableStateOf("") }
+    var token by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("添加Token") },
+        text = {
+            Column {
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = platforms.find { it.id == selectedPlatformId }?.name ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("选择平台") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        platforms.forEach { platform ->
+                            DropdownMenuItem(
+                                text = { Text(platform.name) },
+                                onClick = {
+                                    selectedPlatformId = platform.id
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Token名称") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                OutlinedTextField(
+                    value = token,
+                    onValueChange = { token = it },
+                    label = { Text("Token值") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { selectedPlatformId?.let { onAdd(it, name, token) } },
+                enabled = selectedPlatformId != null && name.isNotBlank() && token.isNotBlank()
+            ) {
+                Text("添加")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsContent(
@@ -1446,7 +3158,7 @@ fun SettingsContent(
                     )
                 } else {
                     // 健康检查状态
-                    uiState.healthCheckItems.forEach { item ->
+                    uiState.healthCheckItems?.forEach { item ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1484,7 +3196,7 @@ fun SettingsContent(
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     Button(
-                        onClick = { viewModel.runHealthCheck() },
+                        onClick = { viewModel.doHealthCheck() },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null)
@@ -1810,7 +3522,7 @@ fun SettingsContent(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     
-                    uiState.healthCheckItems.forEach { item ->
+                    uiState.healthCheckItems?.forEach { item ->
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1875,14 +3587,14 @@ fun SettingsContent(
                         .heightIn(max = 400.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
-                    if (uiState.panelLogs.isEmpty()) {
+                    if (uiState.panelLogs.isNullOrEmpty()) {
                         Text(
                             text = "暂无日志",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     } else {
-                        uiState.panelLogs.forEach { log ->
+                        uiState.panelLogs?.forEach { log ->
                             Text(
                                 text = log,
                                 style = MaterialTheme.typography.bodySmall,

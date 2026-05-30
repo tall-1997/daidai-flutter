@@ -14,13 +14,14 @@ import javax.inject.Inject
 data class SystemUiState(
     val isLoading: Boolean = false,
     val systemInfo: SystemInfo? = null,
-    val healthStatus: String? = null,
-    val healthCheckItems: List<HealthCheckItem> = emptyList(),
-    val lastHealthCheckAt: String? = null,
     val dashboardData: DashboardData? = null,
     val statsData: StatsData? = null,
-    val panelLogs: List<String> = emptyList(),
-    val error: String? = null
+    val versionData: VersionData? = null,
+    val healthCheckItems: List<HealthCheckItem>? = null,
+    val panelLogs: List<String>? = null,
+    val lastHealthCheckAt: String? = null,
+    val error: String? = null,
+    val successMessage: String? = null
 )
 
 @HiltViewModel
@@ -32,9 +33,8 @@ class SystemViewModel @Inject constructor(
 
     init {
         loadSystemInfo()
-        loadHealthCheck()
         loadDashboard()
-        loadStats()
+        loadVersion()
     }
 
     fun loadSystemInfo() {
@@ -42,46 +42,10 @@ class SystemViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
             systemRepository.getSystemInfo()
-                .onSuccess { response ->
+                .onSuccess { info ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        systemInfo = response.data
-                    )
-                }
-                .onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = exception.message
-                    )
-                }
-        }
-    }
-
-    fun loadHealthCheck() {
-        viewModelScope.launch {
-            systemRepository.getHealthCheck()
-                .onSuccess { response ->
-                    _uiState.value = _uiState.value.copy(
-                        healthCheckItems = response.items ?: emptyList(),
-                        lastHealthCheckAt = response.lastCheckedAt
-                    )
-                }
-                .onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(error = exception.message)
-                }
-        }
-    }
-
-    fun runHealthCheck() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            
-            systemRepository.runHealthCheck()
-                .onSuccess { response ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        healthCheckItems = response.items ?: emptyList(),
-                        lastHealthCheckAt = response.lastCheckedAt
+                        systemInfo = info
                     )
                 }
                 .onFailure { exception ->
@@ -96,10 +60,8 @@ class SystemViewModel @Inject constructor(
     fun loadDashboard() {
         viewModelScope.launch {
             systemRepository.getDashboard()
-                .onSuccess { response ->
-                    _uiState.value = _uiState.value.copy(
-                        dashboardData = response.data
-                    )
+                .onSuccess { data ->
+                    _uiState.value = _uiState.value.copy(dashboardData = data)
                 }
                 .onFailure { exception ->
                     _uiState.value = _uiState.value.copy(error = exception.message)
@@ -110,9 +72,55 @@ class SystemViewModel @Inject constructor(
     fun loadStats() {
         viewModelScope.launch {
             systemRepository.getStats()
+                .onSuccess { data ->
+                    _uiState.value = _uiState.value.copy(statsData = data)
+                }
+                .onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(error = exception.message)
+                }
+        }
+    }
+
+    fun loadVersion() {
+        viewModelScope.launch {
+            systemRepository.getVersion()
+                .onSuccess { data ->
+                    _uiState.value = _uiState.value.copy(versionData = data)
+                }
+                .onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(error = exception.message)
+                }
+        }
+    }
+
+    fun checkUpdate() {
+        viewModelScope.launch {
+            systemRepository.checkUpdate()
+                .onSuccess { data ->
+                    if (data.hasUpdate == true) {
+                        _uiState.value = _uiState.value.copy(
+                            successMessage = "发现新版本: ${data.latestVersion}"
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            successMessage = "当前已是最新版本"
+                        )
+                    }
+                }
+                .onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(error = exception.message)
+                }
+        }
+    }
+
+    fun doHealthCheck() {
+        viewModelScope.launch {
+            systemRepository.doHealthCheck()
                 .onSuccess { response ->
                     _uiState.value = _uiState.value.copy(
-                        statsData = response.data
+                        healthCheckItems = response.items,
+                        lastHealthCheckAt = response.lastCheckedAt,
+                        successMessage = "健康检查完成"
                     )
                 }
                 .onFailure { exception ->
@@ -121,27 +129,59 @@ class SystemViewModel @Inject constructor(
         }
     }
 
-    fun loadPanelLog(lines: Int = 100) {
+    fun getMachineCode() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            
-            systemRepository.getPanelLog(lines)
-                .onSuccess { response ->
+            systemRepository.getMachineCode()
+                .onSuccess { code ->
                     _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        panelLogs = response.data?.logs ?: emptyList()
+                        successMessage = "机器码: $code"
                     )
                 }
                 .onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = exception.message
-                    )
+                    _uiState.value = _uiState.value.copy(error = exception.message)
                 }
         }
     }
 
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
+    fun updatePanel() {
+        viewModelScope.launch {
+            systemRepository.updatePanel()
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(successMessage = "面板更新已开始")
+                }
+                .onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(error = exception.message)
+                }
+        }
+    }
+
+    fun restartPanel() {
+        viewModelScope.launch {
+            systemRepository.restartPanel()
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(successMessage = "面板重启已开始")
+                }
+                .onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(error = exception.message)
+                }
+        }
+    }
+
+    fun loadPanelLog() {
+        viewModelScope.launch {
+            systemRepository.getPanelLog()
+                .onSuccess { response ->
+                    _uiState.value = _uiState.value.copy(
+                        panelLogs = response.data?.logs
+                    )
+                }
+                .onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(error = exception.message)
+                }
+        }
+    }
+
+    fun clearMessages() {
+        _uiState.value = _uiState.value.copy(error = null, successMessage = null)
     }
 }
