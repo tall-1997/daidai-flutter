@@ -37,18 +37,48 @@ class DaidaiApp extends StatelessWidget {
           useMaterial3: true,
         ),
         themeMode: ThemeMode.system,
-        home: const AuthWrapper(),
+        home: const AppInitializer(),
       ),
     );
   }
 }
 
-class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({super.key});
+class AppInitializer extends StatefulWidget {
+  const AppInitializer({super.key});
+
+  @override
+  State<AppInitializer> createState() => _AppInitializerState();
+}
+
+class _AppInitializerState extends State<AppInitializer> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AuthService>().initialize();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
+    
+    if (!authService.isInitialized) {
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.dashboard_customize, size: 80, color: Colors.blue),
+              SizedBox(height: 16),
+              Text('呆呆面板', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              SizedBox(height: 24),
+              CircularProgressIndicator(),
+            ],
+          ),
+        ),
+      );
+    }
     
     if (authService.isAuthenticated) {
       return const HomeScreen();

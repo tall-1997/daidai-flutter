@@ -48,7 +48,10 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
       
-      if (!success) {
+      if (success) {
+        // Login success - AuthWrapper will automatically navigate to HomeScreen
+        // because AuthService.isAuthenticated changed and notifyListeners() was called
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(authService.error ?? '登录失败'),

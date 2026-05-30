@@ -5,19 +5,19 @@ import 'api_service.dart';
 class AuthService extends ChangeNotifier {
   final ApiService _apiService = ApiService();
   bool _isAuthenticated = false;
+  bool _isInitialized = false;
   String? _username;
   String? _error;
 
   bool get isAuthenticated => _isAuthenticated;
+  bool get isInitialized => _isInitialized;
   String? get username => _username;
   String? get error => _error;
   ApiService get apiService => _apiService;
 
-  AuthService() {
-    _init();
-  }
-
-  Future<void> _init() async {
+  Future<void> initialize() async {
+    if (_isInitialized) return;
+    
     await _apiService.init();
     final prefs = await SharedPreferences.getInstance();
     final accessToken = prefs.getString('access_token');
@@ -25,8 +25,9 @@ class AuthService extends ChangeNotifier {
     
     if (accessToken != null) {
       _isAuthenticated = true;
-      notifyListeners();
     }
+    _isInitialized = true;
+    notifyListeners();
   }
 
   Future<bool> login(String username, String password) async {
