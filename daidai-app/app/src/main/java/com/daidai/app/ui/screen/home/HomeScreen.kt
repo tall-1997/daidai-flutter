@@ -21,6 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daidai.app.data.remote.model.Dependency
 import com.daidai.app.data.remote.model.Env
+import com.daidai.app.data.remote.model.Script
 import com.daidai.app.data.remote.model.Task
 import com.daidai.app.data.remote.model.TaskLog
 import com.daidai.app.ui.screen.dependency.DependencyViewModel
@@ -34,6 +35,7 @@ sealed class HomeTab(val title: String, val icon: ImageVector) {
     object Tasks : HomeTab("任务", Icons.Default.List)
     object Environments : HomeTab("环境变量", Icons.Default.Settings)
     object Dependencies : HomeTab("依赖管理", Icons.Default.Extension)
+    object Scripts : HomeTab("脚本", Icons.Default.Code)
     object Logs : HomeTab("日志", Icons.Default.Article)
     object Settings : HomeTab("设置", Icons.Default.Settings)
 }
@@ -75,6 +77,7 @@ fun HomeScreen(
                     HomeTab.Tasks,
                     HomeTab.Environments,
                     HomeTab.Dependencies,
+                    HomeTab.Scripts,
                     HomeTab.Logs,
                     HomeTab.Settings
                 )
@@ -126,6 +129,7 @@ fun HomeScreen(
                     )
                     is HomeTab.Environments -> EnvironmentsContent()
                     is HomeTab.Dependencies -> DependenciesContent()
+                    is HomeTab.Scripts -> ScriptsContent()
                     is HomeTab.Logs -> LogsContent()
                     is HomeTab.Settings -> SettingsContent(onLogout = onLogout)
                 }
@@ -957,6 +961,245 @@ fun formatFileSize(bytes: Long): String {
         bytes < 1024 * 1024 * 1024 -> "${bytes / (1024 * 1024)} MB"
         else -> "${bytes / (1024 * 1024 * 1024)} GB"
     }
+}
+
+@Composable
+fun ScriptsContent(
+    viewModel: ScriptViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf<Script?>(null) }
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (uiState.isLoading && uiState.scripts.isEmpty()) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center)
+            )
+        } else if (uiState.error != null && uiState.scripts.isEmpty()) {
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = uiState.error ?: "未知错误",
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { viewModel.loadScripts() }) {
+                    Text("重试")
+                }
+            }
+        } else if (uiState.scripts.isEmpty()) {
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    Icons.Default.Code,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "暂无脚本",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { showCreateDialog = true }) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("创建脚本")
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(uiState.scripts) { script ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Code,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(40.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = script.name,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text(
+                                        text = script.path,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    script.size?.let { size ->
+                                        Text(
+                                            text = formatFileSize(size.toLong()),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                IconButton(
+                                    onClick = { viewModel.runScript(script.path) },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.PlayArrow,
+                                        contentDescription = "运行",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { showDeleteDialog = script },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "删除",
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 创建脚本按钮
+        FloatingActionButton(
+            onClick = { showCreateDialog = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "创建脚本")
+        }
+    }
+    
+    // 创建脚本对话框
+    if (showCreateDialog) {
+        CreateScriptDialog(
+            onDismiss = { showCreateDialog = false },
+            onCreate = { name, content, description ->
+                viewModel.createScript(name, content, description)
+                showCreateDialog = false
+            }
+        )
+    }
+    
+    // 删除确认对话框
+    showDeleteDialog?.let { script ->
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = null },
+            title = { Text("确认删除") },
+            text = { Text("确定要删除脚本「${script.name}」吗？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteScript(script.path)
+                        showDeleteDialog = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("删除")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = null }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun CreateScriptDialog(
+    onDismiss: () -> Unit,
+    onCreate: (String, String, String?) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var content by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("创建脚本") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("脚本名称") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = { Text("例如: my_script.sh") }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = content,
+                    onValueChange = { content = it },
+                    label = { Text("脚本内容") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 150.dp),
+                    minLines = 5
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("描述（可选）") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onCreate(name, content, description.ifBlank { null }) },
+                enabled = name.isNotBlank() && content.isNotBlank()
+            ) {
+                Text("创建")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
 }
 
 @Composable

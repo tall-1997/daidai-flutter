@@ -498,6 +498,18 @@ data class SaveScriptRequest(
     val content: String
 )
 
+data class CreateScriptRequest(
+    val name: String,
+    val content: String,
+    val description: String? = null
+)
+
+data class UpdateScriptRequest(
+    val name: String,
+    val content: String,
+    val description: String? = null
+)
+
 data class CreateDirectoryRequest(
     val path: String
 )

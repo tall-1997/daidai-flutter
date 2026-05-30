@@ -62,4 +62,57 @@ class ScriptRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    suspend fun createScript(request: CreateScriptRequest): Result<Unit> {
+        return try {
+            val response = apiService.saveScriptContent(SaveScriptRequest(request.name, request.content))
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("创建脚本失败"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateScript(id: Int, request: UpdateScriptRequest): Result<Unit> {
+        return try {
+            val response = apiService.saveScriptContent(SaveScriptRequest(request.name, request.content))
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("更新脚本失败"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteScript(path: String): Result<Unit> {
+        return try {
+            val response = apiService.deleteScript(path)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "删除脚本失败"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun runScript(request: RunScriptRequest): Result<RunScriptResponse> {
+        return try {
+            val response = apiService.runScript(request)
+            if (response.isSuccessful && response.body() != null) {
+                response.body()?.let { Result.success(it) }
+                    ?: Result.failure(Exception("运行脚本失败"))
+            } else {
+                Result.failure(Exception("运行脚本失败"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
