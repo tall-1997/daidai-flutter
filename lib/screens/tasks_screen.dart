@@ -57,12 +57,14 @@ class _TasksScreenState extends State<TasksScreen> {
     try {
       final authService = context.read<AuthService>();
       await authService.apiService.runTask(id);
-      _loadTasks();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('任务已运行')),
         );
       }
+      // Wait a moment for the task to start, then refresh
+      await Future.delayed(const Duration(milliseconds: 500));
+      _loadTasks();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -76,12 +78,14 @@ class _TasksScreenState extends State<TasksScreen> {
     try {
       final authService = context.read<AuthService>();
       await authService.apiService.stopTask(id);
-      _loadTasks();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('任务已停止')),
         );
       }
+      // Wait a moment for the task to stop, then refresh
+      await Future.delayed(const Duration(milliseconds: 500));
+      _loadTasks();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -523,27 +527,31 @@ class _TaskCard extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: 12),
-              Row(
+                Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  if (status == 1)
+                  // Run button - show for enabled (1) and disabled (0) tasks
+                  if (status != 2)
                     IconButton(
                       icon: const Icon(Icons.play_arrow, color: Colors.green),
                       onPressed: onRun,
                       tooltip: '运行',
                     ),
+                  // Stop button - only show for running tasks
                   if (status == 2)
                     IconButton(
                       icon: const Icon(Icons.stop, color: Colors.red),
                       onPressed: onStop,
                       tooltip: '停止',
                     ),
+                  // Enable button - only show for disabled tasks
                   if (status == 0)
                     IconButton(
-                      icon: const Icon(Icons.play_arrow, color: Colors.green),
+                      icon: const Icon(Icons.check_circle, color: Colors.blue),
                       onPressed: onEnable,
                       tooltip: '启用',
                     ),
+                  // Disable button - only show for enabled tasks
                   if (status == 1)
                     IconButton(
                       icon: const Icon(Icons.pause, color: Colors.orange),
