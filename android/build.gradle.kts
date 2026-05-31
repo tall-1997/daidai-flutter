@@ -16,12 +16,18 @@ subprojects {
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
 
-gradle.beforeProject {
-    extensions.findByType<com.android.build.api.dsl.LibraryExtension>()?.let {
-        it.compileSdk = 36
-    }
-    extensions.findByType<com.android.build.api.dsl.ApplicationExtension>()?.let {
-        it.compileSdk = 36
+gradle.projectsEvaluated {
+    allprojects {
+        project.plugins.withId("com.android.library") {
+            project.extensions.configure<com.android.build.api.dsl.LibraryExtension> {
+                compileSdk = 36
+            }
+        }
+        project.plugins.withId("com.android.application") {
+            project.extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
+                compileSdk = 36
+            }
+        }
     }
 }
 
