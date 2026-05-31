@@ -662,6 +662,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> {
   Map<String, dynamic>? _latestLog;
   bool _isLoadingLog = false;
   Timer? _logRefreshTimer;
+  int _logRefreshCount = 0;
 
   @override
   void initState() {
@@ -679,9 +680,15 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> {
   void _startLogAutoRefresh() {
     if (widget.task['status'] == 2) {
       _logRefreshTimer?.cancel();
-      _logRefreshTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-        if (widget.task['status'] == 2 && mounted) {
+      // 更频繁地刷新日志 - 每1秒刷新一次
+      _logRefreshTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (mounted) {
           _loadLatestLog(silent: true);
+          _logRefreshCount++;
+          // 如果任务不再运行，停止刷新
+          if (widget.task['status'] != 2) {
+            timer.cancel();
+          }
         } else {
           timer.cancel();
         }
@@ -690,9 +697,9 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> {
   }
 
   Future<void> _loadLatestLog({bool silent = false}) async {
-    if (widget.task['status'] != 2) return;
+    if (!mounted) return;
 
-    if (!silent && mounted) {
+    if (!silent) {
       setState(() => _isLoadingLog = true);
     }
     
@@ -700,10 +707,20 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> {
       final authService = context.read<AuthService>();
       final result = await authService.apiService.getTaskLatestLog(widget.task['id']);
       if (mounted) {
-        setState(() {
-          _latestLog = result['data'] ?? result;
-          _isLoadingLog = false;
-        });
+        final newLog = result['data'] ?? result;
+        // 只在日志内容变化时更新UI，减少不必要的重绘
+        if (_latestLog == null || 
+            _latestLog!['content'] != newLog['content'] ||
+            _latestLog!['status'] != newLog['status']) {
+          setState(() {
+            _latestLog = newLog;
+            _isLoadingLog = false;
+          });
+        } else if (!silent) {
+          setState(() {
+            _isLoadingLog = false;
+          });
+        }
       }
     } catch (e) {
       if (mounted && !silent) {
@@ -812,6 +829,33 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+                const SizedBox(width: 8),
+                // 实时刷新指示器
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Text(
+                        '实时',
+                        style: TextStyle(fontSize: 10, color: Colors.green),
+                      ),
+                    ],
+                  ),
+                ),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.refresh),
@@ -820,10 +864,11 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> {
               ],
             ),
             const SizedBox(height: 8),
-            _isLoadingLog
+            _isLoadingLog && _latestLog == null
                 ? const Center(child: CircularProgressIndicator())
                 : _latestLog != null
                     ? Container(
+                        width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.grey[100],
@@ -833,9 +878,39 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              _latestLog!['task_name'] ?? '未知任务',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    _latestLog!['task_name'] ?? '未知任务',
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                if (_latestLog!['status'] != null)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: _latestLog!['status'] == 0 
+                                          ? Colors.green.withOpacity(0.2)
+                                          : _latestLog!['status'] == 1 
+                                              ? Colors.red.withOpacity(0.2)
+                                              : Colors.orange.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      _latestLog!['status'] == 0 ? '成功' 
+                                          : _latestLog!['status'] == 1 ? '失败' : '运行中',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: _latestLog!['status'] == 0 
+                                            ? Colors.green 
+                                            : _latestLog!['status'] == 1 
+                                                ? Colors.red 
+                                                : Colors.orange,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                             const SizedBox(height: 8),
                             SelectableText(
@@ -846,6 +921,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> {
                         ),
                       )
                     : Container(
+                        width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.grey[100],

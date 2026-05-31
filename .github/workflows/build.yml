@@ -86,8 +86,42 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
       - name: Download artifacts
         uses: actions/download-artifact@v4
+      
+      - name: Generate Release Notes
+        id: release_notes
+        run: |
+          # 获取上一个tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          # 生成更新日志
+          if [ -n "$PREV_TAG" ]; then
+            CHANGES=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --no-merges)
+          else
+            CHANGES=$(git log --pretty=format:"- %s" --no-merges -10)
+          fi
+          
+          # 写入文件
+          cat > release_notes.md << EOF
+          ## 呆呆面板 Flutter App ${{ github.ref_name }}
+          
+          ### 更新内容
+          $CHANGES
+          
+          ### 下载说明
+          - **Android**: 下载 \`app-release.apk\` 安装使用
+          - **iOS**: 下载 \`daidai-app.ipa\`，通过 AltStore 或 Sideloadly 安装
+          
+          ### 技术栈
+          - Flutter + Dart + Provider
+          - 支持 Android 和 iOS 平台
+          EOF
       
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -95,4 +129,5 @@ jobs:
           files: |
             android-apk/app-release.apk
             ios-ipa/daidai-app.ipa
-          generate_release_notes: true
+          body_path: release_notes.md
+          generate_release_notes: false
