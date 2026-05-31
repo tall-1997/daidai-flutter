@@ -1,0 +1,10 @@
+tree 70ed10b86eac57d61b819173bfde4625ef87d947
+parent db0be39cde635d74c0e9366af9347ef42eec59e3
+author tall-1997 <tall-1997@users.noreply.github.com> 1780219647 +0000
+committer tall-1997 <tall-1997@users.noreply.github.com> 1780219647 +0000
+
+fix: v0.0.18 - 修复登录成功无法进入主页的问题
+
+- 将setServerUrl合并到login方法中，避免中间触发notifyListeners导致AppInitializer重建
+- 登录流程现在是原子操作：设置服务器地址+登录+保存token一次性完成
+- 版本升级到v0.0.18
