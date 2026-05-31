@@ -25,7 +25,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   bool _isSidebarExpanded = false;
-  final GlobalKey<_RefreshableScreenState> _refreshableScreenKey = GlobalKey();
+  final GlobalKey<State<StatefulWidget>> _refreshableScreenKey = GlobalKey();
 
   final List<_NavigationItem> _navigationItems = [
     _NavigationItem(Icons.list_alt, '任务'),
@@ -51,7 +51,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _refreshCurrentScreen() {
-    _refreshableScreenKey.currentState?.refresh();
+    final state = _refreshableScreenKey.currentState;
+    if (state is RefreshableScreen) {
+      (state as RefreshableScreen).refresh();
+    }
   }
 
   @override
