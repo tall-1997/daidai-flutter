@@ -267,6 +267,10 @@ class _DependencyCard extends StatelessWidget {
     final name = dep['name'] ?? '';
     final type = dep['type'] ?? '';
     final status = dep['status'] ?? '';
+    final version = dep['version'] ?? '';
+    final installedAt = dep['installed_at'] ?? dep['installedAt'] ?? '';
+    final description = dep['description'] ?? '';
+    final filePath = dep['file_path'] ?? dep['filePath'] ?? dep['path'] ?? '';
 
     IconData typeIcon;
     switch (type) {
@@ -305,31 +309,106 @@ class _DependencyCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: Icon(typeIcon, color: Theme.of(context).colorScheme.primary),
-        title: Text(name),
-        subtitle: Text(type),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: statusColor),
-              ),
-              child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 12)),
-            ),
-            PopupMenuButton(
-              itemBuilder: (context) => [
-                const PopupMenuItem(value: 'reinstall', child: Text('重新安装')),
-                const PopupMenuItem(value: 'delete', child: Text('删除', style: TextStyle(color: Colors.red))),
+            Row(
+              children: [
+                Icon(typeIcon, color: Theme.of(context).colorScheme.primary, size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (version.isNotEmpty)
+                        Text(
+                          '版本: $version',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: statusColor),
+                  ),
+                  child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 12)),
+                ),
               ],
-              onSelected: (value) {
-                if (value == 'reinstall') onReinstall();
-                if (value == 'delete') onDelete();
-              },
+            ),
+            if (description.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                description,
+                style: Theme.of(context).textTheme.bodySmall,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            if (filePath.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.folder, size: 14, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      filePath,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey,
+                        fontSize: 11,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            if (installedAt.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Text(
+                    '安装时间: $installedAt',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  onPressed: onReinstall,
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text('重装'),
+                ),
+                TextButton.icon(
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete, size: 18, color: Colors.red),
+                  label: const Text('删除', style: TextStyle(color: Colors.red)),
+                ),
+              ],
             ),
           ],
         ),

@@ -472,10 +472,15 @@ class _LogCard extends StatelessWidget {
                       ),
                     ),
                   ],
-                  const SizedBox(width: 8),
-                  InkWell(
-                    onTap: onDelete,
-                    child: const Icon(Icons.delete, size: 16, color: Colors.red),
+                  const SizedBox(width: 4),
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: InkWell(
+                      onTap: onDelete,
+                      borderRadius: BorderRadius.circular(12),
+                      child: const Icon(Icons.delete, size: 16, color: Colors.red),
+                    ),
                   ),
                 ],
               ),
@@ -498,14 +503,17 @@ class _LogDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final taskName = log['task_name'] ?? '未知任务';
-    final content = log['content'] ?? '';
+    final taskName = log['task_name'] ?? log['taskName'] ?? '未知任务';
+    final content = log['content'] ?? log['output'] ?? log['message'] ?? '';
     final status = log['status'] ?? 0;
-    final createdAt = log['created_at'] ?? '';
-    final startedAt = log['started_at'] ?? '';
-    final endedAt = log['ended_at'] ?? '';
-    final duration = log['duration'] ?? 0;
-    final taskType = log['task_type'] ?? '';
+    final createdAt = log['created_at'] ?? log['createdAt'] ?? '';
+    final startedAt = log['started_at'] ?? log['startedAt'] ?? '';
+    final endedAt = log['ended_at'] ?? log['endedAt'] ?? '';
+    final duration = log['duration'] ?? log['execution_time'] ?? 0;
+    final taskType = log['task_type'] ?? log['taskType'] ?? '';
+    final taskId = log['task_id'] ?? log['taskId'] ?? '';
+    final logId = log['id'] ?? '';
+    final errorMsg = log['error'] ?? log['error_message'] ?? '';
 
     Color statusColor;
     String statusText;
@@ -579,11 +587,14 @@ class _LogDetailSheet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
+          _buildDetailRow('日志ID', logId.toString()),
+          _buildDetailRow('任务ID', taskId.toString()),
           _buildDetailRow('任务类型', taskType),
           _buildDetailRow('创建时间', createdAt),
           _buildDetailRow('开始时间', startedAt.isEmpty ? '无' : startedAt),
           _buildDetailRow('结束时间', endedAt.isEmpty ? '无' : endedAt),
           _buildDetailRow('执行耗时', durationText.isEmpty ? '无' : durationText),
+          if (errorMsg.isNotEmpty) _buildDetailRow('错误信息', errorMsg),
           const Divider(height: 32),
           Text(
             '执行日志',

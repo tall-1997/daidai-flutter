@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import 'home_screen.dart';
@@ -29,41 +30,54 @@ class _NotificationsScreenState extends State<NotificationsScreen> with Refresha
   }
 
   Future<void> _checkNotificationPermission() async {
-    // Check notification permission status
-    // This would use flutter_local_notifications or permission_handler
-    setState(() {
-      _hasNotificationPermission = false; // Placeholder
-    });
+    final status = await Permission.notification.status;
+    if (mounted) {
+      setState(() {
+        _hasNotificationPermission = status.isGranted;
+      });
+    }
   }
 
   Future<void> _requestNotificationPermission() async {
-    // Request notification permission
-    // This would use flutter_local_notifications or permission_handler
+    final status = await Permission.notification.request();
     if (mounted) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('通知权限'),
-          content: const Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('为了接收任务执行通知，需要授予App通知权限。'),
-              SizedBox(height: 16),
-              Text('请在系统设置中允许通知：'),
-              Text('1. 打开系统设置'),
-              Text('2. 找到呆呆面板App'),
-              Text('3. 开启通知权限'),
+      setState(() {
+        _hasNotificationPermission = status.isGranted;
+      });
+      
+      if (!status.isGranted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('通知权限'),
+            content: const Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('通知权限被拒绝，无法接收任务执行通知。'),
+                SizedBox(height: 16),
+                Text('请在系统设置中手动开启：'),
+                Text('1. 打开系统设置'),
+                Text('2. 找到呆呆面板App'),
+                Text('3. 开启通知权限'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('知道了'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  openAppSettings();
+                },
+                child: const Text('打开设置'),
+              ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('知道了'),
-            ),
-          ],
-        ),
-      );
+        );
+      }
     }
   }
 
@@ -77,7 +91,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> with Refresha
       final authService = context.read<AuthService>();
       final result = await authService.apiService.getNotifications();
       
-      // API returns {data: [...]}
       if (result['data'] != null) {
         setState(() {
           _notifications = List<Map<String, dynamic>>.from(result['data'] ?? []);
@@ -168,7 +181,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> with Refresha
       ),
       body: Column(
         children: [
-          // Notification permission card
           Card(
             margin: const EdgeInsets.all(16),
             color: _hasNotificationPermission ? Colors.green.shade50 : Colors.orange.shade50,
@@ -211,7 +223,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> with Refresha
               ),
             ),
           ),
-          // Notification list
           Expanded(
             child: _buildBody(),
           ),
@@ -539,17 +550,17 @@ class _NotificationCard extends StatelessWidget {
               children: [
                 TextButton.icon(
                   onPressed: onTest,
-                  icon: const Icon(Icons.send),
+                  icon: const Icon(Icons.send, size: 18),
                   label: const Text('测试'),
                 ),
                 TextButton.icon(
                   onPressed: onEdit,
-                  icon: const Icon(Icons.edit),
+                  icon: const Icon(Icons.edit, size: 18),
                   label: const Text('编辑'),
                 ),
                 TextButton.icon(
                   onPressed: onDelete,
-                  icon: const Icon(Icons.delete, color: Colors.red),
+                  icon: const Icon(Icons.delete, size: 18, color: Colors.red),
                   label: const Text('删除', style: TextStyle(color: Colors.red)),
                 ),
               ],

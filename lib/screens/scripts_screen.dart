@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import 'dart:convert';
+import 'dart:io';
 import 'home_screen.dart';
 
 class ScriptsScreen extends StatefulWidget {
@@ -451,68 +453,100 @@ class _ScriptsScreenState extends State<ScriptsScreen> with RefreshableScreen {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('上传脚本'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: '脚本名称',
-                  hintText: 'script.py',
-                  border: OutlineInputBorder(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('上传脚本'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: '脚本名称',
+                    hintText: 'script.py',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: contentController,
-                decoration: const InputDecoration(
-                  labelText: '脚本内容',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 10,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              if (nameController.text.isEmpty || contentController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('请填写必填项'), backgroundColor: Colors.red),
-                );
-                return;
-              }
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    try {
+                      FilePickerResult? result = await FilePicker.platform.pickFiles(
+                        type: FileType.custom,
+                        allowedExtensions: ['py', 'js', 'sh', 'json', 'yaml', 'yml', 'txt', 'md', 'go', 'rs', 'java', 'c', 'cpp', 'h'],
+                      );
 
-              try {
-                final authService = context.read<AuthService>();
-                await authService.apiService.createScript({
-                  'name': _currentPath + nameController.text,
-                  'content': contentController.text,
-                });
-                Navigator.pop(context);
-                _loadScripts();
-                if (mounted) {
+                      if (result != null && result.files.single.path != null) {
+                        final file = File(result.files.single.path!);
+                        final content = await file.readAsString();
+                        final fileName = result.files.single.name;
+                        
+                        setDialogState(() {
+                          nameController.text = fileName;
+                          contentController.text = content;
+                        });
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('读取文件失败: $e'), backgroundColor: Colors.red),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.file_upload),
+                  label: const Text('从本地文件选择'),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: contentController,
+                  decoration: const InputDecoration(
+                    labelText: '脚本内容',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 10,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (nameController.text.isEmpty || contentController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('脚本已上传')),
+                    const SnackBar(content: Text('请填写必填项'), backgroundColor: Colors.red),
+                  );
+                  return;
+                }
+
+                try {
+                  final authService = context.read<AuthService>();
+                  await authService.apiService.createScript({
+                    'name': _currentPath + nameController.text,
+                    'content': contentController.text,
+                  });
+                  Navigator.pop(context);
+                  _loadScripts();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('脚本已上传')),
+                    );
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('上传失败: $e'), backgroundColor: Colors.red),
                   );
                 }
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('上传失败: $e'), backgroundColor: Colors.red),
-                );
-              }
-            },
-            child: const Text('上传'),
-          ),
-        ],
+              },
+              child: const Text('上传'),
+            ),
+          ],
+        ),
       ),
     );
   }

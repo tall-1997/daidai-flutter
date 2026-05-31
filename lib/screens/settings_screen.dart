@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
 import '../services/auth_service.dart';
@@ -15,16 +16,27 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> with RefreshableScreen {
   bool _isRooted = false;
   MagiskModuleInfo? _moduleInfo;
+  String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
     _checkRootStatus();
+    _loadAppVersion();
   }
 
   @override
   void refresh() {
     _checkRootStatus();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = '${packageInfo.version}+${packageInfo.buildNumber}';
+      });
+    }
   }
 
   Future<void> _checkRootStatus() async {
@@ -209,10 +221,10 @@ class _SettingsScreenState extends State<SettingsScreen> with RefreshableScreen 
               children: [
                 Text('关于', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
-                const ListTile(
-                  leading: Icon(Icons.info),
-                  title: Text('版本'),
-                  subtitle: Text('v0.0.18-flutter'),
+                ListTile(
+                  leading: const Icon(Icons.info),
+                  title: const Text('版本'),
+                  subtitle: Text('v$_appVersion-flutter'),
                 ),
                 const ListTile(
                   leading: Icon(Icons.code),

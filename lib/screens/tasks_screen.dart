@@ -661,17 +661,41 @@ class _TaskDetailSheet extends StatefulWidget {
 class _TaskDetailSheetState extends State<_TaskDetailSheet> {
   Map<String, dynamic>? _latestLog;
   bool _isLoadingLog = false;
+  Timer? _logRefreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadLatestLog();
+    _startLogAutoRefresh();
   }
 
-  Future<void> _loadLatestLog() async {
+  @override
+  void dispose() {
+    _logRefreshTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startLogAutoRefresh() {
+    if (widget.task['status'] == 2) {
+      _logRefreshTimer?.cancel();
+      _logRefreshTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+        if (widget.task['status'] == 2 && mounted) {
+          _loadLatestLog(silent: true);
+        } else {
+          timer.cancel();
+        }
+      });
+    }
+  }
+
+  Future<void> _loadLatestLog({bool silent = false}) async {
     if (widget.task['status'] != 2) return;
 
-    setState(() => _isLoadingLog = true);
+    if (!silent && mounted) {
+      setState(() => _isLoadingLog = true);
+    }
+    
     try {
       final authService = context.read<AuthService>();
       final result = await authService.apiService.getTaskLatestLog(widget.task['id']);
@@ -682,7 +706,7 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> {
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && !silent) {
         setState(() => _isLoadingLog = false);
       }
     }
