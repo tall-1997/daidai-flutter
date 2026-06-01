@@ -1049,7 +1049,10 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> {
     setState(() => _isLoadingLogs = true);
     try {
       final authService = context.read<AuthService>();
-      final result = await authService.apiService.getTaskLogs(widget.task['id']);
+      final result = await authService.apiService.getLogs(
+        taskId: widget.task['id'],
+        pageSize: 20,
+      );
       if (mounted) {
         setState(() {
           _taskLogs = List<Map<String, dynamic>>.from(result['data'] ?? result['logs'] ?? []);
@@ -1066,7 +1069,13 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> {
   String _cleanLogContent(dynamic content) {
     if (content == null) return '';
     String str = content.toString();
+    // Remove ANSI escape sequences (with ESC prefix)
     str = str.replaceAll(RegExp(r'\x1B\[[0-9;]*[a-zA-Z]'), '');
+    str = str.replaceAll(RegExp(r'\x1B\][^\x07]*\x07'), '');
+    str = str.replaceAll(RegExp(r'\x1B\[[\d;]*[HfABCDEFGJKSTsu]'), '');
+    // Remove ANSI codes without ESC prefix (e.g. [32m, [0m from stored logs)
+    str = str.replaceAll(RegExp(r'\[(?:\d+;)*\d+m'), '');
+    // Remove other control characters but keep newlines and tabs
     str = str.replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '');
     return str.trim();
   }

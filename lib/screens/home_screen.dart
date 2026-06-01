@@ -9,7 +9,6 @@ import 'logs_screen.dart';
 import 'system_screen.dart';
 import 'settings_screen.dart';
 import 'config_screen.dart';
-import 'terminal_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,7 +29,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _NavigationItem(Icons.code, '脚本'),
     _NavigationItem(Icons.article, '日志'),
     _NavigationItem(Icons.computer, '系统'),
-    _NavigationItem(Icons.terminal, '终端'),
     _NavigationItem(Icons.settings, '配置'),
     _NavigationItem(Icons.tune, '设置'),
   ];
@@ -221,10 +219,8 @@ class _HomeScreenState extends State<HomeScreen> {
       case 5:
         return SystemScreen(key: _refreshableScreenKey);
       case 6:
-        return TerminalScreen(key: _refreshableScreenKey);
-      case 7:
         return ConfigScreen(key: _refreshableScreenKey);
-      case 8:
+      case 7:
         return SettingsScreen(key: _refreshableScreenKey);
       default:
         return TasksScreen(key: _refreshableScreenKey);

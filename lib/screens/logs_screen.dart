@@ -543,6 +543,8 @@ class _LogDetailSheet extends StatelessWidget {
     content = content.replaceAll(RegExp(r'\x1B\[[0-9;]*[a-zA-Z]'), '');
     content = content.replaceAll(RegExp(r'\x1B\][^\x07]*\x07'), '');
     content = content.replaceAll(RegExp(r'\x1B\[[\d;]*[HfABCDEFGJKSTsu]'), '');
+    // Remove ANSI codes without ESC prefix (e.g. [32m, [0m from stored logs)
+    content = content.replaceAll(RegExp(r'\[(?:\d+;)*\d+m'), '');
     
     // Remove other common control characters but keep newlines and tabs
     content = content.replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '');

@@ -41,7 +41,18 @@ class _DependenciesScreenState extends State<DependenciesScreen> with Refreshabl
       final result = await authService.apiService.getDependencies();
 
       if (mounted) {
-        final deps = result['data'] ?? result['deps'] ?? [];
+        // Try multiple possible response formats
+        List<dynamic> deps = [];
+        if (result['data'] is List) {
+          deps = result['data'];
+        } else if (result['deps'] is List) {
+          deps = result['deps'];
+        } else if (result['items'] is List) {
+          deps = result['items'];
+        } else if (result is List) {
+          deps = result as List<dynamic>;
+        }
+        
         setState(() {
           _dependencies = List<Map<String, dynamic>>.from(deps);
           _isLoading = false;
@@ -77,24 +88,15 @@ class _DependenciesScreenState extends State<DependenciesScreen> with Refreshabl
       final result = await authService.apiService.installDependency(type, names);
 
       if (mounted) {
-        if (result['code'] == 0 || result['code'] == 200 || result['success'] == true) {
-          setState(() {
-            _installingDeps.remove(depKey);
-            _installLogs.remove(depKey);
-          });
-          _loadDependencies();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$type 依赖安装成功'), backgroundColor: Colors.green),
-          );
-        } else {
-          setState(() {
-            _installingDeps[depKey] = '安装失败';
-            _installLogs[depKey] = result['message'] ?? '安装失败';
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('安装失败: ${result['message']}'), backgroundColor: Colors.red),
-          );
-        }
+        // Accept any successful response (no exception thrown means HTTP success)
+        setState(() {
+          _installingDeps.remove(depKey);
+          _installLogs.remove(depKey);
+        });
+        _loadDependencies();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$type 依赖安装请求已提交'), backgroundColor: Colors.green),
+        );
       }
     } catch (e) {
       if (mounted) {
