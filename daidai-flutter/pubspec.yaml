@@ -1,0 +1,76 @@
+name: daidai_app
+description: Daidai Panel - A lightweight scheduled task management platform
+publish_to: 'none'
+version: 0.0.21+21
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # UI
+  cupertino_icons: ^1.0.6
+  flutter_svg: ^2.0.9
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  flutter_slidable: ^3.0.1
+  pull_to_refresh: ^2.0.0
+  flutter_staggered_animations: ^1.1.1
+  
+  # State Management
+  provider: ^6.1.1
+  
+  # Network
+  dio: ^5.4.0
+  retrofit: ^4.0.3
+  
+  # Storage
+  shared_preferences: ^2.2.2
+  flutter_secure_storage: ^9.0.0
+  
+  # Utils
+  intl: ^0.19.0
+  json_annotation: ^4.8.1
+  equatable: ^2.0.5
+  uuid: ^4.2.1
+  url_launcher: ^6.2.2
+  path_provider: ^2.1.1
+  package_info_plus: ^5.0.1
+  device_info_plus: ^10.0.1
+  connectivity_plus: ^5.0.2
+  
+  # Charts
+  fl_chart: ^0.66.0
+  
+  # Code Editor
+  code_text_field: ^1.1.0
+  
+  # Notifications
+  flutter_local_notifications: ^16.3.2
+  
+  # WebView
+  webview_flutter: ^4.4.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.7
+  json_serializable: ^6.7.1
+  retrofit_generator: ^8.0.6
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/icons/
+  
+  fonts:
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-Regular.ttf
+        - asset: assets/fonts/JetBrainsMono-Bold.ttf
+          weight: 700
