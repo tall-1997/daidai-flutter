@@ -106,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(MiuixSpacing.cardCornerRadius),
             ),
-            itemBuilder: (context) => [
+            itemBuilder: (context) => <PopupMenuEntry<dynamic>>[
               PopupMenuItem(
                 enabled: false,
                 child: Row(

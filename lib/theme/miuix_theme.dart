@@ -214,7 +214,7 @@ ThemeData buildMiuixLightTheme() {
       floatingLabelStyle: const TextStyle(color: MiuixColors.primary, fontSize: 10),
       hintStyle: const TextStyle(color: MiuixColors.onSecondaryContainer, fontSize: 17),
     ),
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       backgroundColor: MiuixColors.surfaceContainer,
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -357,7 +357,7 @@ ThemeData buildMiuixDarkTheme() {
       floatingLabelStyle: const TextStyle(color: MiuixColors.darkPrimary, fontSize: 10),
       hintStyle: const TextStyle(color: MiuixColors.darkOnSecondaryContainer, fontSize: 17),
     ),
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       backgroundColor: MiuixColors.darkSurfaceContainer,
       elevation: 0,
       shape: RoundedRectangleBorder(
