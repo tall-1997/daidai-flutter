@@ -472,7 +472,7 @@ class _ScriptsScreenState extends State<ScriptsScreen> with RefreshableScreen {
                 OutlinedButton.icon(
                   onPressed: () async {
                     try {
-                      FilePickerResult? result = await FilePicker.pickFiles(
+                      FilePickerResult? result = await FilePicker.platform.pickFiles(
                         type: FileType.custom,
                         allowedExtensions: ['py', 'js', 'sh', 'json', 'yaml', 'yml', 'txt', 'md', 'go', 'rs', 'java', 'c', 'cpp', 'h'],
                       );
