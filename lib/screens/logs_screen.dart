@@ -554,22 +554,6 @@ class _LogDetailSheet extends StatelessWidget {
     // Fallback: raw UTF-8
     return utf8.decode(bytes, allowMalformed: true);
   }
-      } catch (e) {
-        // Try without gzip
-        try {
-          final bytes = base64Decode(content.trim());
-          content = utf8.decode(bytes, allowMalformed: true);
-        } catch (e2) {
-          // Use original content
-        }
-      }
-    }
-    
-    // Remove ANSI escape sequences
-    content = _stripAnsi(content);
-    
-    return content.trim();
-  }
 
   // Comprehensive ANSI escape sequence removal
   String _stripAnsi(String str) {
