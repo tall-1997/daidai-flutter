@@ -1135,33 +1135,33 @@ class _TaskCardState extends State<_TaskCard> {
                   if (status != 2)
                     IconButton(
                       icon: const Icon(Icons.play_arrow, color: Colors.green),
-                      onPressed: onRun,
+                      onPressed: widget.onRun,
                       tooltip: '运行',
                     ),
                   // Stop button - only show for running tasks
                   if (status == 2)
                     IconButton(
                       icon: const Icon(Icons.stop, color: Colors.red),
-                      onPressed: onStop,
+                      onPressed: widget.onStop,
                       tooltip: '停止',
                     ),
                   // Enable button - only show for disabled tasks
                   if (status == 0)
                     IconButton(
                       icon: const Icon(Icons.check_circle, color: Colors.blue),
-                      onPressed: onEnable,
+                      onPressed: widget.onEnable,
                       tooltip: '启用',
                     ),
                   // Disable button - only show for enabled tasks
                   if (status == 1)
                     IconButton(
                       icon: const Icon(Icons.pause, color: Colors.orange),
-                      onPressed: onDisable,
+                      onPressed: widget.onDisable,
                       tooltip: '禁用',
                     ),
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: onDelete,
+                    onPressed: widget.onDelete,
                     tooltip: '删除',
                   ),
                 ],
