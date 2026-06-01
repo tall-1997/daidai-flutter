@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
+import 'dart:io';
 import '../services/auth_service.dart';
 import 'home_screen.dart';
 
@@ -512,49 +513,46 @@ class _LogDetailSheet extends StatelessWidget {
     
     String content = rawContent.toString();
     
-    // Try to decode base64 if it looks like base64
-    if (_isBase64(content) && content.length > 8) {
+    // Try to decode base64 + gzip (eJ prefix = gzip compressed base64)
+    if (content.length > 8 && RegExp(r'^[A-Za-z0-9+/]*={0,2}$').hasMatch(content.trim())) {
       try {
-        final decoded = utf8.decode(base64Decode(content), allowMalformed: true);
-        if (decoded.isNotEmpty && !_isGarbled(decoded)) {
-          content = decoded;
+        final bytes = base64Decode(content.trim());
+        // Check gzip magic number (1f 8b)
+        if (bytes.length > 2 && bytes[0] == 0x1f && bytes[1] == 0x8b) {
+          content = utf8.decode(gzip.decode(bytes), allowMalformed: true);
+        } else {
+          content = utf8.decode(bytes, allowMalformed: true);
         }
       } catch (e) {
-        // Use original content
+        // Try without gzip
+        try {
+          final bytes = base64Decode(content.trim());
+          content = utf8.decode(bytes, allowMalformed: true);
+        } catch (e2) {
+          // Use original content
+        }
       }
     }
     
-    // Comprehensive ANSI escape sequence removal
-    // Matches ESC[ followed by any number of params and a command letter
-    content = content.replaceAll(RegExp(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])'), '');
-    // OSC sequences: ESC] ... BEL
-    content = content.replaceAll(RegExp(r'\x1B\][^\x07\x1B]*(?:\x07|\x1B\\)'), '');
-    // CSI sequences without ESC prefix (stored logs may have lost ESC byte)
-    content = content.replaceAll(RegExp(r'\[(?:\d+;)*\d+[A-Za-z]'), '');
-    // Remove bare [32m, [0m etc (common in stored terminal output)
-    content = content.replaceAll(RegExp(r'\[\d+m'), '');
-    // Remove other control characters but keep newlines (\n=0x0A) and tabs (\t=0x09)
-    content = content.replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '');
+    // Remove ANSI escape sequences
+    content = _stripAnsi(content);
     
     return content.trim();
   }
 
-  bool _isBase64(String str) {
-    if (str.length < 4) return false;
-    final base64Regex = RegExp(r'^[A-Za-z0-9+/]*={0,2}$');
-    return base64Regex.hasMatch(str) && str.length % 4 == 0;
-  }
-
-  bool _isGarbled(String str) {
-    // Quick check: if string has many non-printable/non-CJK chars, it's garbled
-    int garbledCount = 0;
-    for (int i = 0; i < str.length && i < 100; i++) {
-      final code = str.codeUnitAt(i);
-      if (code > 127 && code < 0x4E00) {
-        garbledCount++;
-      }
-    }
-    return garbledCount > 20;
+  // Comprehensive ANSI escape sequence removal
+  String _stripAnsi(String str) {
+    // ESC sequences with ESC prefix
+    str = str.replaceAll(RegExp(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])'), '');
+    // OSC sequences
+    str = str.replaceAll(RegExp(r'\x1B\][^\x07\x1B]*(?:\x07|\x1B\\)'), '');
+    // CSI sequences without ESC prefix (stored logs may have lost ESC byte)
+    str = str.replaceAll(RegExp(r'\[(?:\d+;)*\d+[A-Za-z]'), '');
+    // Remove bare [32m, [0m etc
+    str = str.replaceAll(RegExp(r'\[\d+m'), '');
+    // Remove control characters except newline and tab
+    str = str.replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '');
+    return str;
   }
 
   @override

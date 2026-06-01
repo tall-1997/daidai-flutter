@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import '../services/auth_service.dart';
 import 'home_screen.dart';
 
@@ -1069,14 +1070,31 @@ class _TaskDetailSheetState extends State<_TaskDetailSheet> {
   String _cleanLogContent(dynamic content) {
     if (content == null) return '';
     String str = content.toString();
-    // Comprehensive ANSI escape sequence removal
+    
+    // Try to decode base64 + gzip (eJ prefix = gzip compressed base64)
+    if (str.length > 8 && RegExp(r'^[A-Za-z0-9+/]*={0,2}$').hasMatch(str.trim())) {
+      try {
+        final bytes = base64Decode(str.trim());
+        if (bytes.length > 2 && bytes[0] == 0x1f && bytes[1] == 0x8b) {
+          str = utf8.decode(gzip.decode(bytes), allowMalformed: true);
+        } else {
+          str = utf8.decode(bytes, allowMalformed: true);
+        }
+      } catch (e) {
+        try {
+          final bytes = base64Decode(str.trim());
+          str = utf8.decode(bytes, allowMalformed: true);
+        } catch (e2) {
+          // Use original
+        }
+      }
+    }
+    
+    // Remove ANSI escape sequences
     str = str.replaceAll(RegExp(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])'), '');
     str = str.replaceAll(RegExp(r'\x1B\][^\x07\x1B]*(?:\x07|\x1B\\)'), '');
-    // CSI sequences without ESC prefix
     str = str.replaceAll(RegExp(r'\[(?:\d+;)*\d+[A-Za-z]'), '');
-    // Remove bare [32m, [0m etc
     str = str.replaceAll(RegExp(r'\[\d+m'), '');
-    // Remove control characters except newline and tab
     str = str.replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '');
     return str.trim();
   }
