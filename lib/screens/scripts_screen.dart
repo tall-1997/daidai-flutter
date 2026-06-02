@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
+import 'dart:convert';
 import '../services/auth_service.dart';
 import '../theme/miuix_theme.dart';
 import '../widgets/miuix_widgets.dart';
@@ -1813,7 +1814,7 @@ class _ScriptEditorScreenState extends State<_ScriptEditorScreen> {
     switch (ext) {
       case 'json':
         try {
-          final dynamic decoded = const JsonDecoder().convert(text);
+          final dynamic decoded = json.decode(text);
           formatted = const JsonEncoder.withIndent('  ').convert(decoded);
         } catch (e) {
           if (mounted) {
