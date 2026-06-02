@@ -742,6 +742,35 @@ class _SettingsScreenState extends State<SettingsScreen> with RefreshableScreen 
         ),
         const SizedBox(height: 16),
 
+        // Panel Customization
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('面板自定义', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.title),
+                  title: const Text('面板标题'),
+                  subtitle: const Text('自定义面板显示标题'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _showPanelTitleDialog(),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.image),
+                  title: const Text('面板图标'),
+                  subtitle: const Text('自定义面板图标'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _showPanelIconDialog(),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
         // Backup and restore
         Card(
           child: Padding(
@@ -826,5 +855,105 @@ class _SettingsScreenState extends State<SettingsScreen> with RefreshableScreen 
       case ThemeMode.dark:
         return '深色模式';
     }
+  }
+
+  void _showPanelTitleDialog() {
+    final titleController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('设置面板标题'),
+        content: TextField(
+          controller: titleController,
+          decoration: const InputDecoration(
+            labelText: '面板标题',
+            border: OutlineInputBorder(),
+            hintText: '呆呆面板',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              try {
+                final authService = context.read<AuthService>();
+                await authService.apiService.updateSystemConfig({
+                  'panel_title': titleController.text,
+                });
+                Navigator.pop(context);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('面板标题已更新'), backgroundColor: Colors.green),
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('更新失败: $e'), backgroundColor: Colors.red),
+                );
+              }
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPanelIconDialog() {
+    final iconController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('设置面板图标'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('输入图标URL或Base64编码'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: iconController,
+              decoration: const InputDecoration(
+                labelText: '图标URL',
+                border: OutlineInputBorder(),
+                hintText: 'https://example.com/icon.png',
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              try {
+                final authService = context.read<AuthService>();
+                await authService.apiService.updateSystemConfig({
+                  'panel_icon': iconController.text,
+                });
+                Navigator.pop(context);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('面板图标已更新'), backgroundColor: Colors.green),
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('更新失败: $e'), backgroundColor: Colors.red),
+                );
+              }
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
   }
 }
