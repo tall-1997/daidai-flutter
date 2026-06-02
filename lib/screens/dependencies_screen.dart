@@ -482,10 +482,9 @@ class _DependenciesScreenState extends State<DependenciesScreen> with Refreshabl
           Expanded(child: _buildBody(filteredDeps)),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: _showInstallDialog,
-        icon: const Icon(Icons.add, size: 20),
-        label: const Text('安装', style: TextStyle(fontSize: 14)),
+        child: const Icon(Icons.add, size: 24),
       ),
     );
   }
