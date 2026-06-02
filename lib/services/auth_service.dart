@@ -6,12 +6,14 @@ import 'api_service.dart';
 class SavedAccount {
   final String serverUrl;
   final String username;
+  final String? password;
   final String? accessToken;
   final String? refreshToken;
 
   SavedAccount({
     required this.serverUrl,
     required this.username,
+    this.password,
     this.accessToken,
     this.refreshToken,
   });
@@ -19,6 +21,7 @@ class SavedAccount {
   Map<String, dynamic> toJson() => {
     'serverUrl': serverUrl,
     'username': username,
+    'password': password,
     'accessToken': accessToken,
     'refreshToken': refreshToken,
   };
@@ -26,6 +29,7 @@ class SavedAccount {
   factory SavedAccount.fromJson(Map<String, dynamic> json) => SavedAccount(
     serverUrl: json['serverUrl'] ?? '',
     username: json['username'] ?? '',
+    password: json['password'],
     accessToken: json['accessToken'],
     refreshToken: json['refreshToken'],
   );
@@ -40,6 +44,9 @@ class AuthService extends ChangeNotifier {
   String? _username;
   String? _error;
   List<SavedAccount> _savedAccounts = [];
+  bool _autoLogin = false;
+  String? _lastServerUrl;
+  String? _lastUsername;
 
   bool get isAuthenticated => _isAuthenticated;
   bool get isInitialized => _isInitialized;
@@ -47,6 +54,9 @@ class AuthService extends ChangeNotifier {
   String? get error => _error;
   ApiService get apiService => _apiService;
   List<SavedAccount> get savedAccounts => _savedAccounts;
+  bool get autoLogin => _autoLogin;
+  String? get lastServerUrl => _lastServerUrl;
+  String? get lastUsername => _lastUsername;
 
   Future<void> initialize() async {
     if (_isInitialized) return;
@@ -63,6 +73,11 @@ class AuthService extends ChangeNotifier {
         final List<dynamic> accountsList = jsonDecode(accountsJson);
         _savedAccounts = accountsList.map((a) => SavedAccount.fromJson(a)).toList();
       }
+
+      // Load auto-login preferences
+      _autoLogin = prefs.getBool('auto_login') ?? false;
+      _lastServerUrl = prefs.getString('last_server_url');
+      _lastUsername = prefs.getString('last_username');
 
       if (accessToken != null) {
         _isAuthenticated = true;
@@ -109,14 +124,21 @@ class AuthService extends ChangeNotifier {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('username', username);
 
-        // Save account
+        // Save account with password
         final account = SavedAccount(
           serverUrl: _apiService.baseUrl,
           username: username,
+          password: password,
           accessToken: accessToken,
           refreshToken: refreshToken,
         );
         await _saveAccount(account);
+
+        // Save last login info for auto-fill
+        await prefs.setString('last_server_url', _apiService.baseUrl);
+        await prefs.setString('last_username', username);
+        _lastServerUrl = _apiService.baseUrl;
+        _lastUsername = username;
 
         _isAuthenticated = true;
         _username = username;
@@ -232,6 +254,13 @@ class AuthService extends ChangeNotifier {
 
   Future<void> setServerUrl(String url) async {
     await _apiService.setServerUrl(url);
+    notifyListeners();
+  }
+
+  Future<void> setAutoLogin(bool value) async {
+    _autoLogin = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('auto_login', value);
     notifyListeners();
   }
 

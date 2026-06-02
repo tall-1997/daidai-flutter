@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../services/auth_service.dart';
 import '../theme/miuix_theme.dart';
 
@@ -25,6 +27,8 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _loginError;
   String? _errorDetail;
   bool _showSavedAccounts = false;
+  bool _rememberPassword = true;
+  bool _autoLogin = false;
   
   // Login mode: 'normal', 'client', '2fa'
   String _loginMode = 'normal';
@@ -34,10 +38,43 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     final authService = context.read<AuthService>();
     _serverController.text = authService.serverUrl;
+    _autoLogin = authService.autoLogin;
+
+    // Auto-fill from last login info
+    if (authService.lastServerUrl != null && authService.lastServerUrl!.isNotEmpty) {
+      _serverController.text = authService.lastServerUrl!;
+    }
+    if (authService.lastUsername != null && authService.lastUsername!.isNotEmpty) {
+      _usernameController.text = authService.lastUsername!;
+    }
+
+    // Try to find saved account and fill password
+    _fillFromSavedAccount();
 
     // If there are saved accounts, show them
     if (authService.savedAccounts.isNotEmpty) {
       _showSavedAccounts = true;
+    }
+
+    // Auto login if enabled and credentials exist
+    if (_autoLogin && _usernameController.text.isNotEmpty && _passwordController.text.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _login());
+    }
+  }
+
+  void _fillFromSavedAccount() {
+    final authService = context.read<AuthService>();
+    final serverUrl = _serverController.text.trim();
+    final username = _usernameController.text.trim();
+    
+    if (serverUrl.isNotEmpty && username.isNotEmpty) {
+      final account = authService.savedAccounts.where(
+        (a) => a.serverUrl == serverUrl && a.username == username
+      ).firstOrNull;
+      
+      if (account?.password != null && account!.password!.isNotEmpty) {
+        _passwordController.text = account.password!;
+      }
     }
   }
 
@@ -126,7 +163,32 @@ class _LoginScreenState extends State<LoginScreen> {
           setState(() => _isLoading = false);
 
           if (success) {
-            // Login success
+            // Login success - update password in saved account if rememberPassword is true
+            if (_rememberPassword) {
+              // Password was already saved by AuthService.login()
+            } else {
+              // Clear password from saved account
+              final prefs = await SharedPreferences.getInstance();
+              final accountsJson = prefs.getString('saved_accounts');
+              if (accountsJson != null) {
+                final List<dynamic> accountsList = jsonDecode(accountsJson);
+                final accounts = accountsList.map((a) => SavedAccount.fromJson(a)).toList();
+                final serverUrl = _serverController.text.trim();
+                final username = _usernameController.text.trim();
+                final index = accounts.indexWhere(
+                  (a) => a.serverUrl == serverUrl && a.username == username
+                );
+                if (index >= 0) {
+                  accounts[index] = SavedAccount(
+                    serverUrl: accounts[index].serverUrl,
+                    username: accounts[index].username,
+                    accessToken: accounts[index].accessToken,
+                    refreshToken: accounts[index].refreshToken,
+                  );
+                  await prefs.setString('saved_accounts', jsonEncode(accounts.map((a) => a.toJson()).toList()));
+                }
+              }
+            }
           } else {
             final error = authService.error ?? '登录失败';
             if (error == '2FA_REQUIRED') {
@@ -214,7 +276,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _selectAccount(SavedAccount account) {
     _serverController.text = account.serverUrl;
     _usernameController.text = account.username;
-    _passwordController.text = '';
+    _passwordController.text = account.password ?? '';
     setState(() => _showSavedAccounts = false);
   }
 
@@ -442,15 +504,52 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
 
                   const SizedBox(height: 24),
+
+                  // Remember password and auto-login
+                  if (_loginMode != 'client') ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: CheckboxListTile(
+                            value: _rememberPassword,
+                            onChanged: (value) => setState(() => _rememberPassword = value ?? true),
+                            title: const Text('记住密码', style: TextStyle(fontSize: 13)),
+                            controlAffinity: ListTileControlAffinity.leading,
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                        Expanded(
+                          child: CheckboxListTile(
+                            value: _autoLogin,
+                            onChanged: (value) {
+                              setState(() => _autoLogin = value ?? false);
+                              context.read<AuthService>().setAutoLogin(_autoLogin);
+                            },
+                            title: const Text('自动登录', style: TextStyle(fontSize: 13)),
+                            controlAffinity: ListTileControlAffinity.leading,
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+
                   FilledButton(
                     onPressed: _isLoading ? null : _login,
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: _isLoading
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : Text(_loginMode == '2fa' ? '验证' : '登录'),
+                        ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.onPrimary))
+                        : Text(_loginMode == '2fa' ? '验证' : '登录', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                   if (_loginMode == '2fa') ...[
                     const SizedBox(height: 8),
