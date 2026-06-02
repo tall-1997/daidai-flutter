@@ -1123,6 +1123,7 @@ class _TasksScreenState extends State<TasksScreen> with RefreshableScreen {
     final dependsOnController = TextEditingController(text: task['depends_on'] ?? '');
     final hookBeforeController = TextEditingController(text: task['hook_before'] ?? '');
     final hookAfterController = TextEditingController(text: task['hook_after'] ?? '');
+    final concurrencyController = TextEditingController(text: '${task['task_concurrency'] ?? 1}');
     String taskType = task['task_type'] ?? 'cron';
     bool enableRetry = (task['retry_count'] ?? 0) > 0;
 
@@ -1264,6 +1265,18 @@ class _TasksScreenState extends State<TasksScreen> with RefreshableScreen {
                   ),
                 ],
                 const SizedBox(height: 24),
+                const Text('并发控制', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: concurrencyController,
+                  decoration: const InputDecoration(
+                    labelText: '最大并发实例数',
+                    border: OutlineInputBorder(),
+                    helperText: '同一任务最多同时运行的实例数，1表示串行执行',
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 24),
                 const Text('依赖与钩子', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 TextField(
@@ -1316,6 +1329,7 @@ class _TasksScreenState extends State<TasksScreen> with RefreshableScreen {
                     'task_type': taskType,
                     'command': commandController.text,
                     'timeout': int.tryParse(timeoutController.text) ?? 0,
+                    'task_concurrency': int.tryParse(concurrencyController.text) ?? 1,
                     if (taskType == 'cron') 'cron_expression': cronController.text,
                     if (groupController.text.trim().isNotEmpty) 'group': groupController.text.trim(),
                     'retry_count': enableRetry ? (int.tryParse(retryCountController.text) ?? 0) : 0,

@@ -775,4 +775,216 @@ class ApiService {
     final response = await put('/configs/batch', body: {'configs': config});
     return jsonDecode(response.body);
   }
+
+  // ==================== Task Concurrency & Dependencies ====================
+
+  Future<Map<String, dynamic>> updateTaskConcurrency(int id, int concurrency) async {
+    final response = await put('/tasks/$id', body: {'task_concurrency': concurrency});
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> updateTaskDependencies(int id, String dependsOn) async {
+    final response = await put('/tasks/$id', body: {'depends_on': dependsOn});
+    return jsonDecode(response.body);
+  }
+
+  // ==================== Script Debug & Versions ====================
+
+  Future<Map<String, dynamic>> debugScript(String path, {String? content, String? args}) async {
+    final body = <String, dynamic>{
+      'path': path,
+      if (content != null) 'content': content,
+      if (args != null) 'args': args,
+    };
+    final response = await post('/scripts/debug', body: body);
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> runScript(String path, {String? args}) async {
+    final body = <String, dynamic>{
+      'path': path,
+      if (args != null) 'args': args,
+    };
+    final response = await post('/scripts/run', body: body);
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> getScriptVersions(String path) async {
+    final response = await get('/scripts/versions?path=$path');
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> restoreScriptVersion(String path, int versionId) async {
+    final response = await post('/scripts/versions/$versionId/restore', body: {'path': path});
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> renameScript(String oldPath, String newPath) async {
+    final response = await put('/scripts/rename', body: {
+      'old_path': oldPath,
+      'new_path': newPath,
+    });
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> moveScript(String sourcePath, String destPath) async {
+    final response = await put('/scripts/move', body: {
+      'source_path': sourcePath,
+      'dest_path': destPath,
+    });
+    return jsonDecode(response.body);
+  }
+
+  // ==================== Log Cleanup Strategy ====================
+
+  Future<Map<String, dynamic>> getLogCleanupConfig() async {
+    final response = await get('/configs');
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> updateLogCleanupConfig(Map<String, dynamic> config) async {
+    final response = await put('/configs/batch', body: {'configs': config});
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> cleanupLogs(int days) async {
+    final response = await post('/logs/cleanup', body: {'days': days});
+    return jsonDecode(response.body);
+  }
+
+  // ==================== Env Groups & Import/Export ====================
+
+  Future<Map<String, dynamic>> getEnvGroups() async {
+    final response = await get('/envs/groups');
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> exportEnvsQinglong() async {
+    final response = await get('/envs/export?qinglong=true');
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> importEnvsQinglong(List<Map<String, dynamic>> envs) async {
+    final response = await post('/envs/import', body: {'envs': envs, 'format': 'qinglong'});
+    return jsonDecode(response.body);
+  }
+
+  // ==================== Subscription Enhancements ====================
+
+  Future<Map<String, dynamic>> getSubscriptionSSHKeys() async {
+    final response = await get('/ssh-keys');
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> addSubscriptionSSHKey(Map<String, dynamic> key) async {
+    final response = await post('/ssh-keys', body: key);
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> deleteSubscriptionSSHKey(int id) async {
+    final response = await delete('/ssh-keys/$id');
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> updateSubscriptionFilter(int id, Map<String, dynamic> filter) async {
+    final response = await put('/scripts/subscriptions/$id', body: filter);
+    return jsonDecode(response.body);
+  }
+
+  // ==================== Notification Templates ====================
+
+  Future<Map<String, dynamic>> getNotificationTemplates() async {
+    final response = await get('/notifications/templates');
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> createNotificationTemplate(Map<String, dynamic> template) async {
+    final response = await post('/notifications/templates', body: template);
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> updateNotificationTemplate(int id, Map<String, dynamic> template) async {
+    final response = await put('/notifications/templates/$id', body: template);
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> deleteNotificationTemplate(int id) async {
+    final response = await delete('/notifications/templates/$id');
+    return jsonDecode(response.body);
+  }
+
+  // ==================== System Config (Panel Title/Icon) ====================
+
+  Future<Map<String, dynamic>> getSystemConfig() async {
+    final response = await get('/configs');
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> updateSystemConfig(Map<String, dynamic> config) async {
+    final response = await put('/configs/batch', body: {'configs': config});
+    return jsonDecode(response.body);
+  }
+
+  // ==================== Backup Operations ====================
+
+  Future<Map<String, dynamic>> createBackup({String? name}) async {
+    final response = await post('/system/backup', body: {
+      if (name != null) 'name': name,
+    });
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> getBackups() async {
+    final response = await get('/system/backups');
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> restoreBackup(String name) async {
+    final response = await post('/system/backup/$name/restore');
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> deleteBackup(String name) async {
+    final response = await delete('/system/backup/$name');
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> downloadBackup(String name) async {
+    final response = await get('/system/backup/$name/download');
+    return jsonDecode(response.body);
+  }
+
+  // ==================== Task Views ====================
+
+  Future<Map<String, dynamic>> getTaskViews() async {
+    final response = await get('/tasks/views');
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> createTaskView(Map<String, dynamic> view) async {
+    final response = await post('/tasks/views', body: view);
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> updateTaskView(int id, Map<String, dynamic> view) async {
+    final response = await put('/tasks/views/$id', body: view);
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> deleteTaskView(int id) async {
+    final response = await delete('/tasks/views/$id');
+    return jsonDecode(response.body);
+  }
+
+  // ==================== Log Stats ====================
+
+  Future<Map<String, dynamic>> getLogStats({int days = 7}) async {
+    final response = await get('/logs/stats?days=$days');
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> getTaskLogStats(int taskId, {int days = 7}) async {
+    final response = await get('/tasks/$taskId/stats?days=$days');
+    return jsonDecode(response.body);
+  }
 }
