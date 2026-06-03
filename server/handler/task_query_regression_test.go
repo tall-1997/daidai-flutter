@@ -758,6 +758,55 @@ func TestTaskImportPreservesRandomDelaySettings(t *testing.T) {
 	}
 }
 
+func TestTaskImportPreservesExportedStatusAndRegistersEnabledCron(t *testing.T) {
+	testutil.SetupTestEnv(t)
+	service.ShutdownSchedulerV2()
+	service.InitSchedulerV2()
+	t.Cleanup(service.ShutdownSchedulerV2)
+
+	engine := newProtectedRouter()
+	user := testutil.MustCreateUser(t, "import-status-operator", "operator")
+	accessToken := testutil.MustCreateAccessToken(t, user.Username, user.Role)
+
+	rec := performJSONRequest(
+		engine,
+		http.MethodPost,
+		"/api/v1/tasks/import",
+		`{"tasks":[{"name":"imported enabled task","command":"echo enabled","cron_expression":"0 0 * * *","task_type":"cron","status":1},{"name":"imported disabled task","command":"echo disabled","cron_expression":"0 0 * * *","task_type":"cron","status":0}]}`,
+		map[string]string{"Authorization": "Bearer " + accessToken},
+		"",
+	)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected import 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var enabledTask model.Task
+	if err := database.DB.Where("name = ?", "imported enabled task").First(&enabledTask).Error; err != nil {
+		t.Fatalf("load imported enabled task: %v", err)
+	}
+	if enabledTask.Status != model.TaskStatusEnabled {
+		t.Fatalf("expected imported status=1 to stay enabled, got %v", enabledTask.Status)
+	}
+
+	var disabledTask model.Task
+	if err := database.DB.Where("name = ?", "imported disabled task").First(&disabledTask).Error; err != nil {
+		t.Fatalf("load imported disabled task: %v", err)
+	}
+	if disabledTask.Status != model.TaskStatusDisabled {
+		t.Fatalf("expected imported status=0 to stay disabled, got %v", disabledTask.Status)
+	}
+
+	scheduler := service.GetSchedulerV2()
+	if scheduler == nil {
+		t.Fatal("expected scheduler to be initialized")
+	}
+	if !scheduler.HasJob(enabledTask.ID) {
+		t.Fatalf("expected enabled imported cron task %d to be registered", enabledTask.ID)
+	}
+	if scheduler.HasJob(disabledTask.ID) {
+		t.Fatalf("did not expect disabled imported cron task %d to be registered", disabledTask.ID)
+	}
+}
 func TestTaskNotificationChannelsExposeSafeFieldsOnly(t *testing.T) {
 	testutil.SetupTestEnv(t)
 

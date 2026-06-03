@@ -55,6 +55,8 @@ func PipInstallEnv(base []string, configured string) []string {
 //   - PIP_INSTALL_OPTION 历史上是把任意 setup.py install 选项透传给 pip，
 //     是 --home / --prefix 冲突的常见来源。
 //   - PYTHONUSERBASE 决定 --user 安装的根目录，与 venv 同样冲突。
+//   - PYTHONPATH / PYTHONHOME 会污染 pip / ensurepip 的解释器搜索路径，
+//     Python 小版本升级后可能让 venv pip 找不到自身 pip 模块。
 //
 // 面板调用的 pip 始终来自托管 venv 或系统 pip，自带正确的安装目标，
 // 不需要也不应该让上述变量参与。
@@ -66,6 +68,8 @@ var pipConflictingEnvKeys = map[string]struct{}{
 	"PIP_USER":           {},
 	"PIP_INSTALL_OPTION": {},
 	"PYTHONUSERBASE":     {},
+	"PYTHONPATH":         {},
+	"PYTHONHOME":         {},
 }
 
 // SanitizePipEnv 移除所有可能与面板内部 pip 调用相冲突的环境变量。

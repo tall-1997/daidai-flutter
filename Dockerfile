@@ -16,7 +16,7 @@ COPY server/go.mod server/go.sum ./
 ENV GOPROXY=https://goproxy.cn,direct
 RUN go mod download
 COPY server/ ./
-ARG VERSION=2.2.15
+ARG VERSION=2.2.16
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETVARIANT
@@ -27,15 +27,16 @@ RUN GOARM=$(case "${TARGETVARIANT}" in v7) echo 7;; v6) echo 6;; v5) echo 5;; *)
     go build -ldflags="-s -w -X daidai-panel/handler.Version=${VERSION}" -o ddp ./cmd/ddp
 
 
-FROM node:20.19.0-alpine
+FROM alpine:3.22
 
 RUN apk add --no-cache \
     ca-certificates tzdata bash curl wget \
-    gcompat libc6-compat libstdc++ \
+    gcompat libstdc++ \
     nginx \
+    nodejs npm \
     python3 py3-pip \
     go \
-    git openssh-client \
+    git openssh-client-default \
     docker-cli \
     su-exec shadow
 

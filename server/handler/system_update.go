@@ -53,36 +53,38 @@ type panelUpdateManager struct {
 }
 
 type panelUpdatePlan struct {
-	DeploymentType string
-	ContainerName  string
-	ImageName      string
-	PullImageName  string
-	Channel        string
-	MirrorHost     string
-	RegistryURL    string
-	RunArgs        []string
-	ReleaseVersion string
-	AssetName      string
-	AssetURL       string
-	InstallDir     string
-	BinaryName     string
-	ExecutablePath string
-	CurrentPID     int
-	ServerPID      int
-	ServerPIDFile  string
+	DeploymentType  string
+	ContainerName   string
+	ImageName       string
+	PullImageName   string
+	PreviousImageID string
+	Channel         string
+	MirrorHost      string
+	RegistryURL     string
+	RunArgs         []string
+	ReleaseVersion  string
+	AssetName       string
+	AssetURL        string
+	InstallDir      string
+	BinaryName      string
+	ExecutablePath  string
+	CurrentPID      int
+	ServerPID       int
+	ServerPIDFile   string
 }
 
 type watchtowerRuntimeConfig struct {
-	Managed                 bool
-	APIURL                  string
-	APIToken                string
-	Schedule                string
-	PeriodicPollsEnabled    bool
-	ManualTriggerSupported  bool
+	Managed                bool
+	APIURL                 string
+	APIToken               string
+	Schedule               string
+	PeriodicPollsEnabled   bool
+	ManualTriggerSupported bool
 }
 
 type dockerInspectInfo struct {
 	Name       string `json:"Name"`
+	Image      string `json:"Image"`
 	Mounts     []dockerInspectMount
 	Config     dockerInspectConfig     `json:"Config"`
 	HostConfig dockerInspectHostConfig `json:"HostConfig"`
@@ -355,14 +357,15 @@ func buildDockerPanelUpdatePlan() (*panelUpdatePlan, error) {
 	)
 
 	return &panelUpdatePlan{
-		DeploymentType: panelUpdateDeploymentDocker,
-		ContainerName:  containerName,
-		ImageName:      imageName,
-		PullImageName:  pullImageName,
-		Channel:        resolvePanelUpdateChannel(imageName),
-		MirrorHost:     mirrorHost,
-		RegistryURL:    registryURL,
-		RunArgs:        buildContainerRunArgs(containerName, imageName, info),
+		DeploymentType:  panelUpdateDeploymentDocker,
+		ContainerName:   containerName,
+		ImageName:       imageName,
+		PullImageName:   pullImageName,
+		PreviousImageID: normalizeDockerImageID(info.Image),
+		Channel:         resolvePanelUpdateChannel(imageName),
+		MirrorHost:      mirrorHost,
+		RegistryURL:     registryURL,
+		RunArgs:         buildContainerRunArgs(containerName, imageName, info),
 	}, nil
 }
 
@@ -401,6 +404,25 @@ func inspectCurrentPanelContainer() (*dockerInspectInfo, error) {
 	}
 
 	return nil, fmt.Errorf("无法识别当前面板容器，请设置环境变量 CONTAINER_NAME 后重试")
+}
+
+func normalizeDockerImageID(imageID string) string {
+	imageID = strings.TrimSpace(imageID)
+	if !strings.HasPrefix(imageID, "sha256:") {
+		return ""
+	}
+
+	digest := strings.TrimPrefix(imageID, "sha256:")
+	if len(digest) != 64 {
+		return ""
+	}
+	for _, ch := range digest {
+		if (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F') {
+			continue
+		}
+		return ""
+	}
+	return "sha256:" + strings.ToLower(digest)
 }
 
 func buildContainerRunArgs(containerName, imageName string, info *dockerInspectInfo) []string {
@@ -729,10 +751,22 @@ func buildPanelUpdateHelperScript(plan *panelUpdatePlan) string {
 		quotedArgs = append(quotedArgs, shellQuote(arg))
 	}
 
-	return fmt.Sprintf(
-		"sleep 2 && docker rm -f %s >/dev/null 2>&1 || true && docker %s",
+	cleanupBlock := ""
+	if previousImageID := normalizeDockerImageID(plan.PreviousImageID); previousImageID != "" {
+		cleanupBlock = fmt.Sprintf(`
+if [ "$status" -eq 0 ]; then
+  docker image rm %s >/dev/null 2>&1 || true
+fi`, shellQuote(previousImageID))
+	}
+
+	return fmt.Sprintf(`sleep 2
+docker rm -f %s >/dev/null 2>&1 || true
+docker %s
+status=$?%s
+exit "$status"`,
 		shellQuote(plan.ContainerName),
 		strings.Join(quotedArgs, " "),
+		cleanupBlock,
 	)
 }
 

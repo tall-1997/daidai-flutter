@@ -277,9 +277,9 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          # Alpine 运行时已切到 node:20.19.0-alpine；Node 官方镜像不提供 linux/386 manifest，
-          # 所以这里覆盖 amd64 / arm64 / arm/v7，不再构建 32 位 x86 镜像。
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          # Alpine 运行时使用 alpine:3.22 + apk nodejs/npm，避开 Node 官方镜像 linux/386 manifest 缺失问题；
+          # alpine:3.22 的 x86 / x86_64 / aarch64 / armv7 仓库均提供 nodejs>=20.19 与 npm。
+          platforms: linux/amd64,linux/arm64,linux/386,linux/arm/v7
           push: true
           build-args: VERSION=${{ steps.version.outputs.VERSION }}
           cache-from: type=gha,scope=alpine

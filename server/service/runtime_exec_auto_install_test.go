@@ -79,6 +79,45 @@ func TestResolveManagedVenvBinUsesExistingScriptsDir(t *testing.T) {
 	}
 }
 
+func TestManagedPythonVenvHealthyRejectsBrokenPip(t *testing.T) {
+	venvDir := filepath.Join(t.TempDir(), "venv")
+	venvBin := resolveManagedVenvBin(venvDir)
+	writeFakeExecutable(t, venvBin, "python", []string{"exit 0"})
+	writeFakeExecutable(t, venvBin, "pip3", []string{"echo ModuleNotFoundError: No module named 'pip' 1>&2", "exit 1"})
+
+	if managedPythonVenvHealthy(venvDir) {
+		t.Fatal("expected venv with broken pip module to be unhealthy")
+	}
+}
+
+func TestManagedPythonVenvHealthyAcceptsWorkingPip(t *testing.T) {
+	venvDir := filepath.Join(t.TempDir(), "venv")
+	venvBin := resolveManagedVenvBin(venvDir)
+	writeFakeExecutable(t, venvBin, "python", []string{"exit 0"})
+	writeFakeExecutable(t, venvBin, "pip3", []string{"echo pip 24.0 from test", "exit 0"})
+
+	if !managedPythonVenvHealthy(venvDir) {
+		t.Fatal("expected venv with working pip --version to be healthy")
+	}
+}
+
+func writeFakeExecutable(t *testing.T, dir, name string, lines []string) string {
+	t.Helper()
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("mkdir fake executable dir: %v", err)
+	}
+
+	path := filepath.Join(dir, name)
+	content := "#!/bin/sh\n" + strings.Join(lines, "\n") + "\n"
+	if runtime.GOOS == "windows" {
+		path += ".cmd"
+		content = "@echo off\r\n" + strings.Join(lines, "\r\n") + "\r\n"
+	}
+	if err := os.WriteFile(path, []byte(content), 0o755); err != nil {
+		t.Fatalf("write fake executable: %v", err)
+	}
+	return path
+}
 func TestResolveManagedBinaryPrefersRealWindowsPythonInstallOverWindowsAppsProxy(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("windows-only resolution behavior")

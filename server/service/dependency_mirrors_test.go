@@ -17,6 +17,8 @@ func TestSanitizePipEnvStripsConflictingVars(t *testing.T) {
 		"PIP_USER=true",
 		"PIP_INSTALL_OPTION=--home=/opt/foo",
 		"PYTHONUSERBASE=/opt/userbase",
+		"PYTHONPATH=/old/site-packages",
+		"PYTHONHOME=/old/python",
 		"PIP_INDEX_URL=https://example.com/simple",
 		"PIP_TRUSTED_HOST=example.com",
 		"LANG=zh_CN.UTF-8",
@@ -54,6 +56,8 @@ func TestSanitizePipEnvStripsConflictingVars(t *testing.T) {
 		"PIP_USER=",
 		"PIP_INSTALL_OPTION=",
 		"PYTHONUSERBASE=",
+		"PYTHONPATH=",
+		"PYTHONHOME=",
 	}
 	for _, prefix := range mustDropPrefixes {
 		for _, entry := range cleaned {

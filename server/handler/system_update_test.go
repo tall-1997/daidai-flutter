@@ -293,3 +293,68 @@ func TestSafeArchiveTargetPathAllowsNestedFile(t *testing.T) {
 }
 
 var errContextDeadlineExceeded = errors.New("context deadline exceeded")
+
+func TestNormalizeDockerImageID(t *testing.T) {
+	valid := "sha256:" + strings.Repeat("A", 64)
+	want := "sha256:" + strings.Repeat("a", 64)
+	if got := normalizeDockerImageID(valid); got != want {
+		t.Fatalf("expected normalized digest %q, got %q", want, got)
+	}
+
+	invalidValues := []string{
+		"linzixuanzz/daidai-panel:latest",
+		"sha256:" + strings.Repeat("a", 63),
+		"sha256:" + strings.Repeat("g", 64),
+		"",
+	}
+	for _, value := range invalidValues {
+		if got := normalizeDockerImageID(value); got != "" {
+			t.Fatalf("expected invalid image id %q to be rejected, got %q", value, got)
+		}
+	}
+}
+
+func TestBuildPanelUpdateHelperScriptCleansPreviousImageAfterSuccessfulRun(t *testing.T) {
+	previousImageID := "sha256:" + strings.Repeat("b", 64)
+	plan := &panelUpdatePlan{
+		ContainerName:   "daidai-panel",
+		PreviousImageID: previousImageID,
+		RunArgs: []string{
+			"run",
+			"-d",
+			"--name",
+			"daidai-panel",
+			"linzixuanzz/daidai-panel:latest",
+		},
+	}
+
+	script := buildPanelUpdateHelperScript(plan)
+
+	statusIndex := strings.Index(script, "status=$?")
+	cleanupIndex := strings.Index(script, "docker image rm '"+previousImageID+"' >/dev/null 2>&1 || true")
+	if cleanupIndex < 0 {
+		t.Fatalf("expected helper script to clean previous image id, got:\n%s", script)
+	}
+	if statusIndex < 0 || cleanupIndex < statusIndex {
+		t.Fatalf("expected previous image cleanup after docker run status capture, got:\n%s", script)
+	}
+	if !strings.Contains(script, "if [ \"$status\" -eq 0 ]; then") {
+		t.Fatalf("expected cleanup to run only after successful container start, got:\n%s", script)
+	}
+	if !strings.Contains(script, "exit \"$status\"") {
+		t.Fatalf("expected helper script to preserve docker run exit status, got:\n%s", script)
+	}
+}
+
+func TestBuildPanelUpdateHelperScriptSkipsInvalidPreviousImageID(t *testing.T) {
+	plan := &panelUpdatePlan{
+		ContainerName:   "daidai-panel",
+		PreviousImageID: "linzixuanzz/daidai-panel:latest",
+		RunArgs:         []string{"run", "-d", "--name", "daidai-panel", "linzixuanzz/daidai-panel:latest"},
+	}
+
+	script := buildPanelUpdateHelperScript(plan)
+	if strings.Contains(script, "docker image rm") {
+		t.Fatalf("expected invalid previous image id to be ignored, got:\n%s", script)
+	}
+}

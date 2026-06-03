@@ -20,8 +20,8 @@
 
 呆呆面板 (Daidai Panel) 是一款轻量级定时任务管理平台，采用 Go (Gin) + Vue3 (Element Plus) + SQLite 架构，专注于脚本托管与自动化任务调度。支持 Python、Node.js（含 `.js` / `.mjs`）、Shell、TypeScript、Go 等多语言脚本的定时执行与可视化管理，内置 18 种消息推送渠道、订阅管理、环境变量、依赖管理、Open API 等功能。Docker 一键部署，开箱即用。
 
-> 最新稳定版：`v2.2.15` · [更新日志](./docs/release-notes/v2.2.15.md)<br>
-> 本次重点：Telegram Topic 推送、低分辨率列表可见性修复、Docker 健康检查与 Alpine 运行时依赖链路优化。
+> 最新稳定版：`v2.2.16` · [更新日志](./docs/release-notes/v2.2.16.md)<br>
+> 本次重点：任务导入状态修复、Python 环境自愈、Alpine 32 位镜像构建恢复、Docker 更新旧镜像清理。
 
 ## 功能特性
 
@@ -294,8 +294,10 @@ Watchtower 托管说明：
 
 | Tag | 基础镜像 | Linux 包管理 | 支持架构 | 适合谁 |
 |-----|---------|-------------|---------|--------|
-| `linzixuanzz/daidai-panel:latest` / `:<版本>` | `alpine:3.19` | `apk` | amd64 / arm64 / 386 / arm/v7 | 默认推荐，绝大多数场景 |
-| `linzixuanzz/daidai-panel:debian` | `node:20 bookworm-slim` | `apt` | amd64 / arm64 / arm/v7 | 需要安装只在 Debian/Ubuntu 仓库存在、`apk` 没打包的 Linux 软件 |
+| `linzixuanzz/daidai-panel:latest` / `:<版本>` | `alpine:3.22`（`apk` 安装 Node.js / npm） | `apk` | amd64 / arm64 / 386 / arm/v7 | 默认推荐，绝大多数场景 |
+| `linzixuanzz/daidai-panel:debian` | `node:20.19.0-bookworm-slim` | `apt` | amd64 / arm64 / arm/v7 | 需要安装只在 Debian/Ubuntu 仓库存在、`apk` 没打包的 Linux 软件 |
+
+> 说明：`:latest` 从 v2.2.16 起使用 `alpine:3.22` 作为运行时底座，并通过 `apk` 安装 Alpine 官方仓库的 `nodejs/npm`。这样可以满足 `node >= 20.19.0` 的依赖要求，同时保留 Alpine `x86` 仓库支持，继续构建 `linux/386` 镜像。
 
 切到 Debian 运行时：
 
@@ -304,7 +306,7 @@ Watchtower 托管说明：
 docker compose -f docker-compose.debian.yml up -d
 
 # 或基于源码本地构建
-docker build --build-arg VERSION=2.2.15 -f Dockerfile.debian -t daidai-panel:debian-local .
+docker build --build-arg VERSION=2.2.16 -f Dockerfile.debian -t daidai-panel:debian-local .
 ```
 
 ### Windows 单机版（不走 Docker）
@@ -498,7 +500,7 @@ docker compose -f docker-compose.debian.yml up -d
 本地基于源码自己构建的镜像，重新 build 即可：
 
 ```bash
-docker build --build-arg VERSION=2.2.15 -f Dockerfile.debian -t daidai-panel:debian-local .
+docker build --build-arg VERSION=2.2.16 -f Dockerfile.debian -t daidai-panel:debian-local .
 ```
 
 ## 容器命令 `ddp`

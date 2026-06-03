@@ -93,7 +93,10 @@ export PATH="${DATA_DIR}/deps/nodejs/node_modules/.bin:${DATA_DIR}/deps/python/v
 if [ -d "${DATA_DIR}/deps/python/venv" ]; then
   PY_MINOR=$(python3 -c 'import sys;print(f"{sys.version_info.minor}")' 2>/dev/null || echo "")
   if [ -n "${PY_MINOR}" ]; then
-    export PYTHONPATH="${DATA_DIR}/deps/python/venv/lib/python3.${PY_MINOR}/site-packages"
+    PY_SITE="${DATA_DIR}/deps/python/venv/lib/python3.${PY_MINOR}/site-packages"
+    if [ -d "${PY_SITE}" ]; then
+      export PYTHONPATH="${PY_SITE}"
+    fi
   fi
 fi
 

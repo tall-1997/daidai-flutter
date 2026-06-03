@@ -3,12 +3,14 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"daidai-panel/database"
 	"daidai-panel/model"
 	panelcron "daidai-panel/pkg/cron"
 	"daidai-panel/pkg/response"
+	"daidai-panel/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -49,6 +51,41 @@ func (h *TaskHandler) Export(c *gin.Context) {
 		}
 	}
 	response.Success(c, gin.H{"data": data})
+}
+
+func normalizeImportedTaskStatus(value interface{}) (float64, error) {
+	if value == nil {
+		return model.TaskStatusDisabled, nil
+	}
+
+	var status float64
+	switch typed := value.(type) {
+	case float64:
+		status = typed
+	case int:
+		status = float64(typed)
+	case string:
+		trimmed := strings.TrimSpace(typed)
+		if trimmed == "" {
+			return model.TaskStatusDisabled, nil
+		}
+		parsed, err := strconv.ParseFloat(trimmed, 64)
+		if err != nil {
+			return 0, fmt.Errorf("无效的任务状态")
+		}
+		status = parsed
+	default:
+		return 0, fmt.Errorf("无效的任务状态")
+	}
+
+	switch status {
+	case model.TaskStatusDisabled:
+		return model.TaskStatusDisabled, nil
+	case model.TaskStatusQueued, model.TaskStatusEnabled, model.TaskStatusRunning:
+		return model.TaskStatusEnabled, nil
+	default:
+		return 0, fmt.Errorf("无效的任务状态")
+	}
 }
 
 func (h *TaskHandler) Import(c *gin.Context) {
@@ -103,6 +140,14 @@ func (h *TaskHandler) Import(c *gin.Context) {
 			NotifyOnFailure: true,
 		}
 
+		if statusValue, exists := taskData["status"]; exists {
+			status, err := normalizeImportedTaskStatus(statusValue)
+			if err != nil {
+				errors = append(errors, fmt.Sprintf("任务 %d: %s", i+1, err.Error()))
+				continue
+			}
+			task.Status = status
+		}
 		if value, ok := taskData["timeout"].(float64); ok {
 			task.Timeout = int(value)
 		}
@@ -151,6 +196,13 @@ func (h *TaskHandler) Import(c *gin.Context) {
 		if err := database.DB.Select("*").Create(&task).Error; err != nil {
 			errors = append(errors, fmt.Sprintf("task %d: %s", i+1, err.Error()))
 			continue
+		}
+		if task.Status == model.TaskStatusEnabled {
+			if scheduler := service.GetSchedulerV2(); scheduler != nil {
+				if err := scheduler.AddJob(&task); err != nil {
+					errors = append(errors, fmt.Sprintf("任务 %d: 添加调度失败: %s", i+1, err.Error()))
+				}
+			}
 		}
 		imported++
 	}

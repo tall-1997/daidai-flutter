@@ -160,6 +160,81 @@ func currentManagedRuntimePaths() managedRuntimePaths {
 	}
 }
 
+func managedPythonVenvHealthy(venvDir string) bool {
+	venvBin := resolveManagedVenvBin(venvDir)
+	if info, err := os.Stat(venvBin); err != nil || !info.IsDir() {
+		return false
+	}
+	if resolveManagedPythonBinaryInVenv(venvDir) == "" {
+		return false
+	}
+
+	pipBin := resolveManagedPipBinaryInVenv(venvDir)
+	if pipBin == "" {
+		return false
+	}
+
+	cmd := exec.Command(pipBin, "--version")
+	cmd.Env = appendPythonBootstrapEnv(SanitizePipEnv(os.Environ()))
+	out, err := cmd.CombinedOutput()
+	return err == nil && strings.Contains(strings.ToLower(string(out)), "pip")
+}
+
+func resolveManagedPythonBinaryInVenv(venvDir string) string {
+	venvBin := resolveManagedVenvBin(venvDir)
+	for _, name := range []string{"python", "python3"} {
+		if binary := findExecutableInDir(venvBin, name); binary != "" {
+			return binary
+		}
+	}
+	return ""
+}
+
+func resolveManagedPipBinaryInVenv(venvDir string) string {
+	venvBin := resolveManagedVenvBin(venvDir)
+	for _, name := range []string{"pip3", "pip"} {
+		if binary := findExecutableInDir(venvBin, name); binary != "" {
+			return binary
+		}
+	}
+	return ""
+}
+
+func repairManagedPythonVenvPip(venvDir string) bool {
+	pythonBin := resolveManagedPythonBinaryInVenv(venvDir)
+	if pythonBin == "" {
+		return false
+	}
+
+	cmd := exec.Command(pythonBin, "-m", "ensurepip", "--upgrade")
+	cmd.Env = appendPythonBootstrapEnv(SanitizePipEnv(os.Environ()))
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Printf("warn: managed python venv pip repair failed at %s: %v: %s", venvDir, err, strings.TrimSpace(string(out)))
+		return false
+	}
+	return managedPythonVenvHealthy(venvDir)
+}
+
+func quarantineManagedPythonVenv(venvDir string) {
+	venvDir = strings.TrimSpace(venvDir)
+	if venvDir == "" {
+		return
+	}
+	if _, err := os.Stat(venvDir); err != nil {
+		return
+	}
+
+	backup := venvDir + ".broken-" + time.Now().Format("20060102150405")
+	if err := os.Rename(venvDir, backup); err == nil {
+		log.Printf("managed python venv moved aside for rebuild: %s -> %s", venvDir, backup)
+		return
+	}
+	if err := os.RemoveAll(venvDir); err != nil {
+		log.Printf("warn: failed to remove broken managed python venv %s: %v", venvDir, err)
+	}
+}
+
 func ensureManagedPythonVenv(syncCreate bool) bool {
 	dataDir := ""
 	if config.C != nil {
@@ -170,7 +245,7 @@ func ensureManagedPythonVenv(syncCreate bool) bool {
 	}
 
 	venvDir := filepath.Join(dataDir, "deps", "python", "venv")
-	if info, err := os.Stat(resolveManagedVenvBin(venvDir)); err == nil && info.IsDir() {
+	if managedPythonVenvHealthy(venvDir) {
 		return true
 	}
 
@@ -182,8 +257,16 @@ func ensureManagedPythonVenv(syncCreate bool) bool {
 	managedPythonVenvMu.Lock()
 	defer managedPythonVenvMu.Unlock()
 
-	if info, err := os.Stat(resolveManagedVenvBin(venvDir)); err == nil && info.IsDir() {
+	if managedPythonVenvHealthy(venvDir) {
 		return true
+	}
+
+	if info, err := os.Stat(resolveManagedVenvBin(venvDir)); err == nil && info.IsDir() {
+		if repairManagedPythonVenvPip(venvDir) {
+			log.Printf("managed python venv pip repaired at %s", venvDir)
+			return true
+		}
+		quarantineManagedPythonVenv(venvDir)
 	}
 
 	_ = os.MkdirAll(filepath.Dir(venvDir), 0o755)
@@ -195,12 +278,23 @@ func ensureManagedPythonVenv(syncCreate bool) bool {
 		// Alpine/Debian 上的 PEP 668 把"externally-managed-environment"砸到用户脸上。
 		args := append(append([]string(nil), candidate.args...), venvDir)
 		cmd := exec.Command(candidate.binary, args...)
+		cmd.Env = appendPythonBootstrapEnv(SanitizePipEnv(os.Environ()))
 		out, runErr := cmd.CombinedOutput()
 		if runErr == nil {
-			log.Printf("managed python venv created at %s using %s", venvDir, candidate.binary)
-			return true
+			if managedPythonVenvHealthy(venvDir) {
+				log.Printf("managed python venv created at %s using %s", venvDir, candidate.binary)
+				return true
+			}
+			if repairManagedPythonVenvPip(venvDir) {
+				log.Printf("managed python venv created and pip repaired at %s using %s", venvDir, candidate.binary)
+				return true
+			}
+			lastErr = fmt.Errorf("%s %v created venv but pip is unavailable", candidate.binary, args)
+			quarantineManagedPythonVenv(venvDir)
+			continue
 		}
 		lastErr = fmt.Errorf("%s %v failed: %v: %s", candidate.binary, args, runErr, strings.TrimSpace(string(out)))
+		quarantineManagedPythonVenv(venvDir)
 	}
 	if lastErr != nil {
 		log.Printf("warn: managed python venv create failed: %v (auto-install will fall back to system pip with --break-system-packages)", lastErr)
@@ -244,13 +338,15 @@ func resolveManagedVenvBin(venvDir string) string {
 
 func ResolveManagedPipBinary() string {
 	EnsureManagedPythonVenv()
-	runtimePaths := currentManagedRuntimePaths()
-	for _, name := range []string{"pip3", "pip"} {
-		if binary := findExecutableInDir(runtimePaths.VenvBin, name); binary != "" {
-			return binary
-		}
+	dataDir := ""
+	if config.C != nil {
+		dataDir = config.C.Data.Dir
 	}
-	return ""
+	venvDir := filepath.Join(dataDir, "deps", "python", "venv")
+	if !managedPythonVenvHealthy(venvDir) {
+		return ""
+	}
+	return resolveManagedPipBinaryInVenv(venvDir)
 }
 
 func createManagedPythonCommand(scriptPath string, scriptArgs []string, workDir string, envVars map[string]string, runtimePaths managedRuntimePaths) (*exec.Cmd, func(), error) {
