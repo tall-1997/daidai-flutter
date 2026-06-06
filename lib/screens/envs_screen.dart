@@ -849,7 +849,7 @@ class _EnvCard extends StatelessWidget {
                 Text(
                   remarks,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: isDark ? MiuixColors.darkOnSurfaceVariant : Colors.grey,
+                    color: isDark ? MiuixColors.darkOnSurfaceVariantSummary : Colors.grey,
                   ),
                 ),
               ],
