@@ -24,12 +24,12 @@
 
 ## 下载
 
-### 最新版本 v0.0.40
+### 最新版本 v0.0.41
 
 | 平台 | 下载链接 |
 |------|---------|
-| Android APK | [daidai-flutter-v0.0.40-android.apk](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.40/daidai-flutter-v0.0.40-android.apk) |
-| iOS IPA | [daidai-flutter-v0.0.40-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.40/daidai-flutter-v0.0.40-ios.ipa) |
+| Android APK | [daidai-flutter-v0.0.41-android.apk](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.41/daidai-flutter-v0.0.41-android.apk) |
+| iOS IPA | [daidai-flutter-v0.0.41-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.41/daidai-flutter-v0.0.41-ios.ipa) |
 
 > 所有版本: [Releases](https://github.com/tall-1997/daidai-flutter/releases)
 
@@ -137,6 +137,7 @@ flutter build ipa --release --no-codesign
 
 | 版本 | 主要更新 |
 |------|---------|
+| v0.0.41 | 修复仪表盘空白、移除重复安全设置、日志详情添加滚动条 |
 | v0.0.40 | 页面重构：合并用户管理/个人设置、集成系统监控到仪表盘、移除多余刷新按钮 |
 | v0.0.39 | 修复仪表盘导航、日志状态筛选优化、删除配置Tab |
 | v0.0.38 | 新增仪表盘、订阅管理、个人设置、用户管理、开放API功能模块 |
