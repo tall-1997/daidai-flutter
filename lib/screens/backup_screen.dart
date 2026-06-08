@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/auth_service.dart';
+import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
+import 'dart:io';
+import '../services/auth_service.dart';
 import 'home_screen.dart';
 
 class BackupScreen extends StatefulWidget {
@@ -50,61 +52,31 @@ class _BackupScreenState extends State<BackupScreen> with RefreshableScreen {
           'notifications': notifsData['data'] ?? [],
         };
 
-        final backupJson = jsonEncode(backup);
+        final backupJson = const JsonEncoder.withIndent('  ').convert(backup);
+        final timestamp = DateTime.now().toString().replaceAll(RegExp(r'[: ]'), '-').substring(0, 19);
+        final fileName = 'daidai-backup-$timestamp.json';
 
-        setState(() {
-          _isLoading = false;
-          _message = '备份数据已生成，共 ${backup['tasks'].length} 个任务，${backup['envs'].length} 个环境变量';
-        });
+        // Let user choose save location
+        final outputPath = await FilePicker.platform.saveFile(
+          dialogTitle: '保存备份文件',
+          fileName: fileName,
+          type: FileType.custom,
+          allowedExtensions: ['json'],
+        );
 
-        // Show copy dialog
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('导出备份数据'),
-              content: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('任务: ${(backup['tasks'] as List).length} 个'),
-                    Text('环境变量: ${(backup['envs'] as List).length} 个'),
-                    Text('通知: ${(backup['notifications'] as List).length} 个'),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        backupJson,
-                        style: const TextStyle(fontFamily: 'monospace', fontSize: 10),
-                        maxLines: 10,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('关闭'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('备份数据已复制到剪贴板')),
-                    );
-                  },
-                  child: const Text('复制'),
-                ),
-              ],
-            ),
-          );
+        if (outputPath != null) {
+          final file = File(outputPath);
+          await file.writeAsString(backupJson);
+          
+          setState(() {
+            _isLoading = false;
+            _message = '备份成功: ${(backup['tasks'] as List).length} 个任务, ${(backup['envs'] as List).length} 个环境变量\n已保存到: $outputPath';
+          });
+        } else {
+          setState(() {
+            _isLoading = false;
+            _message = '已取消导出';
+          });
         }
       }
     } catch (e) {
@@ -116,52 +88,29 @@ class _BackupScreenState extends State<BackupScreen> with RefreshableScreen {
   }
 
   Future<void> _importData() async {
-    // Show import dialog
-    final controller = TextEditingController();
-
-    if (mounted) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('导入备份数据'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('请粘贴备份数据（JSON格式）'),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: controller,
-                  maxLines: 10,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: '粘贴备份数据...',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                await _processImport(controller.text);
-              },
-              child: const Text('导入'),
-            ),
-          ],
-        ),
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        dialogTitle: '选择备份文件',
       );
+
+      if (result != null && result.files.single.path != null) {
+        final file = File(result.files.single.path!);
+        final content = await file.readAsString();
+        await _processImport(content);
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _message = '读取文件失败: $e';
+      });
     }
   }
 
   Future<void> _processImport(String data) async {
     if (data.isEmpty) {
-      setState(() { _message = '请输入备份数据'; });
+      setState(() { _message = '备份文件为空'; });
       return;
     }
 
@@ -174,6 +123,8 @@ class _BackupScreenState extends State<BackupScreen> with RefreshableScreen {
 
       int importedTasks = 0;
       int importedEnvs = 0;
+      int skippedTasks = 0;
+      int skippedEnvs = 0;
 
       // Import tasks
       if (backup['tasks'] != null) {
@@ -181,14 +132,16 @@ class _BackupScreenState extends State<BackupScreen> with RefreshableScreen {
           try {
             await api.post('/tasks', body: {
               'name': task['name'],
-              'task_type': task['task_type'],
+              'task_type': task['task_type'] ?? 'manual',
               'command': task['command'],
-              'cron_expression': task['cron_expression'],
+              'cron_expression': task['cron_expression'] ?? '',
               'timeout': task['timeout'] ?? 0,
+              if (task['group'] != null) 'group': task['group'],
+              if (task['python_version'] != null) 'python_version': task['python_version'],
             });
             importedTasks++;
           } catch (e) {
-            // Skip failed imports
+            skippedTasks++;
           }
         }
       }
@@ -204,14 +157,16 @@ class _BackupScreenState extends State<BackupScreen> with RefreshableScreen {
             });
             importedEnvs++;
           } catch (e) {
-            // Skip failed imports
+            skippedEnvs++;
           }
         }
       }
 
       setState(() {
         _isLoading = false;
-        _message = '导入完成: $importedTasks 个任务, $importedEnvs 个环境变量';
+        _message = '导入完成: $importedTasks 个任务, $importedEnvs 个环境变量'
+            '${skippedTasks > 0 ? '\n跳过 $skippedTasks 个重复任务' : ''}'
+            '${skippedEnvs > 0 ? '\n跳过 $skippedEnvs 个重复环境变量' : ''}';
       });
     } catch (e) {
       setState(() {
@@ -264,14 +219,14 @@ class _BackupScreenState extends State<BackupScreen> with RefreshableScreen {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text('导出所有任务、环境变量和通知配置'),
+                  const Text('导出所有任务、环境变量和通知配置为 JSON 文件'),
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
                       onPressed: _isLoading ? null : _exportData,
                       icon: const Icon(Icons.download),
-                      label: const Text('导出备份数据'),
+                      label: const Text('导出备份文件'),
                     ),
                   ),
                 ],
@@ -295,14 +250,14 @@ class _BackupScreenState extends State<BackupScreen> with RefreshableScreen {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text('从备份数据恢复任务和环境变量'),
+                  const Text('从备份 JSON 文件恢复任务和环境变量'),
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: _isLoading ? null : _importData,
                       icon: const Icon(Icons.upload),
-                      label: const Text('导入备份数据'),
+                      label: const Text('选择备份文件导入'),
                     ),
                   ),
                 ],
@@ -329,8 +284,9 @@ class _BackupScreenState extends State<BackupScreen> with RefreshableScreen {
                   const SizedBox(height: 8),
                   Text(
                     '• 备份数据包含任务、环境变量和通知配置\n'
+                    '• 备份文件为 JSON 格式，可用文本编辑器查看\n'
                     '• 导入时会创建新的任务和环境变量\n'
-                    '• 已存在的数据不会被覆盖\n'
+                    '• 已存在的数据会被跳过，不会覆盖\n'
                     '• 建议定期备份重要数据',
                     style: TextStyle(color: Colors.blue.shade700),
                   ),
