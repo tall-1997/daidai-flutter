@@ -647,24 +647,24 @@ class _SettingsScreenState extends State<SettingsScreen> with RefreshableScreen 
           children: [
             Text('当前共有 $logCount 条日志记录'),
             const SizedBox(height: 16),
-            const Text('选择导出格式：'),
+            const Text('选择导出方式：'),
             const SizedBox(height: 8),
             ListTile(
-              leading: const Icon(Icons.code),
-              title: const Text('JSON 格式'),
-              subtitle: const Text('结构化数据，便于程序分析'),
+              leading: const Icon(Icons.save),
+              title: const Text('保存为文件'),
+              subtitle: const Text('选择保存位置，导出为 JSON 或 TXT 文件'),
               onTap: () {
                 Navigator.pop(context);
-                _exportLogs(json: true);
+                _showSaveFileDialog();
               },
             ),
             ListTile(
-              leading: const Icon(Icons.text_snippet),
-              title: const Text('文本格式'),
-              subtitle: const Text('可读性好，便于人工查看'),
+              leading: const Icon(Icons.copy),
+              title: const Text('复制到剪贴板'),
+              subtitle: const Text('复制日志内容，可粘贴到任意应用'),
               onTap: () {
                 Navigator.pop(context);
-                _exportLogs(json: false);
+                _showCopyFormatDialog();
               },
             ),
           ],
@@ -679,7 +679,113 @@ class _SettingsScreenState extends State<SettingsScreen> with RefreshableScreen 
     );
   }
 
-  Future<void> _exportLogs({required bool json}) async {
+  void _showSaveFileDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('选择文件格式'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.code),
+              title: const Text('JSON 格式'),
+              subtitle: const Text('结构化数据，便于程序分析'),
+              onTap: () {
+                Navigator.pop(context);
+                _saveLogsToFile(json: true);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.text_snippet),
+              title: const Text('文本格式'),
+              subtitle: const Text('可读性好，便于人工查看'),
+              onTap: () {
+                Navigator.pop(context);
+                _saveLogsToFile(json: false);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveLogsToFile({required bool json}) async {
+    try {
+      final logService = context.read<LogService>();
+      final filePath = await logService.exportToFile(json: json);
+      
+      if (mounted) {
+        if (filePath != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('日志已保存到: $filePath'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('已取消保存'),
+              backgroundColor: Colors.grey,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失败: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _showCopyFormatDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('选择复制格式'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.code),
+              title: const Text('JSON 格式'),
+              onTap: () {
+                Navigator.pop(context);
+                _copyLogsToClipboard(json: true);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.text_snippet),
+              title: const Text('文本格式'),
+              onTap: () {
+                Navigator.pop(context);
+                _copyLogsToClipboard(json: false);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _copyLogsToClipboard({required bool json}) async {
     try {
       final logService = context.read<LogService>();
       await logService.copyLogsToClipboard(json: json);
@@ -687,16 +793,15 @@ class _SettingsScreenState extends State<SettingsScreen> with RefreshableScreen 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('日志已复制到剪贴板，可粘贴到文本编辑器保存'),
+            content: Text('日志已复制到剪贴板'),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('导出失败: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('复制失败: $e'), backgroundColor: Colors.red),
         );
       }
     }
