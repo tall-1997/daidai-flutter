@@ -265,12 +265,34 @@ jobs:
 
       - uses: docker/setup-qemu-action@v3
 
+      - name: Pre-pull BuildKit image
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if docker pull moby/buildkit:buildx-stable-1; then
+              exit 0
+            fi
+            sleep $((attempt * 15))
+          done
+          docker pull moby/buildkit:buildx-stable-1
+
       - uses: docker/setup-buildx-action@v3
 
-      - uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Docker Hub login
+        shell: bash
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin; then
+              exit 0
+            fi
+            sleep $((attempt * 15))
+          done
+          printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
 
       - name: Build and push multi-arch image
         uses: docker/build-push-action@v6
@@ -300,12 +322,34 @@ jobs:
 
       - uses: docker/setup-qemu-action@v3
 
+      - name: Pre-pull BuildKit image
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if docker pull moby/buildkit:buildx-stable-1; then
+              exit 0
+            fi
+            sleep $((attempt * 15))
+          done
+          docker pull moby/buildkit:buildx-stable-1
+
       - uses: docker/setup-buildx-action@v3
 
-      - uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Docker Hub login
+        shell: bash
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin; then
+              exit 0
+            fi
+            sleep $((attempt * 15))
+          done
+          printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
 
       - name: Build and push Debian multi-arch image
         uses: docker/build-push-action@v6
