@@ -11,7 +11,6 @@ import 'logs_screen.dart';
 import 'subscriptions_screen.dart';
 import 'system_screen.dart';
 import 'settings_screen.dart';
-import 'config_screen.dart';
 import 'security_screen.dart';
 import 'profile_screen.dart';
 import 'users_screen.dart';
@@ -41,7 +40,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _NavigationItem(Icons.vpn_key, '开放API'),
     _NavigationItem(Icons.computer, '系统'),
     _NavigationItem(Icons.security, '安全'),
-    _NavigationItem(Icons.settings, '配置'),
     _NavigationItem(Icons.tune, '设置'),
     _NavigationItem(Icons.people, '用户'),
     _NavigationItem(Icons.person, '我的'),
@@ -323,7 +321,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _getSelectedScreen() {
     switch (_selectedIndex) {
       case 0:
-        return DashboardScreen(key: _refreshableScreenKey);
+        return DashboardScreen(
+          key: _refreshableScreenKey,
+          onNavigate: (index) {
+            setState(() {
+              _selectedIndex = index;
+            });
+          },
+        );
       case 1:
         return TasksScreen(key: _refreshableScreenKey);
       case 2:
@@ -343,12 +348,10 @@ class _HomeScreenState extends State<HomeScreen> {
       case 9:
         return SecurityScreen(key: _refreshableScreenKey);
       case 10:
-        return ConfigScreen(key: _refreshableScreenKey);
-      case 11:
         return SettingsScreen(key: _refreshableScreenKey);
-      case 12:
+      case 11:
         return UsersScreen(key: _refreshableScreenKey);
-      case 13:
+      case 12:
         return ProfileScreen(key: _refreshableScreenKey);
       default:
         return DashboardScreen(key: _refreshableScreenKey);

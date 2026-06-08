@@ -7,7 +7,9 @@ import '../widgets/miuix_widgets.dart';
 import 'home_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final Function(int)? onNavigate;
+
+  const DashboardScreen({super.key, this.onNavigate});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -204,16 +206,16 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildActionButton('任务', Icons.task_alt, Colors.blue, () {
-                  // Navigate to tasks
+                  widget.onNavigate?.call(1); // 任务在索引1
                 }),
                 _buildActionButton('脚本', Icons.code, Colors.green, () {
-                  // Navigate to scripts
+                  widget.onNavigate?.call(4); // 脚本在索引4
                 }),
                 _buildActionButton('日志', Icons.article, Colors.orange, () {
-                  // Navigate to logs
+                  widget.onNavigate?.call(5); // 日志在索引5
                 }),
                 _buildActionButton('变量', Icons.key, Colors.purple, () {
-                  // Navigate to envs
+                  widget.onNavigate?.call(2); // 环境变量在索引2
                 }),
               ],
             ),

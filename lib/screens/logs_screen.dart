@@ -134,14 +134,30 @@ class _LogsScreenState extends State<LogsScreen> with RefreshableScreen {
 
     try {
       final authService = context.read<AuthService>();
+      // 将前端状态转换为后端状态参数
+      String? statusParam;
+      switch (_filterStatus) {
+        case 'success':
+          statusParam = '0';
+          break;
+        case 'failed':
+          statusParam = '1';
+          break;
+        case 'running':
+          statusParam = '2';
+          break;
+        default:
+          statusParam = null; // 'all' 不传递状态参数
+      }
+
       final result = await authService.apiService.getLogs(
         page: _currentPage,
         pageSize: _pageSize,
+        status: statusParam,
       );
 
       if (result['data'] != null) {
         final newLogs = List<Map<String, dynamic>>.from(result['data'] ?? []);
-        // 确保日志包含所有状态（成功、失败、运行中）
         setState(() {
           if (loadMore) {
             _logs.addAll(newLogs);
@@ -365,6 +381,7 @@ class _LogsScreenState extends State<LogsScreen> with RefreshableScreen {
         setState(() {
           _filterStatus = value;
         });
+        _loadLogs(); // 切换状态时重新加载数据
       },
     );
   }
