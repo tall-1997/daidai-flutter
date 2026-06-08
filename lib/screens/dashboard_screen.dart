@@ -19,7 +19,6 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
   Map<String, dynamic> _dashboardData = {};
   Map<String, dynamic> _systemInfo = {};
   bool _isLoading = true;
-  String? _error;
   Timer? _refreshTimer;
 
   // Trend data
@@ -49,10 +48,12 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
 
   void _startTrendMonitoring() {
     _trendTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (mounted && _systemInfo.isNotEmpty) {
+      if (mounted) {
         setState(() {
-          _cpuHistory.add((_systemInfo['cpu_usage'] ?? 0).toDouble());
-          _memoryHistory.add((_systemInfo['memory_usage'] ?? 0).toDouble());
+          final cpuUsage = (_systemInfo['cpu_usage'] ?? 0).toDouble();
+          final memoryUsage = (_systemInfo['memory_usage'] ?? 0).toDouble();
+          _cpuHistory.add(cpuUsage);
+          _memoryHistory.add(memoryUsage);
           
           if (_cpuHistory.length > _maxHistoryLength) {
             _cpuHistory.removeAt(0);
@@ -68,7 +69,6 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
   Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
-      _error = null;
     });
 
     try {
@@ -80,22 +80,20 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
       
       try {
         final dashboardResult = await authService.apiService.getDashboard();
-        dashboard = dashboardResult['data'] ?? dashboardResult;
-        if (dashboard is! Map<String, dynamic>) {
-          dashboard = {};
+        if (dashboardResult is Map) {
+          dashboard = Map<String, dynamic>.from(dashboardResult['data'] ?? dashboardResult);
         }
       } catch (e) {
-        // Dashboard API 失败，使用空数据
+        debugPrint('Dashboard API error: $e');
       }
       
       try {
         final systemResult = await authService.apiService.getSystemInfo();
-        system = systemResult['data'] ?? systemResult;
-        if (system is! Map<String, dynamic>) {
-          system = {};
+        if (systemResult is Map) {
+          system = Map<String, dynamic>.from(systemResult['data'] ?? systemResult);
         }
       } catch (e) {
-        // System API 失败，使用空数据
+        debugPrint('System API error: $e');
       }
 
       if (mounted) {
@@ -108,7 +106,8 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = '加载失败: $e';
+          _dashboardData = {};
+          _systemInfo = {};
           _isLoading = false;
         });
       }
@@ -124,30 +123,28 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
         title: const Text('仪表盘'),
       ),
       body: _isLoading
-          ? const MiuixLoadingState()
-          : _error != null
-              ? MiuixErrorState(message: _error!, onRetry: _loadData)
-              : RefreshIndicator(
-                  onRefresh: _loadData,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      _buildStatsCards(isDark),
-                      const SizedBox(height: 16),
-                      _buildQuickActions(isDark),
-                      const SizedBox(height: 16),
-                      _buildSystemResourceCard(isDark),
-                      if (_cpuHistory.length >= 3) ...[
-                        const SizedBox(height: 16),
-                        _buildTrendChartCard(isDark),
-                      ],
-                      const SizedBox(height: 16),
-                      _buildRecentTasks(isDark),
-                      const SizedBox(height: 16),
-                      _buildSystemInfoCard(isDark),
-                    ],
-                  ),
-                ),
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadData,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _buildStatsCards(isDark),
+                  const SizedBox(height: 16),
+                  _buildQuickActions(isDark),
+                  const SizedBox(height: 16),
+                  _buildSystemResourceCard(isDark),
+                  if (_cpuHistory.length >= 3) ...[
+                    const SizedBox(height: 16),
+                    _buildTrendChartCard(isDark),
+                  ],
+                  const SizedBox(height: 16),
+                  _buildRecentTasks(isDark),
+                  const SizedBox(height: 16),
+                  _buildSystemInfoCard(isDark),
+                ],
+              ),
+            ),
     );
   }
 
@@ -209,11 +206,13 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
               children: [
                 Icon(icon, size: 20, color: color),
                 const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isDark ? MiuixColors.darkOnSurfaceVariantSummary : MiuixColors.onSurfaceVariantSummary,
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? MiuixColors.darkOnSurfaceVariantSummary : MiuixColors.onSurfaceVariantSummary,
+                    ),
                   ),
                 ),
               ],
@@ -338,7 +337,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
               memoryUsage,
               Colors.green,
               isDark,
-              subtitle: '${_formatBytes(memoryUsed)} / ${_formatBytes(memoryTotal)}',
+              subtitle: memoryTotal > 0 ? '${_formatBytes(memoryUsed)} / ${_formatBytes(memoryTotal)}' : '${(memoryUsage * 100).toStringAsFixed(1)}%',
             ),
             const SizedBox(height: 12),
             _buildResourceBar(
@@ -346,7 +345,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
               diskUsage,
               Colors.orange,
               isDark,
-              subtitle: '${_formatBytes(diskUsed)} / ${_formatBytes(diskTotal)}',
+              subtitle: diskTotal > 0 ? '${_formatBytes(diskUsed)} / ${_formatBytes(diskTotal)}' : '${(diskUsage * 100).toStringAsFixed(1)}%',
             ),
           ],
         ),
@@ -389,12 +388,14 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
           ],
         ),
         const SizedBox(height: 4),
-        LinearProgressIndicator(
-          value: value.clamp(0.0, 1.0),
-          backgroundColor: color.withOpacity(0.1),
-          valueColor: AlwaysStoppedAnimation<Color>(color),
-          minHeight: 8,
+        ClipRRect(
           borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: value.clamp(0.0, 1.0),
+            backgroundColor: color.withOpacity(0.1),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+            minHeight: 8,
+          ),
         ),
       ],
     );
@@ -460,8 +461,8 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
   }
 
   Widget _buildRecentTasks(bool isDark) {
-    final recentTasks = _dashboardData['recent_tasks'] ?? [];
-    if (recentTasks is! List || recentTasks.isEmpty) {
+    final recentTasks = _dashboardData['recent_tasks'];
+    if (recentTasks == null || recentTasks is! List || recentTasks.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -669,7 +670,7 @@ class _TrendChartPainter extends CustomPainter {
     final path = Path();
     final width = size.width;
     final height = size.height;
-    final stepX = width / (cpuData.length - 1);
+    final stepX = cpuData.length > 1 ? width / (cpuData.length - 1) : width;
 
     // Draw CPU line
     paint.color = Colors.blue;

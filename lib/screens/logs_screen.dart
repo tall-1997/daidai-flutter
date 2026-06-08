@@ -663,7 +663,7 @@ class _LogCard extends StatelessWidget {
   }
 }
 
-class _LogDetailSheet extends StatelessWidget {
+class _LogDetailSheet extends StatefulWidget {
   final Map<String, dynamic> log;
   final ScrollController scrollController;
 
@@ -672,11 +672,25 @@ class _LogDetailSheet extends StatelessWidget {
     required this.scrollController,
   });
 
+  @override
+  State<_LogDetailSheet> createState() => _LogDetailSheetState();
+}
+
+class _LogDetailSheetState extends State<_LogDetailSheet> {
+  final ScrollController _logContentScrollController = ScrollController();
+
   // Clean content: remove ANSI escape sequences and control characters
   String _cleanContent(dynamic rawContent) => MiuixLogUtils.cleanContent(rawContent?.toString());
 
   @override
+  void dispose() {
+    _logContentScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final log = widget.log;
     final taskName = log['task_name'] ?? log['taskName'] ?? '未知任务';
     final content = log['content'] ?? log['output'] ?? log['message'] ?? '';
     final status = log['status'] ?? 0;
@@ -786,10 +800,12 @@ class _LogDetailSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Scrollbar(
+              controller: _logContentScrollController,
               thumbVisibility: true,
-              thickness: 6.0,
-              radius: const Radius.circular(3),
+              thickness: 8.0,
+              radius: const Radius.circular(4),
               child: SingleChildScrollView(
+                controller: _logContentScrollController,
                 child: SelectableText(
                   _cleanContent(content).isEmpty ? '无日志内容' : _cleanContent(content),
                   style: MiuixTextStyles.monospace.copyWith(

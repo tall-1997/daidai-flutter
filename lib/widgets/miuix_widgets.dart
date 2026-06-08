@@ -135,11 +135,24 @@ class MiuixDetailRow extends StatelessWidget {
 
 // ==================== Miuix Code Block ====================
 
-class MiuixCodeBlock extends StatelessWidget {
+class MiuixCodeBlock extends StatefulWidget {
   final String content;
   final double? maxHeight;
 
   const MiuixCodeBlock({super.key, required this.content, this.maxHeight});
+
+  @override
+  State<MiuixCodeBlock> createState() => _MiuixCodeBlockState();
+}
+
+class _MiuixCodeBlockState extends State<MiuixCodeBlock> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -147,18 +160,20 @@ class MiuixCodeBlock extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      constraints: maxHeight != null ? BoxConstraints(maxHeight: maxHeight!) : null,
+      constraints: widget.maxHeight != null ? BoxConstraints(maxHeight: widget.maxHeight!) : null,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isDark ? MiuixColors.darkSurfaceContainerHighest : MiuixColors.surface,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Scrollbar(
+        controller: _scrollController,
         thumbVisibility: true,
-        thickness: 6.0,
-        radius: const Radius.circular(3),
+        thickness: 8.0,
+        radius: const Radius.circular(4),
         child: SingleChildScrollView(
-          child: SelectableText(content, style: MiuixTextStyles.monospace),
+          controller: _scrollController,
+          child: SelectableText(widget.content, style: MiuixTextStyles.monospace),
         ),
       ),
     );
