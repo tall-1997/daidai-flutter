@@ -738,7 +738,7 @@ class _LogDetailSheetState extends State<_LogDetailSheet> {
     return Container(
       padding: const EdgeInsets.all(16),
       child: ListView(
-        controller: scrollController,
+        controller: widget.scrollController,
         children: [
           Center(
             child: Container(
