@@ -969,6 +969,7 @@ class _TasksScreenState extends State<TasksScreen> with RefreshableScreen {
     final timeoutController = TextEditingController(text: '0');
     final groupController = TextEditingController(text: prefilledGroup ?? '');
     String taskType = 'cron';
+    String? pythonVersion;
 
     final cronPresets = [
       {'label': '每分钟', 'value': '* * * * *'},
@@ -1010,6 +1011,24 @@ class _TasksScreenState extends State<TasksScreen> with RefreshableScreen {
                   ],
                   onChanged: (value) {
                     setDialogState(() => taskType = value!);
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: pythonVersion,
+                  decoration: const InputDecoration(
+                    labelText: 'Python 版本（可选）',
+                    border: OutlineInputBorder(),
+                    helperText: '选择运行此任务的 Python 版本',
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: null, child: Text('默认 (3.12)')),
+                    DropdownMenuItem(value: '3.10', child: Text('Python 3.10')),
+                    DropdownMenuItem(value: '3.11', child: Text('Python 3.11')),
+                    DropdownMenuItem(value: '3.12', child: Text('Python 3.12')),
+                  ],
+                  onChanged: (value) {
+                    setDialogState(() => pythonVersion = value);
                   },
                 ),
                 const SizedBox(height: 16),
@@ -1093,6 +1112,7 @@ class _TasksScreenState extends State<TasksScreen> with RefreshableScreen {
                     'timeout': int.tryParse(timeoutController.text) ?? 0,
                     if (taskType == 'cron') 'cron_expression': cronController.text,
                     if (groupController.text.trim().isNotEmpty) 'group': groupController.text.trim(),
+                    if (pythonVersion != null) 'python_version': pythonVersion,
                   };
                   await authService.apiService.createTask(body);
                   Navigator.pop(context);
@@ -1125,6 +1145,8 @@ class _TasksScreenState extends State<TasksScreen> with RefreshableScreen {
     final hookAfterController = TextEditingController(text: task['hook_after'] ?? '');
     final concurrencyController = TextEditingController(text: '${task['task_concurrency'] ?? 1}');
     String taskType = task['task_type'] ?? 'cron';
+    final rawPythonVersion = task['python_version'];
+    String? pythonVersion = (rawPythonVersion != null && rawPythonVersion.toString().isNotEmpty) ? rawPythonVersion.toString() : null;
     bool enableRetry = (task['retry_count'] ?? 0) > 0;
 
     final cronPresets = [
@@ -1168,6 +1190,24 @@ class _TasksScreenState extends State<TasksScreen> with RefreshableScreen {
                   ],
                   onChanged: (value) {
                     setDialogState(() => taskType = value!);
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: pythonVersion,
+                  decoration: const InputDecoration(
+                    labelText: 'Python 版本（可选）',
+                    border: OutlineInputBorder(),
+                    helperText: '选择运行此任务的 Python 版本',
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: null, child: Text('默认 (3.12)')),
+                    DropdownMenuItem(value: '3.10', child: Text('Python 3.10')),
+                    DropdownMenuItem(value: '3.11', child: Text('Python 3.11')),
+                    DropdownMenuItem(value: '3.12', child: Text('Python 3.12')),
+                  ],
+                  onChanged: (value) {
+                    setDialogState(() => pythonVersion = value);
                   },
                 ),
                 const SizedBox(height: 16),
@@ -1337,6 +1377,7 @@ class _TasksScreenState extends State<TasksScreen> with RefreshableScreen {
                     if (dependsOnController.text.trim().isNotEmpty) 'depends_on': dependsOnController.text.trim(),
                     if (hookBeforeController.text.trim().isNotEmpty) 'hook_before': hookBeforeController.text.trim(),
                     if (hookAfterController.text.trim().isNotEmpty) 'hook_after': hookAfterController.text.trim(),
+                    if (pythonVersion != null) 'python_version': pythonVersion,
                   };
                   await authService.apiService.updateTask(taskId, body);
                   Navigator.pop(context);
@@ -1596,6 +1637,25 @@ class _TaskCard extends StatelessWidget {
                       : MiuixColors.onSurfaceVariantSummary,
                 ),
               ),
+              if (task['python_version'] != null && task['python_version'].toString().isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    'Py ${task['python_version']}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 4),

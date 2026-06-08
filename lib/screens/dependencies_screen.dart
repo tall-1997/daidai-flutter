@@ -19,6 +19,7 @@ class _DependenciesScreenState extends State<DependenciesScreen> with Refreshabl
   String? _error;
   String _filterType = 'all'; // all, nodejs, python, linux
   String _filterStatus = 'all'; // all, installed, installing, queued, failed
+  String? _pythonVersion; // null, '3.10', '3.11', '3.12'
   Timer? _pollTimer;
 
   @override
@@ -51,7 +52,7 @@ class _DependenciesScreenState extends State<DependenciesScreen> with Refreshabl
         // Fetch all types in parallel and merge
         final results = await Future.wait([
           authService.apiService.getDependencies(type: 'nodejs'),
-          authService.apiService.getDependencies(type: 'python'),
+          authService.apiService.getDependencies(type: 'python', pythonVersion: _pythonVersion),
           authService.apiService.getDependencies(type: 'linux'),
         ]);
         
@@ -68,7 +69,7 @@ class _DependenciesScreenState extends State<DependenciesScreen> with Refreshabl
           });
         }
       } else {
-        final result = await authService.apiService.getDependencies(type: _filterType);
+        final result = await authService.apiService.getDependencies(type: _filterType, pythonVersion: _pythonVersion);
         if (mounted) {
           List<dynamic> deps = [];
           if (result['data'] is List) {
@@ -465,6 +466,26 @@ class _DependenciesScreenState extends State<DependenciesScreen> with Refreshabl
               ),
             ),
           ),
+          // Python version filter
+          if (_filterType == 'python' || _filterType == 'all')
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  Icon(Icons.code, size: 16, color: Colors.blue),
+                  const SizedBox(width: 8),
+                  Text('Python 版本:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                  const SizedBox(width: 8),
+                  _buildPythonVersionChip('全部', null),
+                  const SizedBox(width: 6),
+                  _buildPythonVersionChip('3.10', '3.10'),
+                  const SizedBox(width: 6),
+                  _buildPythonVersionChip('3.11', '3.11'),
+                  const SizedBox(width: 6),
+                  _buildPythonVersionChip('3.12', '3.12'),
+                ],
+              ),
+            ),
           // Stats
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -520,6 +541,30 @@ class _DependenciesScreenState extends State<DependenciesScreen> with Refreshabl
           : BorderSide(color: isDark ? MiuixColors.darkDividerLine : MiuixColors.dividerLine),
       onSelected: (selected) {
         setState(() => _filterStatus = value);
+      },
+    );
+  }
+
+  Widget _buildPythonVersionChip(String label, String? version) {
+    final isSelected = _pythonVersion == version;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return FilterChip(
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      selected: isSelected,
+      selectedColor: Colors.blue.withOpacity(0.2),
+      checkmarkColor: Colors.blue,
+      labelStyle: TextStyle(
+        color: isSelected
+            ? Colors.blue
+            : (isDark ? MiuixColors.darkOnSurface : MiuixColors.onSurface),
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+      ),
+      side: isSelected
+          ? BorderSide(color: Colors.blue)
+          : BorderSide(color: isDark ? MiuixColors.darkDividerLine : MiuixColors.dividerLine),
+      onSelected: (selected) {
+        setState(() => _pythonVersion = version);
+        _loadDependencies();
       },
     );
   }

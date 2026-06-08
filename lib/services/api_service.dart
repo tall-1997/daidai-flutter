@@ -470,10 +470,17 @@ class ApiService {
   }
 
   // Dependency APIs (daidai-panel: /deps)
-  Future<Map<String, dynamic>> getDependencies({String? type}) async {
+  Future<Map<String, dynamic>> getDependencies({String? type, String? pythonVersion}) async {
     String path = '/deps';
+    final params = <String, String>{};
     if (type != null && type.isNotEmpty && type != 'all') {
-      path += '?type=$type';
+      params['type'] = type;
+    }
+    if (pythonVersion != null && pythonVersion.isNotEmpty) {
+      params['python_version'] = pythonVersion;
+    }
+    if (params.isNotEmpty) {
+      path += '?' + params.entries.map((e) => '${e.key}=${e.value}').join('&');
     }
     final response = await get(path);
     return jsonDecode(response.body);
