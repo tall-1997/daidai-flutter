@@ -167,7 +167,8 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
   }
 
   Widget _buildStatsCards(bool isDark) {
-    final taskCount = _dashboardData['task_count'] ?? 0;
+    // Dashboard API 返回的字段
+    final taskCount = _dashboardData['task_count'] ?? _dashboardData['enabled_tasks'] ?? 0;
     final envCount = _dashboardData['env_count'] ?? 0;
     final todayLogs = _dashboardData['today_logs'] ?? 0;
     final successLogs = _dashboardData['success_logs'] ?? 0;
@@ -188,7 +189,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
       childAspectRatio: 1.5,
       children: [
         _buildStatCard(
-          '任务总数',
+          '启用任务',
           '$taskCount',
           Icons.task_alt,
           Colors.blue,
@@ -209,10 +210,10 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
           isDark,
         ),
         _buildStatCard(
-          '成功率',
-          '${(successRate * 100).toStringAsFixed(1)}%',
-          Icons.check_circle,
-          successRate >= 0.9 ? Colors.green : Colors.red,
+          '失败任务',
+          '$failedLogs',
+          Icons.error_outline,
+          failedLogs > 0 ? Colors.red : Colors.green,
           isDark,
         ),
       ],
@@ -326,9 +327,10 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
   }
 
   Widget _buildSystemResourceCard(bool isDark) {
-    final cpuUsage = (_systemInfo['cpu_usage'] ?? 0).toDouble();
-    final memoryUsage = (_systemInfo['memory_usage'] ?? 0).toDouble();
-    final diskUsage = (_systemInfo['disk_usage'] ?? 0).toDouble();
+    // SystemInfo API 返回的字段（注意：返回的是百分比值，如 30.36 表示 30.36%）
+    final cpuUsage = (_systemInfo['cpu_usage'] ?? 0).toDouble() / 100;
+    final memoryUsage = (_systemInfo['memory_usage'] ?? 0).toDouble() / 100;
+    final diskUsage = (_systemInfo['disk_usage'] ?? 0).toDouble() / 100;
     final memoryTotal = _systemInfo['memory_total'] ?? 0;
     final memoryUsed = _systemInfo['memory_used'] ?? 0;
     final diskTotal = _systemInfo['disk_total'] ?? 0;
@@ -354,7 +356,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
               cpuUsage,
               Colors.blue,
               isDark,
-              subtitle: '${(cpuUsage * 100).toStringAsFixed(1)}%',
+              subtitle: '${(_systemInfo['cpu_usage'] ?? 0).toStringAsFixed(1)}%',
             ),
             const SizedBox(height: 12),
             _buildResourceBar(
@@ -362,7 +364,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
               memoryUsage,
               Colors.green,
               isDark,
-              subtitle: memoryTotal > 0 ? '${_formatBytes(memoryUsed)} / ${_formatBytes(memoryTotal)}' : '${(memoryUsage * 100).toStringAsFixed(1)}%',
+              subtitle: '${_formatBytes(memoryUsed)} / ${_formatBytes(memoryTotal)}',
             ),
             const SizedBox(height: 12),
             _buildResourceBar(
@@ -370,7 +372,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
               diskUsage,
               Colors.orange,
               isDark,
-              subtitle: diskTotal > 0 ? '${_formatBytes(diskUsed)} / ${_formatBytes(diskTotal)}' : '${(diskUsage * 100).toStringAsFixed(1)}%',
+              subtitle: '${_formatBytes(diskUsed)} / ${_formatBytes(diskTotal)}',
             ),
           ],
         ),
@@ -606,11 +608,13 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
   }
 
   Widget _buildSystemInfoCard(bool isDark) {
-    final panelVersion = _systemInfo['panel_version'] ?? _systemInfo['version'] ?? '未知';
+    final hostname = _systemInfo['hostname'] ?? '';
     final goVersion = _systemInfo['go_version'] ?? '';
     final os = _systemInfo['os'] ?? '';
     final arch = _systemInfo['arch'] ?? '';
-    final uptime = _systemInfo['uptime'] ?? 0;
+    final uptime = _systemInfo['uptime'] ?? '';
+    final numCpu = _systemInfo['num_cpu'] ?? 0;
+    final goroutines = _systemInfo['goroutines'] ?? 0;
 
     return Card(
       child: Padding(
@@ -627,10 +631,12 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
               ),
             ),
             const SizedBox(height: 12),
-            _buildInfoRow('面板版本', panelVersion.toString(), isDark),
+            if (hostname.toString().isNotEmpty) _buildInfoRow('主机名', hostname.toString(), isDark),
             if (goVersion.toString().isNotEmpty) _buildInfoRow('Go 版本', goVersion.toString(), isDark),
             if (os.toString().isNotEmpty) _buildInfoRow('操作系统', '$os ($arch)', isDark),
-            if (uptime > 0) _buildInfoRow('运行时间', _formatUptime(uptime), isDark),
+            if (numCpu > 0) _buildInfoRow('CPU 核心', '$numCpu 核', isDark),
+            if (uptime.toString().isNotEmpty) _buildInfoRow('运行时间', uptime.toString(), isDark),
+            if (goroutines > 0) _buildInfoRow('协程数', '$goroutines', isDark),
           ],
         ),
       ),
@@ -661,14 +667,6 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
         ],
       ),
     );
-  }
-
-  String _formatUptime(dynamic uptime) {
-    final seconds = uptime is int ? uptime : int.tryParse(uptime.toString()) ?? 0;
-    if (seconds < 60) return '$seconds 秒';
-    if (seconds < 3600) return '${(seconds / 60).floor()} 分钟';
-    if (seconds < 86400) return '${(seconds / 3600).floor()} 小时';
-    return '${(seconds / 86400).floor()} 天';
   }
 }
 
