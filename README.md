@@ -24,12 +24,12 @@
 
 ## 下载
 
-### 最新版本 v0.0.52
+### 最新版本 v0.0.53
 
 | 平台 | 下载链接 |
 |------|---------|
-| Android APK | [daidai-flutter-v0.0.52-android.apk](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.52/daidai-flutter-v0.0.52-android.apk) |
-| iOS IPA | [daidai-flutter-v0.0.52-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.52/daidai-flutter-v0.0.52-ios.ipa) |
+| Android APK | [daidai-flutter-v0.0.53-android.apk](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.53/daidai-flutter-v0.0.53-android.apk) |
+| iOS IPA | [daidai-flutter-v0.0.53-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.53/daidai-flutter-v0.0.53-ios.ipa) |
 
 > 所有版本: [Releases](https://github.com/tall-1997/daidai-flutter/releases)
 
@@ -137,6 +137,7 @@ flutter build ipa --release --no-codesign
 
 | 版本 | 主要更新 |
 |------|---------|
+| v0.0.53 | 恢复设置页面主题切换功能 |
 | v0.0.52 | 修复脚本上传失败问题，使用正确的 API 路由 |
 | v0.0.51 | 仪表盘日志箭头点击打开详情，提取日志详情为共享组件 |
 | v0.0.50 | 仪表盘最近执行日志点击可跳转到日志页面 |
