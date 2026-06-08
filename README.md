@@ -24,12 +24,12 @@
 
 ## 下载
 
-### 最新版本 v0.0.42
+### 最新版本 v0.0.43
 
 | 平台 | 下载链接 |
 |------|---------|
-| Android APK | [daidai-flutter-v0.0.42-android.apk](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.42/daidai-flutter-v0.0.42-android.apk) |
-| iOS IPA | [daidai-flutter-v0.0.42-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.42/daidai-flutter-v0.0.42-ios.ipa) |
+| Android APK | [daidai-flutter-v0.0.43-android.apk](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.43/daidai-flutter-v0.0.43-android.apk) |
+| iOS IPA | [daidai-flutter-v0.0.43-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.43/daidai-flutter-v0.0.43-ios.ipa) |
 
 > 所有版本: [Releases](https://github.com/tall-1997/daidai-flutter/releases)
 
@@ -137,6 +137,7 @@ flutter build ipa --release --no-codesign
 
 | 版本 | 主要更新 |
 |------|---------|
+| v0.0.43 | 恢复仪表盘数据加载逻辑，修复信息未显示问题 |
 | v0.0.42 | 修复仪表盘空白、修复滚动条不能手动滑动 |
 | v0.0.41 | 修复仪表盘空白、移除重复安全设置、日志详情添加滚动条 |
 | v0.0.40 | 页面重构：合并用户管理/个人设置、集成系统监控到仪表盘、移除多余刷新按钮 |
