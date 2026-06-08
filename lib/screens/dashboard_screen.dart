@@ -528,6 +528,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
     final taskName = log['task_name'] ?? log['task']?['name'] ?? '未知任务';
     final status = log['status'] ?? 0;
     final createdAt = log['created_at'] ?? '';
+    final logId = log['id'];
 
     Color statusColor;
     String statusText;
@@ -549,60 +550,73 @@ class _DashboardScreenState extends State<DashboardScreen> with RefreshableScree
         statusText = '未知';
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: statusColor,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  taskName,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: isDark ? MiuixColors.darkOnSurface : MiuixColors.onSurface,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (createdAt.isNotEmpty)
-                  Text(
-                    createdAt,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? MiuixColors.darkOnSurfaceVariantSummary : MiuixColors.onSurfaceVariantSummary,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              statusText,
-              style: TextStyle(
-                fontSize: 12,
+    return InkWell(
+      onTap: () {
+        // 跳转到日志页面（索引5）
+        widget.onNavigate?.call(5);
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
                 color: statusColor,
-                fontWeight: FontWeight.w500,
+                shape: BoxShape.circle,
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    taskName,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? MiuixColors.darkOnSurface : MiuixColors.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (createdAt.isNotEmpty)
+                    Text(
+                      createdAt,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? MiuixColors.darkOnSurfaceVariantSummary : MiuixColors.onSurfaceVariantSummary,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                statusText,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: statusColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.chevron_right,
+              size: 16,
+              color: isDark ? MiuixColors.darkOnSurfaceVariantSummary : MiuixColors.onSurfaceVariantSummary,
+            ),
+          ],
+        ),
       ),
     );
   }
