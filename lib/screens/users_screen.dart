@@ -36,7 +36,10 @@ class _UsersScreenState extends State<UsersScreen> with RefreshableScreen {
 
     try {
       final authService = context.read<AuthService>();
-      final result = await authService.apiService.get('/users');
+      final response = await authService.apiService.get('/users');
+      final result = Map<String, dynamic>.from(
+        response is Map ? response : {'data': []},
+      );
 
       if (mounted) {
         setState(() {

@@ -36,7 +36,10 @@ class _OpenApiScreenState extends State<OpenApiScreen> with RefreshableScreen {
 
     try {
       final authService = context.read<AuthService>();
-      final result = await authService.apiService.get('/api-keys');
+      final response = await authService.apiService.get('/api-keys');
+      final result = Map<String, dynamic>.from(
+        response is Map ? response : {'data': []},
+      );
 
       if (mounted) {
         setState(() {
