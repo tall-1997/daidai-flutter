@@ -24,12 +24,12 @@
 
 ## 下载
 
-### 最新版本 v0.0.46
+### 最新版本 v0.0.47
 
 | 平台 | 下载链接 |
 |------|---------|
-| Android APK | [daidai-flutter-v0.0.46-android.apk](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.46/daidai-flutter-v0.0.46-android.apk) |
-| iOS IPA | [daidai-flutter-v0.0.46-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.46/daidai-flutter-v0.0.46-ios.ipa) |
+| Android APK | [daidai-flutter-v0.0.47-android.apk](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.47/daidai-flutter-v0.0.47-android.apk) |
+| iOS IPA | [daidai-flutter-v0.0.47-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.47/daidai-flutter-v0.0.47-ios.ipa) |
 
 > 所有版本: [Releases](https://github.com/tall-1997/daidai-flutter/releases)
 
@@ -137,6 +137,7 @@ flutter build ipa --release --no-codesign
 
 | 版本 | 主要更新 |
 |------|---------|
+| v0.0.47 | 日志导出改用文件选择器保存，支持选择保存位置 |
 | v0.0.46 | 添加日志导出功能，方便调试 |
 | v0.0.45 | 改进仪表盘数据加载和错误处理 |
 | v0.0.44 | 修复仪表盘字段名与API返回不匹配问题 |
