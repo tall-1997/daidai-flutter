@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 class LogService {
   static final LogService _instance = LogService._internal();
@@ -75,27 +75,16 @@ class LogService {
     return buffer.toString();
   }
 
-  Future<String?> exportToFile({bool json = true}) async {
+  Future<String> exportToFile({bool json = true}) async {
+    final directory = await getApplicationDocumentsDirectory();
     final timestamp = DateTime.now().toString().replaceAll(RegExp(r'[: ]'), '-').substring(0, 19);
     final extension = json ? 'json' : 'txt';
     final fileName = 'daidai-logs-$timestamp.$extension';
+    final file = File('${directory.path}/$fileName');
     
     final content = json ? exportToJson() : exportToText();
-    
-    // 让用户选择保存位置
-    final outputPath = await FilePicker.platform.saveFile(
-      dialogTitle: '保存日志文件',
-      fileName: fileName,
-      type: FileType.custom,
-      allowedExtensions: [extension],
-    );
-    
-    if (outputPath != null) {
-      final file = File(outputPath);
-      await file.writeAsString(content);
-      return outputPath;
-    }
-    return null;
+    await file.writeAsString(content);
+    return file.path;
   }
 
   Future<void> copyLogsToClipboard({bool json = true}) async {

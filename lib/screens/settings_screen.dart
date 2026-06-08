@@ -723,22 +723,18 @@ class _SettingsScreenState extends State<SettingsScreen> with RefreshableScreen 
       final filePath = await logService.exportToFile(json: json);
       
       if (mounted) {
-        if (filePath != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('日志已保存到: $filePath'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 3),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('日志已保存到: $filePath'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: '知道了',
+              textColor: Colors.white,
+              onPressed: () {},
             ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('已取消保存'),
-              backgroundColor: Colors.grey,
-            ),
-          );
-        }
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
