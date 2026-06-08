@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 class LogService {
   static final LogService _instance = LogService._internal();
@@ -87,12 +87,9 @@ class LogService {
     return file.writeAsString(content);
   }
 
-  Future<void> shareLogs({bool json = true}) async {
-    final file = await exportToFile(json: json);
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      subject: '呆呆面板日志 - ${DateTime.now().toString().substring(0, 19)}',
-    );
+  Future<void> copyLogsToClipboard({bool json = true}) async {
+    final content = json ? exportToJson() : exportToText();
+    await Clipboard.setData(ClipboardData(text: content));
   }
 }
 

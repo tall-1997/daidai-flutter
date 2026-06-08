@@ -634,6 +634,9 @@ class _SettingsScreenState extends State<SettingsScreen> with RefreshableScreen 
   }
 
   void _showExportLogDialog() {
+    final logService = context.read<LogService>();
+    final logCount = logService.logs.length;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -642,8 +645,10 @@ class _SettingsScreenState extends State<SettingsScreen> with RefreshableScreen 
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('选择导出格式：'),
+            Text('当前共有 $logCount 条日志记录'),
             const SizedBox(height: 16),
+            const Text('选择导出格式：'),
+            const SizedBox(height: 8),
             ListTile(
               leading: const Icon(Icons.code),
               title: const Text('JSON 格式'),
@@ -677,7 +682,17 @@ class _SettingsScreenState extends State<SettingsScreen> with RefreshableScreen 
   Future<void> _exportLogs({required bool json}) async {
     try {
       final logService = context.read<LogService>();
-      await logService.shareLogs(json: json);
+      await logService.copyLogsToClipboard(json: json);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('日志已复制到剪贴板，可粘贴到文本编辑器保存'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
