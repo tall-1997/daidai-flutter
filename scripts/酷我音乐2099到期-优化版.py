@@ -641,34 +641,59 @@ def watch_surprise_ad(loginUid, loginSid, appUid, encrypted_dev_id, phone, verbo
         'Accept-Encoding': 'gzip, deflate, br, zstd',
         'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
     }
-    try:
-        response = _session.get(URL_NEW_DO_LISTEN, headers=headers, params=params, timeout=30)
-        if response.status_code == 200:
-            result = response.json()
-            if result.get('code') == 200:
-                data = result.get('data', {})
-                status = data.get('status', 0)
-                if status == 1:
-                    obtain = data.get('obtain', 0)
-                    description = data.get('description', '成功')
+    
+    # 重试机制
+    max_retries = 3
+    for retry in range(max_retries):
+        try:
+            response = _session.get(URL_NEW_DO_LISTEN, headers=headers, params=params, timeout=30)
+            
+            # 处理 429 请求过多
+            if response.status_code == 429:
+                if retry < max_retries - 1:
+                    wait_time = (retry + 1) * 5  # 5, 10, 15秒
                     if verbose:
-                        print('✅ 惊喜广告观看成功: 获得 ' + str(obtain) + ' 金币 - ' + description)
-                    return {'success': True, 'obtain': obtain, 'description': description}
-                description = data.get('description', '未知错误')
+                        print(f'⚠️  请求过多，等待 {wait_time} 秒后重试...')
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    if verbose:
+                        print('❌ 惊喜广告观看失败: 请求过多，请稍后再试')
+                    return {'success': False, 'obtain': 0, 'description': 'HTTP 429 请求过多'}
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('code') == 200:
+                    data = result.get('data', {})
+                    status = data.get('status', 0)
+                    if status == 1:
+                        obtain = data.get('obtain', 0)
+                        description = data.get('description', '成功')
+                        if verbose:
+                            print('✅ 惊喜广告观看成功: 获得 ' + str(obtain) + ' 金币 - ' + description)
+                        return {'success': True, 'obtain': obtain, 'description': description}
+                    description = data.get('description', '未知错误')
+                    if verbose:
+                        print('⚠️  惊喜广告观看失败: ' + description)
+                    return {'success': False, 'obtain': 0, 'description': description}
+                error_msg = result.get('msg', '未知错误')
                 if verbose:
-                    print('⚠️  惊喜广告观看失败: ' + description)
-                return {'success': False, 'obtain': 0, 'description': description}
-            error_msg = result.get('msg', '未知错误')
+                    print('❌ 惊喜广告观看请求失败: ' + error_msg)
+                return {'success': False, 'obtain': 0, 'description': error_msg}
+            
             if verbose:
-                print('❌ 惊喜广告观看请求失败: ' + error_msg)
-            return {'success': False, 'obtain': 0, 'description': error_msg}
-        if verbose:
-            print('❌ 请求失败，状态码: ' + str(response.status_code))
-        return {'success': False, 'obtain': 0, 'description': 'HTTP ' + str(response.status_code)}
-    except Exception as e:
-        if verbose:
-            print('❌ 惊喜广告观看异常: ' + str(e))
-        return {'success': False, 'obtain': 0, 'description': str(e)}
+                print('❌ 请求失败，状态码: ' + str(response.status_code))
+            return {'success': False, 'obtain': 0, 'description': 'HTTP ' + str(response.status_code)}
+            
+        except Exception as e:
+            if retry < max_retries - 1:
+                time.sleep(2)
+                continue
+            if verbose:
+                print('❌ 惊喜广告观看异常: ' + str(e))
+            return {'success': False, 'obtain': 0, 'description': str(e)}
+    
+    return {'success': False, 'obtain': 0, 'description': '重试次数已用完'}
 
 # ========== 宝箱任务 ==========
 def run_activity_box_task(loginUid, loginSid, verbose=True):
