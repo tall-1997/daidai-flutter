@@ -543,7 +543,7 @@ async def grab_batch(accounts, proxy_manager, target_time, target_desc):
     return result_holder
 
 # ========== 代理验证模式 ==========
-async def validate_proxies_mode(proxy_manager: ProxyManager):
+async def validate_proxies_mode(proxy_manager: ProxyManager, target_time: datetime):
     """非抢购时段：持续验证代理可用性"""
     print("\n" + "=" * 60)
     print("🔍 非抢购时段 - 代理验证模式")
@@ -555,14 +555,11 @@ async def validate_proxies_mode(proxy_manager: ProxyManager):
         await proxy_manager.fetch_all_proxies()
         await proxy_manager.check_all_proxies(concurrency=50)
     
-    # 计算下一场时间
-    target_time, target_desc, _ = get_target_time()
     now = datetime.now()
     wait_seconds = (target_time - now).total_seconds()
     
     print(f"\n📋 当前状态:")
     print(f"   可用代理: {len(proxy_manager.available_proxies)}")
-    print(f"   下一场: {target_desc}")
     print(f"   距离开始: {wait_seconds/60:.0f} 分钟")
     
     # 如果距离下一场超过5分钟，持续验证代理
@@ -575,7 +572,7 @@ async def validate_proxies_mode(proxy_manager: ProxyManager):
             remaining = (target_time - now).total_seconds()
             
             # 距离抢购开始不到预热时间，退出验证模式
-            if remaining <= WARMUP_SECONDS + 10:
+            if remaining <= WARMUP_SECONDS + 5:
                 print(f"\n🚀 抢购即将开始，退出验证模式")
                 break
             
@@ -631,9 +628,15 @@ async def main():
     now = datetime.now()
     wait_seconds = (target_time - now).total_seconds()
     
+    print(f"\n📋 当前状态:")
+    print(f"   当前时间: {now.strftime('%H:%M:%S')}")
+    print(f"   目标场次: {target_desc}")
+    print(f"   距离开始: {wait_seconds/60:.0f} 分钟")
+    print(f"   抢购时段: {'是' if is_grab_time else '否'}")
+    
     if is_grab_time:
         # 在抢购时间段，直接开始抢购
-        print(f"\n🔥 当前在抢购时间段！目标: {target_desc}")
+        print(f"\n🔥 当前在抢购时间段！")
         
         # 加载缓存的代理或重新检测
         if not proxy_manager.load_proxies():
@@ -641,6 +644,7 @@ async def main():
             await proxy_manager.check_all_proxies(concurrency=50)
         
         # 等待到预热时间
+        now = datetime.now()
         warmup_time = target_time - timedelta(seconds=WARMUP_SECONDS)
         if now < warmup_time:
             wait = (warmup_time - now).total_seconds()
@@ -674,15 +678,12 @@ async def main():
             )
     else:
         # 不在抢购时间段，进入代理验证模式
-        print(f"\n⏳ 不在抢购时间段")
-        print(f"   当前: {now.strftime('%H:%M:%S')}")
-        print(f"   下一场: {target_desc}")
-        print(f"   距离开始: {wait_seconds/60:.0f} 分钟")
+        print(f"\n⏳ 不在抢购时间段，进入代理验证模式")
         
-        # 持续验证代理
-        proxy_manager = await validate_proxies_mode(proxy_manager)
+        # 持续验证代理直到抢购时间
+        proxy_manager = await validate_proxies_mode(proxy_manager, target_time)
         
-        # 验证完成后，等待到抢购时间
+        # 验证完成后，重新获取时间并等待
         now = datetime.now()
         warmup_time = target_time - timedelta(seconds=WARMUP_SECONDS)
         
@@ -692,6 +693,7 @@ async def main():
             precise_sleep(wait)
         
         # 开始抢购
+        print(f"\n🚀 开始抢购！")
         result = await grab_batch(accounts, proxy_manager, target_time, target_desc)
         
         # 输出代理统计
