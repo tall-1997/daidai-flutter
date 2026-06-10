@@ -396,60 +396,23 @@ def login(session, username, password):
                 'encrypted_dev_id': encrypted_dev_id,
             }
 
-        # 如果响应是 base64 编码的，尝试解密
+        # 如果响应是 base64 编码的，尝试作为 token 使用
         try:
             decoded_bytes = base64.b64decode(response_text)
             
-            # 尝试 AES 解密（与手机号加密使用相同密钥）
-            try:
-                key = b'ysiVkLJHHnvMWCHq'
-                iv = b'ichYooX+Mb1gRetP'
-                cipher = AES.new(key, AES.MODE_CBC, iv)
-                decrypted = unpad(cipher.decrypt(decoded_bytes), AES.block_size, style='pkcs7')
-                decrypted_str = decrypted.decode('utf-8', errors='ignore')
-                
-                # 尝试解析解密后的 JSON
-                try:
-                    decrypted_json = json.loads(decrypted_str)
-                    if isinstance(decrypted_json, dict):
-                        data = decrypted_json.get('data', decrypted_json)
-                        return {
-                            'loginUid': str(data.get('loginUid', data.get('uid', ''))),
-                            'loginSid': str(data.get('loginSid', data.get('sid', ''))),
-                            'username': str(data.get('username', data.get('uname', username))),
-                            'appUid': str(data.get('appUid', data.get('kid', ''))),
-                            'encrypted_dev_id': encrypted_dev_id,
-                        }
-                except (json.JSONDecodeError, ValueError):
-                    # 解密后不是 JSON，尝试从内容中提取
-                    uid_match = re.search(r'uid[=:]\s*(\d+)', decrypted_str)
-                    sid_match = re.search(r'sid[=:]\s*([a-zA-Z0-9]+)', decrypted_str)
-                    if uid_match and sid_match:
-                        return {
-                            'loginUid': uid_match.group(1),
-                            'loginSid': sid_match.group(1),
-                            'username': username,
-                            'appUid': uid_match.group(1),
-                            'encrypted_dev_id': encrypted_dev_id,
-                        }
-            except Exception:
-                pass
+            # 如果解码成功，可能是一个会话 token
+            # 尝试使用原始响应作为登录凭据
+            print(f'  检测到 base64 token，长度: {len(decoded_bytes)} 字节')
             
-            # 尝试直接作为 UTF-8 解码
-            decoded_str = decoded_bytes.decode('utf-8', errors='ignore')
-            try:
-                decoded_json = json.loads(decoded_str)
-                if isinstance(decoded_json, dict):
-                    data = decoded_json.get('data', decoded_json)
-                    return {
-                        'loginUid': str(data.get('loginUid', data.get('uid', ''))),
-                        'loginSid': str(data.get('loginSid', data.get('sid', ''))),
-                        'username': str(data.get('username', data.get('uname', username))),
-                        'appUid': str(data.get('appUid', data.get('kid', ''))),
-                        'encrypted_dev_id': encrypted_dev_id,
-                    }
-            except (json.JSONDecodeError, ValueError):
-                pass
+            # 返回 token 用于后续 API 调用
+            return {
+                'loginUid': response_text,  # 使用原始 base64 作为 loginUid
+                'loginSid': response_text,  # 同时作为 loginSid
+                'username': username,
+                'appUid': response_text,    # 同时作为 appUid
+                'encrypted_dev_id': encrypted_dev_id,
+                'token': response_text,     # 额外保存 token
+            }
         except Exception:
             pass
 
