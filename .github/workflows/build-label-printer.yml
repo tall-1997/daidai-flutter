@@ -25,11 +25,11 @@ jobs:
 
       - name: Build EXE
         run: |
-          pyinstaller --onefile --windowed --name "标签打印工具" label_printer.py
+          pyinstaller --onefile --windowed --name "label-printer" --collect-all tkinter --hidden-import tkinter --hidden-import tkinter.ttk --hidden-import tkinter.messagebox --hidden-import tkinter.filedialog label_printer.py
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
           name: label-printer-exe
-          path: dist/标签打印工具.exe
+          path: dist/label-printer.exe
           if-no-files-found: error
