@@ -22,28 +22,30 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo [1/4] 安装依赖...
+echo [1/5] 安装依赖...
 pip install pyinstaller -q
+pip install pywin32 -q
 if %errorlevel% neq 0 (
-    echo 错误: 安装 PyInstaller 失败
-    pause
-    exit /b 1
+    echo 警告: pywin32 安装失败，打印功能可能受限
 )
 
-echo [2/4] 清理旧文件...
+echo [2/5] 清理旧文件...
 if exist build rmdir /s /q build
 if exist dist rmdir /s /q dist
 if exist __pycache__ rmdir /s /q __pycache__
 
-echo [3/4] 打包应用...
-pyinstaller --onefile --windowed --name "标签打印工具" --icon=NONE label_printer.py
+echo [3/5] 打包应用...
+pyinstaller --onefile --windowed --name "标签打印工具" label_printer.py
 if %errorlevel% neq 0 (
     echo 错误: 打包失败
     pause
     exit /b 1
 )
 
-echo [4/4] 完成!
+echo [4/5] 复制说明文件...
+if exist label_printer_README.md copy label_printer_README.md dist\使用说明.md
+
+echo [5/5] 完成!
 echo.
 echo ========================================
 echo 打包成功！
