@@ -74,6 +74,9 @@
 		A20043 /* TaskViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20043; };
 		A20044 /* UserListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20044; };
 		A20045 /* UserViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20045; };
+		A30001 /* EnvDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30001; };
+		A30002 /* LogStreamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30002; };
+		A30003 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30003; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -145,6 +148,9 @@
 		B20043 /* TaskViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskViewModel.swift; sourceTree = "<group>"; };
 		B20044 /* UserListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserListView.swift; sourceTree = "<group>"; };
 		B20045 /* UserViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserViewModel.swift; sourceTree = "<group>"; };
+		B30001 /* EnvDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvDetailView.swift; sourceTree = "<group>"; };
+		B30002 /* LogStreamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogStreamView.swift; sourceTree = "<group>"; };
+		B30003 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		C10001 /* DaidaiPanel.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DaidaiPanel.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -324,6 +330,7 @@
 			children = (
 				B20013 /* EnvListView.swift */,
 				B20014 /* EnvViewModel.swift */,
+				B30001 /* EnvDetailView.swift */,
 			);
 			path = envs;
 			sourceTree = "<group>";
@@ -343,6 +350,7 @@
 			children = (
 				B20018 /* LogListView.swift */,
 				B20019 /* LogViewModel.swift */,
+				B30002 /* LogStreamView.swift */,
 			);
 			path = logs;
 			sourceTree = "<group>";
@@ -403,6 +411,7 @@
 		G00024 /* settings */ = {
 			isa = PBXGroup;
 			children = (
+				B30003 /* AboutView.swift */,
 				B20031 /* AppLockSettingsView.swift */,
 				B20032 /* MoreView.swift */,
 				B20033 /* SponsorView.swift */,
@@ -594,6 +603,9 @@
 				A20043 /* TaskViewModel.swift in Sources */,
 				A20044 /* UserListView.swift in Sources */,
 				A20045 /* UserViewModel.swift in Sources */,
+				A30001 /* EnvDetailView.swift in Sources */,
+				A30002 /* LogStreamView.swift in Sources */,
+				A30003 /* AboutView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
