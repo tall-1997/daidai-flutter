@@ -370,9 +370,9 @@ private fun EnvCard(
                     }
                 }
 
-                if (env.remarks.isNotEmpty()) {
+                if (!env.remarks.isNullOrEmpty()) {
                     Text(
-                        text = env.remarks,
+                        text = env.remarks ?: "",
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isLight) AppColors.slate400 else AppColors.slate500,
                         maxLines = 1,

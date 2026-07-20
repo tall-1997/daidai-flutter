@@ -415,10 +415,10 @@ private fun DepCard(
                 }
             }
 
-            if (dep.remark.isNotBlank()) {
+            if (!dep.remark.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = dep.remark,
+                    text = dep.remark ?: "",
                     style = MaterialTheme.typography.bodySmall,
                     color = if (isLight) AppColors.slate400 else AppColors.slate500
                 )
