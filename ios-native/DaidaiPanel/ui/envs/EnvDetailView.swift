@@ -56,7 +56,7 @@ struct EnvDetailView: View {
     private var formCard: some View {
         GlassCard(padding: 16) {
             VStack(spacing: 14) {
-                formField(label: "变量名", text: $name, placeholder: "变量名", autocapitalization: .never)
+                formField(label: "变量名", text: $name, placeholder: "变量名")
                 formSecureField(label: "变量值", text: $value, placeholder: "变量值")
                 formField(label: "分组", text: $group, placeholder: "分组（可选）")
                 formField(label: "备注", text: $remarks, placeholder: "备注（可选）")
@@ -106,14 +106,14 @@ struct EnvDetailView: View {
         }
     }
 
-    private func formField(label: String, text: Binding<String>, placeholder: String, autocapitalization: UITextAutocapitalizationType = .sentences) -> some View {
+    private func formField(label: String, text: Binding<String>, placeholder: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label)
                 .font(.caption)
                 .foregroundColor(.secondary)
             TextField(placeholder, text: text)
                 .textFieldStyle(.plain)
-                .autocapitalization(autocapitalization)
+                .autocapitalization(.none)
                 .disableAutocorrection(true)
                 .padding(10)
                 .background(AppColors.glassBg)
