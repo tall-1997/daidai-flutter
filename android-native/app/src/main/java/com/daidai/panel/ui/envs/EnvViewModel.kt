@@ -30,7 +30,7 @@ data class EnvListState(
                 result = result.filter {
                     it.name.contains(keyword, ignoreCase = true) ||
                             it.value.contains(keyword, ignoreCase = true) ||
-                            it.remarks?.contains(keyword, ignoreCase = true)
+                            it.remarks?.contains(keyword, ignoreCase = true) == true
                 }
             }
             if (selectedGroup.isNotBlank()) {
