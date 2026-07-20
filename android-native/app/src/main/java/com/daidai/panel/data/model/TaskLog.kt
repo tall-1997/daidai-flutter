@@ -8,11 +8,13 @@ data class TaskLog(
     @SerializedName("content") val content: String = "",
     @SerializedName("status") val status: Int = 0,
     @SerializedName("duration") val duration: Double = 0.0,
-    @SerializedName("log_path") val logPath: String = "",
+    @SerializedName("log_path") val logPath: String? = null,
     @SerializedName("started_at") val startedAt: String = "",
     @SerializedName("ended_at") val endedAt: String = "",
     @SerializedName("created_at") val createdAt: String = "",
-    @SerializedName("task_name") val taskName: String = ""
+    @SerializedName("task_name") val taskName: String = "",
+    @SerializedName("task_type") val taskType: String = "",
+    @SerializedName("labels") val labels: List<String> = emptyList()
 ) {
     val isSuccess: Boolean get() = status == 0
     val isFailed: Boolean get() = status == 1

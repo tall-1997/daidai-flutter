@@ -11,15 +11,18 @@ struct TaskLog: Codable, Identifiable, Equatable {
     let endedAt: Date?
     let createdAt: Date
     let taskName: String?
+    let taskType: String?
+    let labels: [String]?
 
     enum CodingKeys: String, CodingKey {
-        case id, content, status, duration
+        case id, content, status, duration, labels
         case taskId = "task_id"
         case logPath = "log_path"
         case startedAt = "started_at"
         case endedAt = "ended_at"
         case createdAt = "created_at"
         case taskName = "task_name"
+        case taskType = "task_type"
     }
 
     init(from decoder: Decoder) throws {
@@ -34,6 +37,8 @@ struct TaskLog: Codable, Identifiable, Equatable {
         endedAt = try? c.decodeDateIfPresent(forKey: .endedAt)
         createdAt = try c.decodeDate(forKey: .createdAt)
         taskName = try? c.decodeStringIfPresent(forKey: .taskName)
+        taskType = try? c.decodeStringIfPresent(forKey: .taskType)
+        labels = (try? c.decode([String].self, forKey: .labels))
     }
 
     var isSuccess: Bool { status == 0 }

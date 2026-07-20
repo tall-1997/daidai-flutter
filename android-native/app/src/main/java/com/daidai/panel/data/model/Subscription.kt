@@ -6,7 +6,7 @@ import com.google.gson.annotations.JsonAdapter
 data class Subscription(
     @SerializedName("id") val id: Int = 0,
     @SerializedName("name") val name: String = "",
-    @SerializedName("type") val type: Int = 0,
+    @SerializedName("type") val type: String = "",
     @SerializedName("url") val url: String = "",
     @SerializedName("branch") val branch: String = "",
     @SerializedName("sub_path") val subPath: String = "",
@@ -28,14 +28,14 @@ data class Subscription(
     @SerializedName("updated_at") val updatedAt: String = ""
 ) {
     val isRunning: Boolean get() = status == 1
-    val isSingleFile: Boolean get() = type == 1
-    val isGitRepo: Boolean get() = type == 0
+    val isSingleFile: Boolean get() = type == "single-file" || type == "file"
+    val isGitRepo: Boolean get() = type == "git-repo" || type == "public-repo" || type == "private-repo" || type.isEmpty()
 
     val typeLabel: String
-        get() = when (type) {
-            0 -> "Git 仓库"
-            1 -> "单文件"
-            else -> "未知"
+        get() = when {
+            isSingleFile -> "单文件"
+            isGitRepo -> "Git 仓库"
+            else -> type
         }
 
     val statusText: String

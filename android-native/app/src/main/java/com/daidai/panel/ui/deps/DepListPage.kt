@@ -387,11 +387,11 @@ private fun DepCard(
                 } else {
                     StatusBadge(
                         status = when (dep.status) {
-                            0 -> BadgeStatus.QUEUED
-                            1 -> BadgeStatus.RUNNING
-                            2 -> BadgeStatus.SUCCESS
-                            3 -> BadgeStatus.RUNNING
-                            4 -> BadgeStatus.FAILED
+                            "queued" -> BadgeStatus.QUEUED
+                            "installing" -> BadgeStatus.RUNNING
+                            "installed" -> BadgeStatus.SUCCESS
+                            "removing" -> BadgeStatus.RUNNING
+                            "failed" -> BadgeStatus.FAILED
                             else -> BadgeStatus.DISABLED
                         }
                     )

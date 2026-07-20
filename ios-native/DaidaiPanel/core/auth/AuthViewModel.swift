@@ -55,6 +55,11 @@ final class AuthViewModel: ObservableObject, AuthInterceptorDelegate {
             let user = try await authService.getUser()
             state = AuthState(status: .authenticated, user: user)
         } catch {
+            // Fallback: try to restore user from local cache
+            if let cachedUser = keychain.authUser {
+                state = AuthState(status: .authenticated, user: cachedUser)
+                return
+            }
             do {
                 try await authService.refreshToken()
                 let user = try await authService.getUser()

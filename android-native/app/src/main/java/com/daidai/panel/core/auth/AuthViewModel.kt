@@ -69,10 +69,19 @@ class AuthViewModel @Inject constructor(
                         user = userResult.getOrNull()
                     )
                 } else {
-                    secureStorage.clearAuth()
-                    _authState.value = _authState.value.copy(
-                        status = AuthStatus.UNAUTHENTICATED
-                    )
+                    // Fallback: try to restore user from local cache
+                    val cachedUser = restoreUserFromCache()
+                    if (cachedUser != null) {
+                        _authState.value = _authState.value.copy(
+                            status = AuthStatus.AUTHENTICATED,
+                            user = cachedUser
+                        )
+                    } else {
+                        secureStorage.clearAuth()
+                        _authState.value = _authState.value.copy(
+                            status = AuthStatus.UNAUTHENTICATED
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 _authState.value = _authState.value.copy(
@@ -140,9 +149,31 @@ class AuthViewModel @Inject constructor(
                         )
                         return@launch
                     }
+                    // Fallback: try to restore user from local cache
+                    val cachedUser = restoreUserFromCache()
+                    if (cachedUser != null) {
+                        _authState.value = _authState.value.copy(
+                            status = AuthStatus.AUTHENTICATED,
+                            user = cachedUser
+                        )
+                        return@launch
+                    }
                 }
             }
             checkAuthStatus()
+        }
+    }
+
+    private suspend fun restoreUserFromCache(): User? {
+        val cached = secureStorage.getAuthUser() ?: return null
+        return try {
+            User(
+                id = (cached["id"] as? Number)?.toInt() ?: 0,
+                username = cached["username"] as? String ?: "",
+                role = cached["role"] as? String ?: "viewer"
+            )
+        } catch (_: Exception) {
+            null
         }
     }
 }
