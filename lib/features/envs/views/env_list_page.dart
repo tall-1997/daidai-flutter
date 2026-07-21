@@ -306,10 +306,10 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                   );
                 },
               ),
-            ),
-          ),
-        );
-      },
+),
+                            ),
+                          },
+                        },
     );
   }
 
@@ -1271,10 +1271,10 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('已复制值')),
 );
-                            },
-                          ),
-                        },
-                      ),
+                          },
+                        ),
+                      },
+                    ),
               ),
             ),
           ],
