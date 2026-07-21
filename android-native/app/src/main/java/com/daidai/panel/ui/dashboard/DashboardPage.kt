@@ -43,21 +43,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.foundation.background
 import com.daidai.panel.core.theme.AppColors
 import com.daidai.panel.ui.components.GlassCard
 import com.daidai.panel.ui.components.ResourceCard
 import coil.compose.AsyncImage
+import com.daidai.panel.core.auth.AuthViewModel
 
 @Composable
 fun DashboardPage(
     contentPadding: PaddingValues,
     glassMode: Boolean,
     onNavigate: (String) -> Unit,
-    viewModel: DashboardViewModel = hiltViewModel()
+    viewModel: DashboardViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val authState by authViewModel.authState.collectAsState()
     val isLight = !isSystemInDarkTheme()
+    val username = authState.user?.username ?: ""
+    val avatarUrl = authState.user?.avatarUrl
 
     if (state.isLoading && state.systemInfo.isEmpty()) {
         Box(
@@ -79,7 +83,6 @@ fun DashboardPage(
     ) {
         // Page header
         item {
-            val username = state.systemInfo["username"] as? String ?: ""
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -116,7 +119,6 @@ fun DashboardPage(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    val avatarUrl = state.systemInfo["user_avatar"] as? String
                     if (!avatarUrl.isNullOrEmpty()) {
                         AsyncImage(
                             model = avatarUrl,
@@ -144,12 +146,6 @@ fun DashboardPage(
             }
             }
             Spacer(modifier = Modifier.height(24.dp))
-        }
-
-        // System status section
-        item {
-            SectionTitle("系统状态", isLight)
-            Spacer(modifier = Modifier.height(12.dp))
         }
 
         // Server info card
@@ -194,9 +190,9 @@ fun DashboardPage(
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // Task overview section
+        // System status section
         item {
-            SectionTitle("任务概览", isLight)
+            SectionTitle("系统状态", isLight)
             Spacer(modifier = Modifier.height(12.dp))
         }
 
@@ -235,14 +231,13 @@ fun DashboardPage(
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // Execution trend section
-        item {
-            SectionTitle("执行趋势", isLight)
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-
-        // Task stats card
+        // Task overview section
         if (state.totalTasks > 0) {
+            item {
+                SectionTitle("任务概览", isLight)
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
             item {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
@@ -271,10 +266,16 @@ fun DashboardPage(
                     ) {
                         StatItem("今日成功", state.todaySuccess, AppColors.primary, isLight, Modifier.weight(1f))
                         StatItem("今日失败", state.todayFailed, AppColors.red500, isLight, Modifier.weight(1f))
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
             }
-            Spacer(modifier = Modifier.height(24.dp))
         }
-        }
+
+        // Execution trend section
+        item {
+            SectionTitle("执行趋势", isLight)
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
         // Trend chart
@@ -307,6 +308,7 @@ fun DashboardPage(
         }
 
         item {
+            val isAdmin = authState.user?.isAdmin == true
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
                 padding = PaddingValues(16.dp)
@@ -315,34 +317,65 @@ fun DashboardPage(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    QuickActionButton(
-                        icon = Icons.Default.PlayArrow,
-                        label = "新建任务",
-                        color = if (isLight) AppColors.slate700 else AppColors.slate300,
-                        onClick = { onNavigate("tasks") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    QuickActionButton(
-                        icon = Icons.Default.Terminal,
-                        label = "脚本管理",
-                        color = if (isLight) AppColors.slate700 else AppColors.slate300,
-                        onClick = { onNavigate("scripts") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    QuickActionButton(
-                        icon = Icons.Default.TaskAlt,
-                        label = "订阅管理",
-                        color = if (isLight) AppColors.slate700 else AppColors.slate300,
-                        onClick = { onNavigate("subscriptions") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    QuickActionButton(
-                        icon = Icons.Default.TaskAlt,
-                        label = "依赖管理",
-                        color = if (isLight) AppColors.slate700 else AppColors.slate300,
-                        onClick = { onNavigate("deps") },
-                        modifier = Modifier.weight(1f)
-                    )
+                    if (isAdmin) {
+                        QuickActionButton(
+                            icon = Icons.Default.PlayArrow,
+                            label = "新建任务",
+                            color = if (isLight) AppColors.slate700 else AppColors.slate300,
+                            onClick = { onNavigate("tasks") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        QuickActionButton(
+                            icon = Icons.Default.Terminal,
+                            label = "脚本管理",
+                            color = if (isLight) AppColors.slate700 else AppColors.slate300,
+                            onClick = { onNavigate("scripts") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        QuickActionButton(
+                            icon = Icons.Default.TaskAlt,
+                            label = "订阅管理",
+                            color = if (isLight) AppColors.slate700 else AppColors.slate300,
+                            onClick = { onNavigate("subscriptions") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        QuickActionButton(
+                            icon = Icons.Default.TaskAlt,
+                            label = "依赖管理",
+                            color = if (isLight) AppColors.slate700 else AppColors.slate300,
+                            onClick = { onNavigate("deps") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        QuickActionButton(
+                            icon = Icons.Default.TaskAlt,
+                            label = "任务",
+                            color = if (isLight) AppColors.slate700 else AppColors.slate300,
+                            onClick = { onNavigate("tasks") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        QuickActionButton(
+                            icon = Icons.Default.TaskAlt,
+                            label = "环境变量",
+                            color = if (isLight) AppColors.slate700 else AppColors.slate300,
+                            onClick = { onNavigate("envs") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        QuickActionButton(
+                            icon = Icons.Default.TaskAlt,
+                            label = "赞助名单",
+                            color = if (isLight) AppColors.slate700 else AppColors.slate300,
+                            onClick = { onNavigate("sponsors") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        QuickActionButton(
+                            icon = Icons.Default.TaskAlt,
+                            label = "设置",
+                            color = if (isLight) AppColors.slate700 else AppColors.slate300,
+                            onClick = { onNavigate("more") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }

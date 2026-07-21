@@ -114,7 +114,8 @@ class AuthRepository @Inject constructor(
                     secureStorage.saveAuthUser(mapOf(
                         "id" to user.id,
                         "username" to user.username,
-                        "role" to user.role
+                        "role" to user.role,
+                        "avatar_url" to (user.avatarUrl ?: "")
                     ))
                     return Result.success(user)
                 }

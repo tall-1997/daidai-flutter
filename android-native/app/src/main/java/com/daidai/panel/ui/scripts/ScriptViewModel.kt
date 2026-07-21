@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class ScriptTreeNode(
@@ -113,7 +115,7 @@ class ScriptViewModel @Inject constructor(
     }
 
     fun loadContent(path: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _state.value = _state.value.copy(isLoading = true, currentPath = path, error = null, isBinary = false)
             try {
                 val api = networkModule.getApiService()
@@ -122,22 +124,28 @@ class ScriptViewModel @Inject constructor(
                     val data = response.body()?.data ?: emptyMap()
                     val isBinary = data["binary"] == true || data["is_binary"] == true
                     val content = if (isBinary) "" else (data["content"] as? String) ?: ""
-                    _state.value = _state.value.copy(
-                        currentContent = content,
-                        isBinary = isBinary,
-                        isLoading = false
-                    )
+                    withContext(Dispatchers.Main) {
+                        _state.value = _state.value.copy(
+                            currentContent = content,
+                            isBinary = isBinary,
+                            isLoading = false
+                        )
+                    }
                 } else {
-                    _state.value = _state.value.copy(
-                        isLoading = false,
-                        error = response.body()?.message ?: "加载失败"
-                    )
+                    withContext(Dispatchers.Main) {
+                        _state.value = _state.value.copy(
+                            isLoading = false,
+                            error = response.body()?.message ?: "加载失败"
+                        )
+                    }
                 }
             } catch (e: Exception) {
-                _state.value = _state.value.copy(
-                    isLoading = false,
-                    error = e.message ?: "网络错误"
-                )
+                withContext(Dispatchers.Main) {
+                    _state.value = _state.value.copy(
+                        isLoading = false,
+                        error = e.message ?: "网络错误"
+                    )
+                }
             }
         }
     }

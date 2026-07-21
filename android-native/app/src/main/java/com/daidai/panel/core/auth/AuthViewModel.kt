@@ -33,6 +33,12 @@ class AuthViewModel @Inject constructor(
     private val _authState = MutableStateFlow(AuthState())
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            restoreSession()
+        }
+    }
+
     fun checkAuthStatus() {
         viewModelScope.launch {
             _authState.value = _authState.value.copy(status = AuthStatus.UNKNOWN)
@@ -191,7 +197,8 @@ class AuthViewModel @Inject constructor(
             User(
                 id = (cached["id"] as? Number)?.toInt() ?: 0,
                 username = cached["username"] as? String ?: "",
-                role = cached["role"] as? String ?: "viewer"
+                role = cached["role"] as? String ?: "viewer",
+                avatarUrl = cached["avatar_url"] as? String ?: ""
             )
         } catch (_: Exception) {
             null

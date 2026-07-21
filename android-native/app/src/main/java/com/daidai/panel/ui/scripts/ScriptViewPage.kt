@@ -59,6 +59,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.daidai.panel.core.theme.AppColors
 import com.daidai.panel.ui.components.GlassCard
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,6 +75,8 @@ fun ScriptViewPage(
     var showRunOutput by remember { mutableStateOf(false) }
     var editedContent by remember { mutableStateOf("") }
     var isEditing by remember { mutableStateOf(false) }
+    var highlightedContent by remember { mutableStateOf(AnnotatedString("")) }
+    var isHighlighting by remember { mutableStateOf(false) }
 
     LaunchedEffect(filePath) {
         viewModel.loadContent(filePath)
@@ -81,6 +85,15 @@ fun ScriptViewPage(
     LaunchedEffect(state.currentContent) {
         if (!isEditing) {
             editedContent = state.currentContent
+        }
+        if (state.currentContent.isNotBlank()) {
+            isHighlighting = true
+            highlightedContent = withContext(Dispatchers.Default) {
+                highlightSyntax(state.currentContent)
+            }
+            isHighlighting = false
+        } else {
+            highlightedContent = AnnotatedString("")
         }
     }
 
@@ -249,14 +262,26 @@ fun ScriptViewPage(
                         .horizontalScroll(rememberScrollState())
                         .padding(16.dp)
                 ) {
-                    Text(
-                        text = highlightSyntax(state.currentContent),
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 13.sp,
-                            lineHeight = 20.sp
+                    if (isHighlighting) {
+                        Text(
+                            text = state.currentContent,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 13.sp,
+                                lineHeight = 20.sp,
+                                color = if (isLight) AppColors.slate400 else AppColors.slate500
+                            )
                         )
-                    )
+                    } else {
+                        Text(
+                            text = highlightedContent,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 13.sp,
+                                lineHeight = 20.sp
+                            )
+                        )
+                    }
                 }
             }
         }

@@ -154,14 +154,6 @@ fun MorePage(
 
         item {
             AppListTile(
-                icon = Icons.Default.ColorLens,
-                title = "主题设置",
-                onClick = { onNavigate("themeSettings") }
-            )
-        }
-
-        item {
-            AppListTile(
                 icon = Icons.Default.Lock,
                 title = "应用锁",
                 onClick = { onNavigate("appLock") }
@@ -173,6 +165,14 @@ fun MorePage(
                 icon = Icons.Default.Notifications,
                 title = "通知管理",
                 onClick = { onNavigate("notifications") }
+            )
+        }
+
+        item {
+            AppListTile(
+                icon = Icons.Default.Notifications,
+                title = "本地通知",
+                onClick = { onNavigate("localNotifications") }
             )
         }
 
