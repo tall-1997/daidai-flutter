@@ -142,6 +142,7 @@ fun DashboardPage(
                     }
                 }
             }
+            }
             Spacer(modifier = Modifier.height(24.dp))
         }
 
