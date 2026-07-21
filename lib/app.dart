@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
@@ -22,16 +21,8 @@ class DaidaiApp extends ConsumerWidget {
       themeMode: styleSettings.themeMode,
       routerConfig: router,
       locale: const Locale('zh', 'CN'),
-      builder: (context, child) {
-        final wrapped = AppLockGate(
-          child: child ?? const SizedBox.shrink(),
-        );
-        return GlassPage(
-          edgeToEdge: true,
-          statusBarStyle: GlassStatusBarStyle.auto,
-          child: wrapped,
-        );
-      },
+      builder: (context, child) =>
+          AppLockGate(child: child ?? const SizedBox.shrink()),
     );
   }
 }

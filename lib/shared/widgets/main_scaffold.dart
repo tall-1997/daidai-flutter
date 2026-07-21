@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
@@ -121,8 +122,8 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
 
     Widget backgroundWidget;
     if (bg != null) {
-      final imageWidget = Image.asset(
-        bg,
+      final imageWidget = Image.file(
+        File(bg),
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
