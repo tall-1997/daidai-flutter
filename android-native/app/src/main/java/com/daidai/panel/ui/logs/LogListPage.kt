@@ -151,9 +151,9 @@ fun LogListPage(
                     ) {
                         val filters = listOf(
                             -1 to "全部",
-                            0 to "运行中",
-                            1 to "成功",
-                            2 to "失败",
+                            0 to "成功",
+                            1 to "失败",
+                            2 to "运行中",
                             3 to "超时"
                         )
                         filters.forEach { (status, label) ->

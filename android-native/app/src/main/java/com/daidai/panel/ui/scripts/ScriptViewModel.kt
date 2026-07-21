@@ -73,12 +73,23 @@ class ScriptViewModel @Inject constructor(
 
     @Suppress("UNCHECKED_CAST")
     private fun parseNode(map: Map<String, Any>): ScriptTreeNode {
-        val children = map["children"] as? List<Map<String, Any>> ?: emptyList()
+        val childrenRaw = map["children"]
+        val children = when (childrenRaw) {
+            is List<*> -> childrenRaw.mapNotNull { item ->
+                when (item) {
+                    is Map<*, *> -> parseNode(item as Map<String, Any>)
+                    else -> null
+                }
+            }
+            else -> emptyList()
+        }
         return ScriptTreeNode(
-            name = map["name"] as? String ?: "",
-            path = map["path"] as? String ?: "",
-            isDirectory = map["is_dir"] as? Boolean ?: false,
-            children = children.map { parseNode(it) }
+            name = (map["title"] as? String) ?: (map["name"] as? String) ?: "",
+            path = (map["key"] as? String) ?: (map["path"] as? String) ?: "",
+            isDirectory = (map["type"] as? String) == "directory"
+                || (map["is_directory"] as? Boolean) == true
+                || (map["isLeaf"] as? Boolean) == false,
+            children = children
         )
     }
 

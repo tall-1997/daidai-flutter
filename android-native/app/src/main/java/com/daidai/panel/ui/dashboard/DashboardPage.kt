@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,6 +37,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -192,36 +194,37 @@ fun DashboardPage(
         }
 
         // Task stats
-        item {
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                glassMode = glassMode,
-                padding = PaddingValues(16.dp)
-            ) {
-                Text(
-                    "任务统计",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = if (isLight) AppColors.lightOnSurface else AppColors.darkOnSurface
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
+        if (state.totalTasks > 0) {
+            item {
+                GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    glassMode = glassMode,
+                    padding = PaddingValues(16.dp)
                 ) {
-                    StatItem("总计", state.totalTasks, AppColors.slate600, isLight)
-                    StatItem("启用", state.enabledTasks, AppColors.primary, isLight)
-                    StatItem("运行中", state.runningTasks, AppColors.blue500, isLight)
-                    StatItem("禁用", state.disabledTasks, AppColors.slate400, isLight)
-                }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        StatItem("总计", state.totalTasks, AppColors.primary, isLight, Modifier.weight(1f))
+                        StatItem("已启用", state.enabledTasks, AppColors.primary, isLight, Modifier.weight(1f))
+                        StatItem("运行中", state.runningTasks, AppColors.blue500, isLight, Modifier.weight(1f))
+                        StatItem("已禁用", state.disabledTasks, AppColors.slate400, isLight, Modifier.weight(1f))
+                    }
 
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    StatItem("今日成功", state.todaySuccess, AppColors.primary, isLight)
-                    StatItem("今日失败", state.todayFailed, AppColors.red500, isLight)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = if (isLight) AppColors.glassDivider else AppColors.slate800
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        StatItem("今日成功", state.todaySuccess, AppColors.primary, isLight, Modifier.weight(1f))
+                        StatItem("今日失败", state.todayFailed, AppColors.red500, isLight, Modifier.weight(1f))
+                    }
                 }
             }
         }
@@ -317,17 +320,30 @@ fun DashboardPage(
 }
 
 @Composable
-private fun StatItem(label: String, value: Int, color: Color, isLight: Boolean) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun StatItem(label: String, value: Int, color: Color, isLight: Boolean, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Text(
             text = value.toString(),
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            color = color
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 22.sp
+            ),
+            color = color,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (isLight) AppColors.slate500 else AppColors.slate400
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 11.sp
+            ),
+            color = if (isLight) AppColors.slate500 else AppColors.slate400,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

@@ -352,6 +352,9 @@ interface ApiService {
     @POST(ApiEndpoints.DEPS)
     suspend fun createDependency(@Body body: Map<String, Any>): Response<ApiResponse<Dependency>>
 
+    @POST(ApiEndpoints.DEPS)
+    suspend fun installDep(@Body body: Map<String, Any>): Response<ApiResponse<Any>>
+
     @DELETE("${ApiEndpoints.DEPS}/{id}")
     suspend fun deleteDependency(@Path("id") id: Int): Response<ApiResponse<Any>>
 

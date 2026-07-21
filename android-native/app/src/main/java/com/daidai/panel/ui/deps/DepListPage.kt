@@ -129,7 +129,7 @@ fun DepListPage(
                 FilterChip(
                     selected = state.selectedTab == 0,
                     onClick = { viewModel.selectTab(0) },
-                    label = { Text("Python") },
+                    label = { Text("Python", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
                     colors = FilterChipDefaults.filterChipColors(
@@ -141,7 +141,19 @@ fun DepListPage(
                 FilterChip(
                     selected = state.selectedTab == 1,
                     onClick = { viewModel.selectTab(1) },
-                    label = { Text("Node.js") },
+                    label = { Text("Node.js", style = MaterialTheme.typography.labelSmall) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = AppColors.primary,
+                        selectedLabelColor = AppColors.white,
+                        containerColor = if (isLight) AppColors.slate100 else AppColors.slate800
+                    )
+                )
+                FilterChip(
+                    selected = state.selectedTab == 2,
+                    onClick = { viewModel.selectTab(2) },
+                    label = { Text("Linux", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
                     colors = FilterChipDefaults.filterChipColors(
@@ -215,6 +227,14 @@ fun DepListPage(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    item {
+                        Text(
+                            text = "共 ${state.total} 个依赖",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AppColors.slate400,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                    }
                     items(state.deps, key = { it.id }) { dep ->
                         DepCard(
                             dep = dep,
@@ -223,6 +243,25 @@ fun DepListPage(
                             onReinstall = { viewModel.reinstall(dep.id) },
                             onCancel = { viewModel.cancel(dep.name) }
                         )
+                    }
+                    if (state.hasMore) {
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (state.isLoadingMore) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        color = AppColors.primary
+                                    )
+                                } else {
+                                    TextButton(onClick = { viewModel.loadMore() }) {
+                                        Text("加载更多", color = AppColors.primary)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -435,7 +474,16 @@ private fun InstallDepSheet(
     onConfirm: (name: String, type: String) -> Unit
 ) {
     var packageName by remember { mutableStateOf("") }
-    val type = if (selectedTab == 0) "pip" else "npm"
+    val type = when (selectedTab) {
+        0 -> "pip"
+        1 -> "npm"
+        else -> "linux"
+    }
+    val typeLabel = when (selectedTab) {
+        0 -> "PIP"
+        1 -> "NPM"
+        else -> "Linux"
+    }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -443,18 +491,18 @@ private fun InstallDepSheet(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text(
-                "安装 ${type.uppercase()} 依赖",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "安装 ${typeLabel} 依赖",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = packageName,
-                onValueChange = { packageName = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("包名称") },
-                placeholder = { Text(if (type == "pip") "例如: requests" else "例如: axios") },
+                OutlinedTextField(
+                    value = packageName,
+                    onValueChange = { packageName = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("包名称") },
+                    placeholder = { Text(if (type == "pip") "例如: requests" else if (type == "npm") "例如: axios" else "例如: curl") },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp)
             )

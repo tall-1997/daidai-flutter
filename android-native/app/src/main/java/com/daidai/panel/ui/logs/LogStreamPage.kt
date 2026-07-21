@@ -65,7 +65,7 @@ fun LogStreamPage(
             )
         }
     ) { innerPadding ->
-        if (state.isLoading) {
+        if (state.isLoading && state.logLines.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -77,7 +77,7 @@ fun LogStreamPage(
             return@Scaffold
         }
 
-        if (state.error != null) {
+        if (state.error != null && state.logLines.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -94,21 +94,7 @@ fun LogStreamPage(
         }
 
         val log = state.log
-        if (log == null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "日志不存在",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = AppColors.slate500
-                )
-            }
-            return@Scaffold
-        }
+        val content = state.content
 
         LazyColumn(
             modifier = Modifier
@@ -117,67 +103,90 @@ fun LogStreamPage(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    glassMode = false,
-                    padding = androidx.compose.foundation.layout.PaddingValues(16.dp)
-                ) {
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = log.taskName.ifEmpty { "任务#${log.taskId}" },
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                                color = if (isLight) AppColors.lightOnSurface else AppColors.darkOnSurface
-                            )
-                            val badgeStatus = when {
-                                log.isRunning -> BadgeStatus.RUNNING
-                                log.isSuccess -> BadgeStatus.SUCCESS
-                                log.isFailed -> BadgeStatus.FAILED
-                                log.status == 3 -> BadgeStatus.FAILED
-                                else -> BadgeStatus.DISABLED
+            if (log != null) {
+                item {
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        glassMode = false,
+                        padding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+                    ) {
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = log.taskName.ifEmpty { "任务#${log.taskId}" },
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    color = if (isLight) AppColors.lightOnSurface else AppColors.darkOnSurface
+                                )
+                                val badgeStatus = when {
+                                    log.isRunning -> BadgeStatus.RUNNING
+                                    log.isSuccess -> BadgeStatus.SUCCESS
+                                    log.isFailed -> BadgeStatus.FAILED
+                                    log.status == 3 -> BadgeStatus.FAILED
+                                    else -> BadgeStatus.DISABLED
+                                }
+                                StatusBadge(status = badgeStatus)
                             }
-                            StatusBadge(status = badgeStatus)
-                        }
 
-                        Spacer(modifier = Modifier.height(12.dp))
-                        HorizontalDivider(color = if (isLight) AppColors.slate200 else AppColors.slate700)
-                        Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
+                            HorizontalDivider(color = if (isLight) AppColors.slate200 else AppColors.slate700)
+                            Spacer(modifier = Modifier.height(12.dp))
 
-                        InfoRow("状态", state.statusText, isLight)
-                        if (state.durationText.isNotEmpty()) {
-                            InfoRow("耗时", state.durationText, isLight)
-                        }
-                        if (log.startedAt.isNotEmpty()) {
-                            InfoRow("开始时间", log.startedAt, isLight)
-                        }
-                        if (log.endedAt.isNotEmpty()) {
-                            InfoRow("结束时间", log.endedAt, isLight)
+                            val statusText = if (state.isDone) state.status else log.statusText
+                            InfoRow("状态", statusText, isLight)
+                            if (state.durationText.isNotEmpty()) {
+                                InfoRow("耗时", state.durationText, isLight)
+                            }
+                            if (log.startedAt.isNotEmpty()) {
+                                InfoRow("开始时间", log.startedAt, isLight)
+                            }
+                            if (log.endedAt.isNotEmpty()) {
+                                InfoRow("结束时间", log.endedAt, isLight)
+                            }
                         }
                     }
                 }
+            } else if (state.logLines.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "日志不存在",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = AppColors.slate500
+                        )
+                    }
+                }
+            } else {
+                item {
+                    Text(
+                        text = "日志 #${viewModel.logIdValue}",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = if (isLight) AppColors.lightOnSurface else AppColors.darkOnSurface
+                    )
+                }
             }
 
-            item {
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    glassMode = false,
-                    padding = androidx.compose.foundation.layout.PaddingValues(16.dp)
-                ) {
-                    Column {
-                        Text(
-                            text = "日志内容",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = if (isLight) AppColors.lightOnSurface else AppColors.darkOnSurface
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
+            if (content.isNotEmpty()) {
+                item {
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        glassMode = false,
+                        padding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+                    ) {
+                        Column {
+                            Text(
+                                text = "日志内容",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = if (isLight) AppColors.lightOnSurface else AppColors.darkOnSurface
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                        val content = state.decodedContent
-                        if (content.isNotEmpty()) {
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color = if (isLight) AppColors.slate50 else AppColors.slate800,
@@ -194,12 +203,6 @@ fun LogStreamPage(
                                     modifier = Modifier.padding(12.dp)
                                 )
                             }
-                        } else {
-                            Text(
-                                text = "暂无日志内容",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = AppColors.slate400
-                            )
                         }
                     }
                 }

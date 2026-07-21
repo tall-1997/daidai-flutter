@@ -16,7 +16,11 @@ data class DepListState(
     val deps: List<Dependency> = emptyList(),
     val pythonRuntimes: List<Map<String, Any>> = emptyList(),
     val total: Int = 0,
+    val currentPage: Int = 1,
+    val pageSize: Int = 20,
+    val hasMore: Boolean = false,
     val isLoading: Boolean = false,
+    val isLoadingMore: Boolean = false,
     val installingDeps: Set<String> = emptySet(),
     val error: String? = null,
     val installLog: String = "",
@@ -36,30 +40,49 @@ class DepViewModel @Inject constructor(
         loadPythonRuntimes()
     }
 
-    fun load() {
+    fun load(loadMore: Boolean = false) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true, error = null)
+            _state.value = _state.value.copy(
+                isLoading = !loadMore,
+                isLoadingMore = loadMore,
+                error = null
+            )
+            if (!loadMore) {
+                _state.value = _state.value.copy(currentPage = 1)
+            }
             try {
                 val api = networkModule.getApiService()
                 val params = mutableMapOf<String, String>()
-                if (_state.value.selectedTab == 0) params["type"] = "nodejs"
-                else params["type"] = "python"
+                val tab = _state.value.selectedTab
+                when (tab) {
+                    0 -> params["type"] = "python"
+                    1 -> params["type"] = "nodejs"
+                    2 -> params["type"] = "linux"
+                }
+                params["page"] = _state.value.currentPage.toString()
+                params["pageSize"] = _state.value.pageSize.toString()
                 val response = api.getDependencies(params)
                 if (response.isSuccessful && response.body()?.isSuccess == true) {
+                    val newDeps = response.body()?.data ?: emptyList()
+                    val total = response.body()?.total ?: 0
                     _state.value = _state.value.copy(
-                        deps = response.body()?.data ?: emptyList(),
-                        total = response.body()?.total ?: 0,
-                        isLoading = false
+                        deps = if (loadMore) _state.value.deps + newDeps else newDeps,
+                        total = total,
+                        hasMore = _state.value.deps.size + newDeps.size < total,
+                        isLoading = false,
+                        isLoadingMore = false
                     )
                 } else {
                     _state.value = _state.value.copy(
                         isLoading = false,
+                        isLoadingMore = false,
                         error = response.body()?.message ?: "加载失败"
                     )
                 }
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
                     isLoading = false,
+                    isLoadingMore = false,
                     error = e.message ?: "网络错误"
                 )
             }
@@ -82,8 +105,15 @@ class DepViewModel @Inject constructor(
     }
 
     fun selectTab(tab: Int) {
-        _state.value = _state.value.copy(selectedTab = tab)
+        _state.value = _state.value.copy(selectedTab = tab, deps = emptyList())
         load()
+    }
+
+    fun loadMore() {
+        if (_state.value.hasMore && !_state.value.isLoadingMore) {
+            _state.value = _state.value.copy(currentPage = _state.value.currentPage + 1)
+            load(loadMore = true)
+        }
     }
 
     fun install(name: String, type: String) {
@@ -95,8 +125,10 @@ class DepViewModel @Inject constructor(
                 val api = networkModule.getApiService()
                 if (type == "pip") {
                     api.pipInstall(mapOf("name" to name))
-                } else {
+                } else if (type == "npm") {
                     api.npmInstall(mapOf("name" to name))
+                } else {
+                    api.installDep(mapOf("name" to name))
                 }
                 streamInstallLog(name)
                 load()
