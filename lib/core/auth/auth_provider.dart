@@ -207,8 +207,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return '登录请求被面板拒绝（403）。如果你是在群晖、飞牛等 NAS 中使用 Nginx Proxy Manager 或公网域名反代访问，请优先升级面板到 v2.3.0 及以上；升级前可临时在 config.yaml 的 cors.origins 中加入完整公网地址，例如 https://域名:端口。$extra';
       }
 
+      // 登录接口返回 4xx 时优先显示后端明确原因
       if (backendMessage.isNotEmpty) {
         return backendMessage;
+      }
+
+      final statusCode = e.response?.statusCode;
+      if (statusCode != null && statusCode >= 400) {
+        return '请求失败 (HTTP $statusCode)，请检查服务器配置';
       }
     }
 

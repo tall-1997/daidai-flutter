@@ -1872,6 +1872,14 @@ class _ScriptViewPageState extends ConsumerState<ScriptViewPage> {
       return;
     }
 
+    final hasUnsavedEdits = _editing && _codeController.text != _originalContent;
+
+    if (_editing && hasUnsavedEdits) {
+      // 有未保存的编辑内容，使用 runCode 直接执行
+      await _runCode();
+      return;
+    }
+
     if (_editing) {
       await _save();
     }
@@ -1881,6 +1889,48 @@ class _ScriptViewPageState extends ConsumerState<ScriptViewPage> {
       final resp = await DioClient.instance.dio.post(
         ApiEndpoints.scriptsRun,
         data: {'path': widget.path},
+      );
+      final raw = resp.data;
+      String? runId;
+      if (raw is Map && raw['run_id'] != null) {
+        runId = raw['run_id'].toString();
+      } else if (raw is Map &&
+          raw['data'] is Map &&
+          raw['data']['run_id'] != null) {
+        runId = raw['data']['run_id'].toString();
+      }
+      if (runId == null || runId.isEmpty) {
+        throw StateError('调试任务已启动，但未返回运行 ID');
+      }
+
+      if (!mounted) {
+        return;
+      }
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (context) =>
+            _ScriptDebugRunSheet(path: widget.path, runId: runId!),
+      );
+    } catch (error) {
+      _showMessage(_extractScriptError(error, '调试运行失败'));
+    } finally {
+      if (mounted) {
+        setState(() => _debugRunning = false);
+      }
+    }
+  }
+
+  Future<void> _runCode() async {
+    setState(() => _debugRunning = true);
+    try {
+      final resp = await DioClient.instance.dio.post(
+        ApiEndpoints.scriptsRunCode,
+        data: {
+          'path': widget.path,
+          'code': _codeController.text,
+        },
       );
       final raw = resp.data;
       String? runId;
@@ -2750,6 +2800,43 @@ class _ScriptDebugRunSheetState extends State<_ScriptDebugRunSheet> {
     }
   }
 
+  Future<void> _clearRun() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('清除运行记录'),
+        content: const Text('确定要清除此运行记录吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.red500),
+            child: const Text('清除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await DioClient.instance.dio.delete(
+        ApiEndpoints.scriptsRunClear(widget.runId),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('运行记录已清除')),
+      );
+      Navigator.of(context).pop();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(extractScriptSaveErrorMessage(error, '清除运行记录失败'))),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final logTheme = resolveLogSurfaceTheme(_logBackgroundColor);
@@ -2818,6 +2905,12 @@ class _ScriptDebugRunSheetState extends State<_ScriptDebugRunSheet> {
                     IconButton(
                       onPressed: _stopRun,
                       icon: const Icon(Icons.stop_circle_outlined),
+                    ),
+                  if (_done)
+                    IconButton(
+                      onPressed: _clearRun,
+                      icon: const Icon(Icons.delete_outline),
+                      tooltip: '清除运行记录',
                     ),
                 ],
               ),

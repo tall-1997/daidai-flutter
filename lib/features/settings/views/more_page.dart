@@ -185,10 +185,22 @@ class _MorePageState extends ConsumerState<MorePage> {
               onTap: () => context.push('/security'),
             ),
             _SettingsItem(
+              icon: Icons.vpn_key_outlined,
+              title: 'SSH 密钥',
+              isLight: isLight,
+              onTap: () => context.push('/ssh-keys'),
+            ),
+            _SettingsItem(
               icon: Icons.settings,
               title: '系统设置',
               isLight: isLight,
               onTap: () => context.push('/system-settings'),
+            ),
+            _SettingsItem(
+              icon: Icons.palette_outlined,
+              title: '面板设置',
+              isLight: isLight,
+              onTap: () => context.push('/panel-settings'),
             ),
             _SettingsItem(
               icon: Icons.article_outlined,

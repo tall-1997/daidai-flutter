@@ -20,7 +20,9 @@ import '../../features/notifications/views/local_notification_settings_page.dart
 import '../../features/deps/views/dep_list_page.dart';
 import '../../features/users/views/user_list_page.dart';
 import '../../features/security/views/security_page.dart';
+import '../../features/security/views/ssh_keys_page.dart';
 import '../../features/system/views/system_settings_page.dart';
+import '../../features/system/views/panel_settings_page.dart';
 import '../../features/system/views/panel_log_page.dart';
 import '../../features/system/views/backup_page.dart';
 import '../../features/openapi/views/open_api_page.dart';
@@ -254,6 +256,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             AppBackground(child: const SystemSettingsPage()),
       ),
       GoRoute(
+        path: '/panel-settings',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (_, state) =>
+            AppBackground(child: const PanelSettingsPage()),
+      ),
+      GoRoute(
         path: '/panel-log',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (_, state) => AppBackground(child: const PanelLogPage()),
@@ -269,7 +277,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => AppBackground(child: const OpenApiPage()),
       ),
       GoRoute(
-        path: '/sponsors',
+        path: '/ssh-keys',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (_, state) => AppBackground(child: const SshKeysPage()),
+      ),
         parentNavigatorKey: _rootNavigatorKey,
         builder: (_, state) => AppBackground(child: const SponsorPage()),
       ),

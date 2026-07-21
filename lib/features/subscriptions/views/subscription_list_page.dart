@@ -454,7 +454,7 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
     }
   }
 
-  void _showCreateDialog() {
+  void _showCreateDialog() async {
     final nameC = TextEditingController();
     final urlC = TextEditingController();
     final branchC = TextEditingController();
@@ -468,6 +468,16 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
     final hookScriptC = TextEditingController();
     String selectedType = 'git-repo';
     bool forceOverwrite = true;
+    int? selectedSshKeyId;
+    List<Map<String, dynamic>> sshKeys = [];
+
+    try {
+      final resp = await DioClient.instance.dio.get(ApiEndpoints.sshKeys);
+      final data = extractData(resp.data);
+      if (data is List) {
+        sshKeys = data.whereType<Map<String, dynamic>>().toList();
+      }
+    } catch (_) {}
 
     showModalBottomSheet(
       context: context,
@@ -542,6 +552,31 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                               ],
                             ),
                             const SizedBox(height: 12),
+                            if (selectedType == 'git-repo' && sshKeys.isNotEmpty) ...[
+                              DropdownButtonFormField<int?>(
+                                value: selectedSshKeyId,
+                                decoration: const InputDecoration(
+                                  labelText: 'SSH 密钥 (可选)',
+                                ),
+                                isExpanded: true,
+                                items: [
+                                  const DropdownMenuItem<int?>(
+                                    value: null,
+                                    child: Text('不使用 SSH 密钥'),
+                                  ),
+                                  ...sshKeys.map((k) => DropdownMenuItem<int?>(
+                                    value: (k['id'] as num?)?.toInt(),
+                                    child: Text(
+                                      k['name']?.toString() ?? '',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  )),
+                                ],
+                                onChanged: (v) =>
+                                    setSheetState(() => selectedSshKeyId = v),
+                              ),
+                              const SizedBox(height: 12),
+                            ],
                             TextField(
                               controller: urlC,
                               decoration: InputDecoration(
@@ -698,13 +733,14 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                                         'depend_on': dependOnC.text.trim(),
                                         'hook_script': hookScriptC.text.trim(),
                                         'force_overwrite': forceOverwrite,
+                                        'ssh_key_id': selectedSshKeyId,
                                       });
-                                  if (!mounted) {
-                                    return;
-                                  }
-                                  navigator.pop();
-                                  rootMessenger.showSnackBar(
-                                    const SnackBar(content: Text('订阅已创建')),
+                                    if (!mounted) {
+                                      return;
+                                    }
+                                    navigator.pop();
+                                    rootMessenger.showSnackBar(
+                                      const SnackBar(content: Text('订阅已创建')),
                                   );
                                 } catch (error) {
                                   if (!mounted) {
@@ -747,7 +783,7 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
     );
   }
 
-  void _showEditDialog(Subscription sub) {
+  void _showEditDialog(Subscription sub) async {
     final nameC = TextEditingController(text: sub.name);
     final urlC = TextEditingController(text: sub.url);
     final branchC = TextEditingController(text: sub.branch);
@@ -761,6 +797,16 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
     final hookScriptC = TextEditingController(text: sub.hookScript);
     String selectedType = sub.normalizedType;
     bool forceOverwrite = sub.forceOverwrite ?? true;
+    int? selectedSshKeyId = sub.sshKeyId;
+    List<Map<String, dynamic>> sshKeys = [];
+
+    try {
+      final resp = await DioClient.instance.dio.get(ApiEndpoints.sshKeys);
+      final data = extractData(resp.data);
+      if (data is List) {
+        sshKeys = data.whereType<Map<String, dynamic>>().toList();
+      }
+    } catch (_) {}
 
     showModalBottomSheet(
       context: context,
@@ -835,6 +881,31 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                               ],
                             ),
                             const SizedBox(height: 12),
+                            if (selectedType == 'git-repo' && sshKeys.isNotEmpty) ...[
+                              DropdownButtonFormField<int?>(
+                                value: selectedSshKeyId,
+                                decoration: const InputDecoration(
+                                  labelText: 'SSH 密钥 (可选)',
+                                ),
+                                isExpanded: true,
+                                items: [
+                                  const DropdownMenuItem<int?>(
+                                    value: null,
+                                    child: Text('不使用 SSH 密钥'),
+                                  ),
+                                  ...sshKeys.map((k) => DropdownMenuItem<int?>(
+                                    value: (k['id'] as num?)?.toInt(),
+                                    child: Text(
+                                      k['name']?.toString() ?? '',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  )),
+                                ],
+                                onChanged: (v) =>
+                                    setSheetState(() => selectedSshKeyId = v),
+                              ),
+                              const SizedBox(height: 12),
+                            ],
                             TextField(
                               controller: urlC,
                               decoration: InputDecoration(
@@ -998,13 +1069,14 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                                         'depend_on': dependOnC.text.trim(),
                                         'hook_script': hookScriptC.text.trim(),
                                         'force_overwrite': forceOverwrite,
+                                        'ssh_key_id': selectedSshKeyId,
                                       });
-                                  if (!mounted) {
-                                    return;
-                                  }
-                                  navigator.pop();
-                                  rootMessenger.showSnackBar(
-                                    const SnackBar(content: Text('订阅已保存')),
+                                    if (!mounted) {
+                                      return;
+                                    }
+                                    navigator.pop();
+                                    rootMessenger.showSnackBar(
+                                      const SnackBar(content: Text('订阅已保存')),
                                   );
                                 } catch (error) {
                                   if (!mounted) {

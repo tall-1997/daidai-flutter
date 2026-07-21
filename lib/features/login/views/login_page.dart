@@ -150,7 +150,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         final ok = await authService.checkHealth(finalUrl);
         if (!ok) {
           setState(() {
-            _error = '无法连接到服务器，请检查地址';
+            _error = '无法连接到服务器 ($finalUrl)，请检查地址是否正确、面板是否运行中。'
+                '如果使用群晖/飞牛等 NAS 的 Nginx Proxy Manager 或公网域名反代，'
+                '请升级面板到 v2.3.0 以上；升级前可在 config.yaml 的 cors.origins 中加入完整公网地址。';
             _loading = false;
           });
           return;

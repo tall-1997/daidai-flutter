@@ -25,7 +25,7 @@ class _SecurityPageState extends ConsumerState<SecurityPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -87,6 +87,8 @@ class _SecurityPageState extends ConsumerState<SecurityPage>
                 Tab(text: '活跃会话'),
                 Tab(text: 'IP 白名单'),
                 Tab(text: '两步验证'),
+                Tab(text: '登录统计'),
+                Tab(text: '审计日志'),
               ],
             ),
             Expanded(
@@ -97,6 +99,8 @@ class _SecurityPageState extends ConsumerState<SecurityPage>
                   _SessionsTab(isLight: isLight),
                   _IpWhitelistTab(isLight: isLight),
                   _TwoFaTab(isLight: isLight),
+                  _LoginStatsTab(isLight: isLight),
+                  _AuditLogsTab(isLight: isLight),
                 ],
               ),
             ),
@@ -1211,6 +1215,301 @@ class _TwoFaTabState extends ConsumerState<_TwoFaTab>
         SnackBar(content: Text(extractErrorMessage(error, '禁用 2FA 失败'))),
       );
     }
+  }
+}
+
+// ── Login Stats Tab ──
+
+class _LoginStatsTab extends ConsumerStatefulWidget {
+  final bool isLight;
+  const _LoginStatsTab({required this.isLight});
+
+  @override
+  ConsumerState<_LoginStatsTab> createState() => _LoginStatsTabState();
+}
+
+class _LoginStatsTabState extends ConsumerState<_LoginStatsTab>
+    with AutomaticKeepAliveClientMixin {
+  Map<String, dynamic>? _stats;
+  bool _loading = true;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final resp = await DioClient.instance.dio.get(ApiEndpoints.loginStats);
+      final data = extractData(resp.data);
+      setState(() {
+        _stats = data is Map<String, dynamic> ? data : null;
+        _loading = false;
+      });
+    } catch (_) {
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final glassMode = ref.watch(appStyleProvider).glassMode;
+
+    if (_loading) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
+          SizedBox(height: 120),
+          Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
+        ],
+      );
+    }
+
+    if (_stats == null || _stats!.isEmpty) {
+      return RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: _load,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 80),
+            Center(
+              child: Text(
+                '暂无统计数据',
+                style: TextStyle(color: AppColors.slate400),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final keys = _stats!.keys.toList()..sort();
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: _load,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+        children: keys.map((key) {
+          final value = _stats![key];
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: glassCardColor(glassMode: glassMode, isLight: isLight),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: widget.isLight ? AppColors.slate200 : AppColors.slate800,
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    key,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Text(
+                  _formatStatValue(value),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: widget.isLight
+                        ? AppColors.slate600
+                        : AppColors.slate300,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  String _formatStatValue(dynamic value) {
+    if (value is num) {
+      if (value == value.toInt()) return value.toInt().toString();
+      return value.toStringAsFixed(1);
+    }
+    return value?.toString() ?? '-';
+  }
+}
+
+// ── Audit Logs Tab ──
+
+class _AuditLogsTab extends ConsumerStatefulWidget {
+  final bool isLight;
+  const _AuditLogsTab({required this.isLight});
+
+  @override
+  ConsumerState<_AuditLogsTab> createState() => _AuditLogsTabState();
+}
+
+class _AuditLogsTabState extends ConsumerState<_AuditLogsTab>
+    with AutomaticKeepAliveClientMixin {
+  List<Map<String, dynamic>> _logs = [];
+  bool _loading = true;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final resp = await DioClient.instance.dio.get(
+        ApiEndpoints.auditLogs,
+        queryParameters: {'page': 1, 'page_size': 100},
+      );
+      final paginated = extractPaginated(resp.data);
+      setState(() {
+        _logs = paginated.items;
+        _loading = false;
+      });
+    } catch (_) {
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final glassMode = ref.watch(appStyleProvider).glassMode;
+
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: _load,
+      child: _loading
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
+                SizedBox(height: 120),
+                Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              ],
+            )
+          : _logs.isEmpty
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
+                SizedBox(height: 80),
+                Center(
+                  child: Text(
+                    '暂无审计记录',
+                    style: TextStyle(color: AppColors.slate400),
+                  ),
+                ),
+              ],
+            )
+          : ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+              itemCount: _logs.length,
+              itemBuilder: (_, i) {
+                final log = _logs[i];
+                final time = DateTime.tryParse(
+                  log['created_at']?.toString() ?? '',
+                );
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: glassCardColor(glassMode: glassMode, isLight: isLight),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: widget.isLight
+                          ? AppColors.slate200
+                          : AppColors.slate800,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.history,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              log['action']?.toString() ?? '',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          if (time != null)
+                            Text(
+                              formatTimeCn(time),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: widget.isLight
+                                    ? AppColors.slate400
+                                    : AppColors.slate500,
+                              ),
+                            ),
+                        ],
+                      ),
+                      if ((log['username']?.toString() ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '${log['username']} · ${log['ip'] ?? ''}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: widget.isLight
+                                ? AppColors.slate500
+                                : AppColors.slate400,
+                          ),
+                        ),
+                      ],
+                      if ((log['detail']?.toString() ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          log['detail'].toString(),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: widget.isLight
+                                ? AppColors.slate600
+                                : AppColors.slate300,
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
+    );
   }
 }
 
