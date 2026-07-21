@@ -51,10 +51,10 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
         );
         if (confirmed != true) return;
         // 滚动到底部让用户看到配置选项
-        final primaryScrollController = Scrollable.maybeOf(context);
-        if (primaryScrollController != null) {
-          primaryScrollController.animateTo(
-            primaryScrollController.position.maxScrollExtent,
+        final controller = PrimaryScrollController.maybeOf(context);
+        if (controller != null && controller.hasClients) {
+          controller.animateTo(
+            controller.position.maxScrollExtent,
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOutCubic,
           );

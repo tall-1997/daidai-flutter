@@ -1270,9 +1270,9 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                               Clipboard.setData(ClipboardData(text: env.value));
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('已复制值')),
-                              );
+);
                             },
-                          );
+                          ),
                         },
                       ),
               ),
