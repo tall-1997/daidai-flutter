@@ -45,6 +45,7 @@ class AppUpdateInfo {
   final String downloadUrl;
   final String assetName;
   final bool hasUpdate;
+  final DateTime? publishedAt;
 
   const AppUpdateInfo({
     required this.latestVersion,
@@ -53,6 +54,7 @@ class AppUpdateInfo {
     required this.downloadUrl,
     required this.assetName,
     required this.hasUpdate,
+    this.publishedAt,
   });
 }
 
@@ -80,6 +82,14 @@ class AppUpdateService {
       final tagName = (data['tag_name'] as String?)?.replaceFirst('v', '') ?? '';
       final body = data['body']?.toString() ?? '';
       final assets = data['assets'];
+      final publishedAtStr = data['published_at']?.toString();
+      DateTime? publishedAt;
+      if (publishedAtStr != null) {
+        publishedAt = DateTime.tryParse(publishedAtStr);
+        if (publishedAt != null) {
+          publishedAt = publishedAt.toLocal();
+        }
+      }
 
       String apkUrl = '';
       String assetName = '';
@@ -98,7 +108,8 @@ class AppUpdateService {
       }
 
       final currentVersion = AppUserAgent.versionLabel.split('+').first;
-      final hasUpdate = tagName.isNotEmpty && _isNewer(tagName, currentVersion);
+      final hasUpdate = tagName.isNotEmpty &&
+          _isNewer(tagName, currentVersion, publishedAt: publishedAt);
 
       return AppUpdateInfo(
         latestVersion: tagName,
@@ -107,6 +118,7 @@ class AppUpdateService {
         downloadUrl: apkUrl,
         assetName: assetName,
         hasUpdate: hasUpdate,
+        publishedAt: publishedAt,
       );
     } catch (_) {
       return null;
@@ -114,18 +126,30 @@ class AppUpdateService {
   }
 
   /// Compare semantic versions: returns true if remote > local.
-  static bool _isNewer(String remote, String local) {
-    final r = remote.split('.').map((e) => int.tryParse(e) ?? 0).toList();
-    final l = local.split('.').map((e) => int.tryParse(e) ?? 0).toList();
-    while (r.length < 3) {
-      r.add(0);
+  static bool _isNewer(String remote, String local,
+      {DateTime? publishedAt}) {
+    final rParts = remote.split('+');
+    final lParts = local.split('+');
+    final rVer = rParts[0].split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    final lVer = lParts[0].split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    while (rVer.length < 3) {
+      rVer.add(0);
     }
-    while (l.length < 3) {
-      l.add(0);
+    while (lVer.length < 3) {
+      lVer.add(0);
     }
     for (int i = 0; i < 3; i++) {
-      if (r[i] > l[i]) return true;
-      if (r[i] < l[i]) return false;
+      if (rVer[i] > lVer[i]) return true;
+      if (rVer[i] < lVer[i]) return false;
+    }
+    final rBuild = rParts.length > 1 ? (int.tryParse(rParts[1]) ?? 0) : 0;
+    final lBuild = lParts.length > 1 ? (int.tryParse(lParts[1]) ?? 0) : 0;
+    if (rBuild > lBuild) return true;
+    if (rBuild < lBuild) return false;
+    if (publishedAt != null) {
+      return publishedAt.isAfter(
+        DateTime.now().subtract(const Duration(minutes: 30)),
+      );
     }
     return false;
   }

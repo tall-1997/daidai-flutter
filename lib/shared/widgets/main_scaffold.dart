@@ -121,27 +121,27 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
 
     Widget backgroundWidget;
     if (bg != null) {
-      final imageWidget = ClipRRect(
-        borderRadius: BorderRadius.circular(blur > 0 ? blur * 2 : 0),
-        child: Image.asset(
-          bg,
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: double.infinity,
-          errorBuilder: (_, __, ___) => Container(
-            color: Theme.of(context).scaffoldBackgroundColor,
-          ),
+      final imageWidget = Image.asset(
+        bg,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (_, __, ___) => Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
         ),
       );
       if (blur > 0) {
-        backgroundWidget = Stack(
-          children: [
-            imageWidget,
-            BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-              child: Container(color: Colors.transparent),
-            ),
-          ],
+        backgroundWidget = SizedBox.expand(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              imageWidget,
+              BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+                child: Container(color: Colors.transparent),
+              ),
+            ],
+          ),
         );
       } else {
         backgroundWidget = imageWidget;
