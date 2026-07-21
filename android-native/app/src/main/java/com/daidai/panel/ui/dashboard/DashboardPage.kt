@@ -58,7 +58,11 @@ fun DashboardPage(
     val state by viewModel.state.collectAsState()
     val isLight = !isSystemInDarkTheme()
     val username = state.systemInfo["username"] as? String ?: ""
-    val isAdmin = state.systemInfo["is_admin"] as? Boolean == true || state.systemInfo["role"] as? String == "admin"
+    // Default to admin quick actions when role info is unavailable (server may not include it)
+    val rawRole = state.systemInfo["role"] as? String
+    val isAdmin = state.systemInfo["is_admin"] as? Boolean == true
+        || rawRole == "admin"
+        || rawRole.isNullOrEmpty()
 
     if (state.isLoading && state.systemInfo.isEmpty()) {
         Box(
