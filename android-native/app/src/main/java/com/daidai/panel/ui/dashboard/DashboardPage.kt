@@ -271,10 +271,10 @@ fun DashboardPage(
                     ) {
                         StatItem("今日成功", state.todaySuccess, AppColors.primary, isLight, Modifier.weight(1f))
                         StatItem("今日失败", state.todayFailed, AppColors.red500, isLight, Modifier.weight(1f))
-                    }
-                }
-                Spacer(modifier = Modifier.height(24.dp))
             }
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+        }
         }
 
         // Trend chart
