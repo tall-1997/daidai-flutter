@@ -24,7 +24,6 @@ import com.daidai.panel.ui.login.ServerConfigPage
 import com.daidai.panel.ui.logs.LogListPage
 import com.daidai.panel.ui.logs.LogStreamPage
 import com.daidai.panel.ui.main.MainScaffold
-import com.daidai.panel.ui.notifications.LocalNotificationSettingsPage
 import com.daidai.panel.ui.notifications.NotificationListPage
 import com.daidai.panel.ui.openapi.OpenApiPage
 import com.daidai.panel.ui.scripts.ScriptListPage
@@ -34,11 +33,11 @@ import com.daidai.panel.ui.settings.AboutPage
 import com.daidai.panel.ui.settings.AppLockSettingsPage
 import com.daidai.panel.ui.settings.MorePage
 import com.daidai.panel.ui.settings.SponsorPage
+import com.daidai.panel.ui.settings.ThemeSettingsPage
 import com.daidai.panel.ui.subscriptions.SubscriptionListPage
 import com.daidai.panel.ui.system.BackupPage
 import com.daidai.panel.ui.system.PanelLogPage
 import com.daidai.panel.ui.system.SystemSettingsPage
-import com.daidai.panel.ui.tasks.TaskFormPage
 import com.daidai.panel.ui.tasks.TaskListPage
 import com.daidai.panel.ui.users.UserListPage
 
@@ -69,7 +68,6 @@ sealed class Screen(val route: String) {
         fun createRoute(filePath: String) = "scriptView/${java.net.URLEncoder.encode(filePath, "UTF-8")}"
     }
     object Notifications : Screen("notifications")
-    object LocalNotifications : Screen("localNotifications")
     object Deps : Screen("deps")
     object Users : Screen("users")
     object Security : Screen("security")
@@ -77,6 +75,7 @@ sealed class Screen(val route: String) {
     object PanelLog : Screen("panelLog")
     object Backup : Screen("backup")
     object OpenApi : Screen("openApi")
+    object ThemeSettings : Screen("themeSettings")
     object AppLock : Screen("appLock")
     object Sponsors : Screen("sponsors")
     object About : Screen("about")
@@ -182,12 +181,8 @@ fun AppNavigation(
                 type = NavType.IntType
                 defaultValue = -1
             })
-        ) { backStackEntry ->
-            val taskId = backStackEntry.arguments?.getInt("taskId")?.takeIf { it > 0 }
-            TaskFormPage(
-                taskId = taskId,
-                onBack = { navController.popBackStack() }
-            )
+        ) {
+            PlaceholderPage("Task Form")
         }
 
         composable(
@@ -222,9 +217,6 @@ fun AppNavigation(
         composable(Screen.Notifications.route) {
             NotificationListPage(onBack = { navController.popBackStack() })
         }
-        composable(Screen.LocalNotifications.route) {
-            LocalNotificationSettingsPage(onBack = { navController.popBackStack() })
-        }
         composable(Screen.Deps.route) {
             DepListPage(onBack = { navController.popBackStack() })
         }
@@ -245,6 +237,9 @@ fun AppNavigation(
         }
         composable(Screen.OpenApi.route) {
             OpenApiPage(onBack = { navController.popBackStack() })
+        }
+        composable(Screen.ThemeSettings.route) {
+            ThemeSettingsPage(onBack = { navController.popBackStack() })
         }
         composable(Screen.AppLock.route) {
             AppLockSettingsPage(onBack = { navController.popBackStack() })
