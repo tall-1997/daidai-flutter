@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/python_runtime_info.dart';
 import '../../../shared/models/task.dart';
 import '../../../shared/utils/api_utils.dart';
+import '../../../shared/widgets/app_card.dart';
 import '../providers/task_provider.dart';
 
 class TaskFormPrefill {
