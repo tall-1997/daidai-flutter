@@ -4,11 +4,19 @@
 
 ## 版本
 
-- App 版本：`v0.1.4`
+- App 版本：`v0.1.5`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.5
+
+- 应用锁：修复生物识别验证失败后界面卡死问题，静默失败时自动切换到密码/图案解锁
+- 应用锁：修复仅开启生物识别时可能导致的 lockout 风险
+- 界面：修复液态玻璃模式下滑动时底部选项卡变透明问题
+- 通知：添加后台通知回调处理和 AppLifecycleObserver，修复后台运行时不推送通知问题
+- 安全：添加 WidgetsBindingObserver 监听应用生命周期，切回前台自动触发二次验证
 
 ### v0.1.4
 
@@ -106,8 +114,8 @@ Material 3 主题 + 液态玻璃风格，支持浅色/深色模式切换、自�
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.1.4-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.4) |
-| iOS | [daidai-flutter-v0.1.4-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.4) |
+| Android | [daidai-flutter-v0.1.5-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.5) |
+| iOS | [daidai-flutter-v0.1.5-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.5) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 

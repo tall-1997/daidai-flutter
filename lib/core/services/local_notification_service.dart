@@ -15,6 +15,13 @@ class LocalNotificationService {
   static const _prefsKeyTaskEnabled = 'local_notify_task_enabled';
   static const _prefsKeySystemEnabled = 'local_notify_system_enabled';
 
+  /// 后台通知回调 - 当应用在后台运行且收到通知时由系统调用
+  @pragma('vm:entry-point')
+  static void _onDidReceiveBackgroundNotificationResponse(
+      NotificationResponse response) {
+    // 后台通知点击处理 - 当前无需特殊动作
+  }
+
   Future<void> initialize() async {
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -30,6 +37,8 @@ class LocalNotificationService {
     await _plugin.initialize(
       settings,
       onDidReceiveNotificationResponse: _onNotificationTap,
+      onDidReceiveBackgroundNotificationResponse:
+          _onDidReceiveBackgroundNotificationResponse,
     );
   }
 

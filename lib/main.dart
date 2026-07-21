@@ -1,4 +1,6 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'app.dart';
@@ -8,6 +10,48 @@ import 'core/network/app_user_agent.dart';
 import 'core/network/dio_client.dart';
 import 'core/services/local_notification_service.dart';
 import 'core/storage/secure_storage.dart';
+import 'features/app_lock/providers/app_lock_provider.dart';
+
+/// 全局 WidgetsBindingObserver 回调 - 处理后台返回时的应用锁和通知
+@pragma('vm:entry-point')
+void _appLifecycleObserver() {
+  WidgetsBinding.instance.addObserver(_AppLifecycleHandler.instance);
+}
+
+class _AppLifecycleHandler extends WidgetsBindingObserver {
+  _AppLifecycleHandler._();
+  static final _AppLifecycleHandler instance = _AppLifecycleHandler._();
+
+  DateTime? _pausedAt;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _pausedAt = DateTime.now();
+    } else if (state == AppLifecycleState.resumed) {
+      if (_pausedAt != null) {
+        final elapsed = DateTime.now().difference(_pausedAt!);
+        if (elapsed >= const Duration(seconds: 1)) {
+          // 应用从后台返回：如已启用应用锁则锁定
+          _triggerAppLock();
+        }
+        _pausedAt = null;
+      }
+    }
+  }
+
+  void _triggerAppLock() {
+    try {
+      final binding = WidgetsBinding.instance;
+      if (!binding.rootElement!.mounted) return;
+      final container = ProviderScope.containerOf(
+        binding.rootElement!,
+        listen: false,
+      );
+      container.read(appLockProvider.notifier).lockIfEnabled();
+    } catch (_) {}
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +62,9 @@ void main() async {
   try {
     await LocalNotificationService().initialize();
   } catch (_) {}
+
+  // 添加生命周期观察者用于后台通知和应用锁
+  _appLifecycleObserver();
 
   // 恢复服务器地址
   final serverUrl = await SecureStorage.getServerUrl();

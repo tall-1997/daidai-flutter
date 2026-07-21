@@ -243,7 +243,10 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
 
     return GlassScaffold(
       background: bgWidget,
-      body: widget.child,
+      body: Padding(
+        padding: const EdgeInsets.only(bottom: 62),
+        child: widget.child,
+      ),
       bottomBar: _buildGlassBottomBar(idx),
     );
   }

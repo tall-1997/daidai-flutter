@@ -201,7 +201,10 @@ class AppLockController extends StateNotifier<AppLockState> {
       throw StateError('当前设备未检测到可用的指纹或人脸');
     }
     final nextConfig = _sanitizeConfig(
-      state.config.copyWith(enabled: true, biometricEnabled: enabled),
+      state.config.copyWith(
+        enabled: enabled || state.config.enabled,
+        biometricEnabled: enabled,
+      ),
       state.availableBiometrics,
     );
     await _saveConfig(nextConfig);

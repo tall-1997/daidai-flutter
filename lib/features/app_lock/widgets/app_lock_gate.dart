@@ -136,7 +136,22 @@ class _AppLockOverlayState extends State<_AppLockOverlay> {
       return;
     }
     _autoBiometricTried = true;
-    await _unlockWithBiometric(showFailureMessage: false);
+    final ok = await widget.controller.unlockWithBiometric();
+    if (!mounted) return;
+    if (ok) return;
+    // 静默失败时自动切换到下一个可用方式，避免用户卡在生物识别界面上
+    setState(() {
+      final methods = <_UnlockMethod>[
+        if (widget.state.hasBiometric) _UnlockMethod.biometric,
+        if (widget.state.hasPassword) _UnlockMethod.password,
+        if (widget.state.hasPattern) _UnlockMethod.pattern,
+      ];
+      final bioIdx = methods.indexOf(_UnlockMethod.biometric);
+      if (bioIdx >= 0 && bioIdx + 1 < methods.length) {
+        _activeMethod = methods[bioIdx + 1];
+        _error = '${widget.state.biometricLabel}验证未通过，请在下方选择其他方式';
+      }
+    });
   }
 
   Future<void> _unlockWithPassword() async {
