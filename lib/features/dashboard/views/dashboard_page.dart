@@ -478,7 +478,8 @@ class _ServerInfoCard extends ConsumerWidget {
       ],
     );
 
-    return GlassCard(useOwnLayer: true, 
+    return GlassCard(useOwnLayer: true,
+      settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft),
       padding: const EdgeInsets.all(20),
       child: content,
     );
@@ -583,7 +584,8 @@ class _StatCard extends ConsumerWidget {
       ],
     );
 
-    return GlassCard(useOwnLayer: true, 
+    return GlassCard(useOwnLayer: true,
+      settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft),
       padding: const EdgeInsets.all(16),
       child: content,
     );
@@ -626,7 +628,8 @@ class _QuickAction extends ConsumerWidget {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
-        child: GlassCard(useOwnLayer: true, 
+        child: GlassCard(useOwnLayer: true,
+          settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft),
           padding: const EdgeInsets.symmetric(vertical: 14),
           child: content,
         ),

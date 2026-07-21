@@ -96,6 +96,7 @@ class _MorePageState extends ConsumerState<MorePage> {
           // User Card
           if (user != null)
             GlassCard(useOwnLayer: true, 
+                    settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft),
                     padding: const EdgeInsets.all(16),
                     child: _buildUserCardContent(user, isLight),
                   ),
@@ -257,6 +258,7 @@ class _MorePageState extends ConsumerState<MorePage> {
             onTap: () => _logout(context, ref),
             child: GlassCard(
                     useOwnLayer: true,
+                    settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     child: Center(
                       child: Text(
@@ -640,6 +642,7 @@ class _SettingsItem extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: GlassCard(useOwnLayer: true, 
+        settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: GestureDetector(onTap: onTap, child: rowContent),
       ),

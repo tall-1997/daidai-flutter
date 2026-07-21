@@ -126,7 +126,8 @@ class TrendChart extends ConsumerWidget {
       ],
     );
 
-    return GlassCard(useOwnLayer: true, 
+    return GlassCard(useOwnLayer: true,
+      settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft),
       padding: const EdgeInsets.all(16),
       child: chartContent,
     );

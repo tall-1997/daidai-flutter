@@ -24,6 +24,11 @@ class AppCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     Widget card = GlassCard(
       useOwnLayer: true,
+      settings: const LiquidGlassSettings(
+        blur: 8,
+        thickness: 24,
+        specularSharpness: GlassSpecularSharpness.soft,
+      ),
       padding: padding ?? const EdgeInsets.all(16),
       child: child,
     );
@@ -60,6 +65,12 @@ class AppListTile extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: GlassCard(
+        useOwnLayer: true,
+        settings: const LiquidGlassSettings(
+          blur: 8,
+          thickness: 24,
+          specularSharpness: GlassSpecularSharpness.soft,
+        ),
         padding: EdgeInsets.zero,
         child: ListTile(
           leading: Icon(icon, size: 20),

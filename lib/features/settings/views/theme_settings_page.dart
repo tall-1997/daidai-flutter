@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -27,6 +29,11 @@ class ThemeSettingsPage extends ConsumerWidget {
           const SizedBox(height: 8),
           GlassCard(
             useOwnLayer: true,
+            settings: const LiquidGlassSettings(
+              blur: 8,
+              thickness: 24,
+              specularSharpness: GlassSpecularSharpness.soft,
+            ),
             padding: EdgeInsets.zero,
             child: _ThemeModeSelector(
               isLight: isLight,
@@ -40,6 +47,11 @@ class ThemeSettingsPage extends ConsumerWidget {
           const SizedBox(height: 8),
           GlassCard(
             useOwnLayer: true,
+            settings: const LiquidGlassSettings(
+              blur: 8,
+              thickness: 24,
+              specularSharpness: GlassSpecularSharpness.soft,
+            ),
             padding: const EdgeInsets.all(16),
             child: _BackgroundImagePicker(
               isLight: isLight,
@@ -54,6 +66,11 @@ class ThemeSettingsPage extends ConsumerWidget {
             const SizedBox(height: 8),
             GlassCard(
               useOwnLayer: true,
+              settings: const LiquidGlassSettings(
+                blur: 8,
+                thickness: 24,
+                specularSharpness: GlassSpecularSharpness.soft,
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: _BlurIntensitySlider(
                 isLight: isLight,
@@ -212,8 +229,8 @@ class _BackgroundImagePicker extends StatelessWidget {
         if (currentPath != null)
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              currentPath!,
+            child: Image.file(
+              File(currentPath!),
               height: 80,
               width: double.infinity,
               fit: BoxFit.cover,

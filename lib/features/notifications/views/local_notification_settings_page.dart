@@ -81,7 +81,8 @@ class _LocalNotificationSettingsPageState
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          GlassCard(useOwnLayer: true, 
+          GlassCard(useOwnLayer: true,
+                  settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft),
                   padding: const EdgeInsets.all(16),
                   child: _buildPermissionCard(isLight),
                 ),
@@ -271,6 +272,6 @@ class _ChannelTile extends ConsumerWidget {
       ],
     );
 
-    return GlassCard(useOwnLayer: true, padding: const EdgeInsets.all(16), child: content);
+    return GlassCard(useOwnLayer: true, settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft), padding: const EdgeInsets.all(16), child: content);
   }
 }

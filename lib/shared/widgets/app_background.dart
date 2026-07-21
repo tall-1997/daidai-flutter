@@ -18,7 +18,12 @@ class AppBackground extends ConsumerWidget {
         settings.backgroundImagePath!.isNotEmpty;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    if (!hasBg) return child;
+    if (!hasBg) {
+      return ColoredBox(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: child,
+      );
+    }
 
     final blur = settings.blurIntensity.clamp(0.0, 50.0);
 
