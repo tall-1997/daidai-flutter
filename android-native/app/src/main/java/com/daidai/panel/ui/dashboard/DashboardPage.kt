@@ -79,6 +79,7 @@ fun DashboardPage(
     ) {
         // Page header
         item {
+            val username = state.systemInfo["username"] as? String ?: ""
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -95,7 +96,6 @@ fun DashboardPage(
                             color = if (isLight) AppColors.lightOnSurface else AppColors.darkOnSurface
                         )
                     }
-                    val username = state.systemInfo["username"] as? String ?: ""
                     if (username.isNotEmpty()) {
                         Text(
                             text = "欢迎，$username",
@@ -139,9 +139,35 @@ fun DashboardPage(
                                 ),
                                 color = AppColors.primary
                             )
-                        }
-                    }
-                }
+        }
+    }
+}
+
+@Composable
+fun StatItem(
+    label: String,
+    value: Int,
+    color: Color,
+    isLight: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+    ) {
+        Text(
+            text = value.toString(),
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = if (isLight) AppColors.slate500 else AppColors.slate400
+        )
+    }
+}
             }
             Spacer(modifier = Modifier.height(24.dp))
         }

@@ -129,7 +129,6 @@ fun ResourceCard(
         }
         return
     }
-    val isLight = !isSystemInDarkTheme()
 
     GlassCard(
         modifier = modifier,
