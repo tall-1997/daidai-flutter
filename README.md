@@ -12,10 +12,11 @@
 
 ### v0.1.7
 
-- 主题：移除经典风格和液态玻璃开关，全部页面统一使用液态玻璃效果
-- 界面：移除背景图片/模糊强度设置，简化主题配置仅保留浅色/深色/系统
-- 架构：统一使用 `GlassCard`、`GlassScaffold`、`GlassTabBar` 等原生液态玻璃组件
-- 全局：清理 `glassMode` 状态字段和所有条件分支，减少 200+ 行冗余代码
+- 主题：移除经典风格，全部页面统一使用液态玻璃效果；全局 LiquidGlass theme 配置对齐 iOS26 ultraThickMaterial 材质（light: thickness=32/blur=12, dark: thickness=48/blur=18）
+- 导航：主脚手架升级 GlassScaffold + GlassAppBar，底部选项卡升级 premium 品质材质
+- 界面：恢复主题设置中的背景图片选择器和模糊强度滑块（0-20 可调）
+- 界面：统一全部二级/三级页面卡片背景使用 glassCardColor，移除硬编码 Colors.white/slate900
+- 架构：清理 glassMode 状态字段和所有条件分支，减少 200+ 行冗余代码
 
 - 应用锁：开启开关时要求先配置解锁方式，未配置时引导用户前往设置
 - 主题：修复经典模式下背景图片被过度模糊遮盖导致不可见问题
@@ -76,7 +77,7 @@ UI (Views) -> Riverpod Providers -> AuthService / DioClient -> REST API
 
 ### 主题系统
 
-Material 3 主题 + 液态玻璃风格，支持浅色/深色模式切换、自定义背景图和模糊强度。
+Material 3 主题 + Liquid Glass 液态玻璃风格，全局对齐 iOS26 ultraThickMaterial 材质（`GlassThemeData` 双模式配置），支持浅色/深色模式切换、自定义背景图片和模糊强度调节。
 
 ## 核心功能
 
