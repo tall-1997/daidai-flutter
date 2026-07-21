@@ -34,12 +34,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -279,31 +279,22 @@ fun DashboardPage(
 
         // Trend chart
         item {
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                padding = PaddingValues(16.dp)
-            ) {
-                val trend = state.executionTrend
-                if (trend.isNotEmpty()) {
-                    ExecutionTrendChart(
-                        data = trend.map { item ->
-                            val success = (item["success"] as? Number)?.toInt() ?: 0
-                            val failed = (item["failed"] as? Number)?.toInt() ?: 0
-                            success to failed
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp)
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("暂无数据", style = MaterialTheme.typography.bodySmall, color = AppColors.slate400)
-                    }
+            val trend = state.executionTrend
+            if (trend.isNotEmpty()) {
+                ExecutionTrendChart(
+                    data = trend,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("暂无数据", style = MaterialTheme.typography.bodySmall, color = AppColors.slate400)
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
@@ -404,43 +395,137 @@ private fun QuickActionButton(
 
 @Composable
 private fun ExecutionTrendChart(
-    data: List<Pair<Int, Int>>,
+    data: List<Map<String, Any>>,
     modifier: Modifier = Modifier
 ) {
     val isLight = !isSystemInDarkTheme()
     val successColor = AppColors.primary
     val failedColor = AppColors.red500
-    val trackColor = if (isLight) AppColors.slate100 else AppColors.slate800
+    val gridColor = if (isLight) AppColors.slate200.copy(alpha = 0.5f) else AppColors.slate800.copy(alpha = 0.6f)
+    val labelColor = if (isLight) AppColors.slate400 else AppColors.slate500
+    if (data.isEmpty()) return
 
-    val maxVal = data.maxOfOrNull { maxOf(it.first, it.second) } ?: 1
+    val successValues = data.map { (it["success"] as? Number)?.toFloat() ?: 0f }
+    val failedValues = data.map { (it["failed"] as? Number)?.toFloat() ?: 0f }
+    val maxVal = (successValues.maxOrNull() ?: 0f).coerceAtLeast((failedValues.maxOrNull() ?: 0f))
+    val yMax = (maxVal * 1.3f).coerceAtLeast(5f)
+    val gridSteps = 4
 
-    Canvas(modifier = modifier) {
-        val barCount = data.size
-        if (barCount == 0) return@Canvas
+    GlassCard(
+        modifier = modifier,
+        padding = PaddingValues(16.dp)
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "近7天执行统计",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isLight) AppColors.slate700 else AppColors.slate300
+                )
+                Row {
+                    LegendDot(color = successColor, label = "成功", isLight = isLight)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    LegendDot(color = failedColor, label = "失败", isLight = isLight)
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier
+                        .width(24.dp)
+                        .fillMaxSize(),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    for (i in gridSteps downTo 0) {
+                        Text(
+                            text = (yMax * i / gridSteps).toInt().toString(),
+                            fontSize = 9.sp,
+                            color = labelColor,
+                            modifier = Modifier.align(Alignment.End)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val cw = size.width
+                    val ch = size.height
+                    val xStep = if (data.size > 1) cw / (data.size - 1) else cw / 2
 
-        val groupWidth = size.width / barCount
-        val barWidth = groupWidth * 0.3f
-        val maxHeight = size.height * 0.85f
+                    for (i in 0..gridSteps) {
+                        val y = ch * i / gridSteps
+                        drawLine(gridColor, Offset(0f, y), Offset(cw, y), 1.dp.toPx())
+                    }
 
-        data.forEachIndexed { index, (success, failed) ->
-            val groupX = index * groupWidth + groupWidth / 2
-
-            val successHeight = if (maxVal > 0) maxHeight * success / maxVal else 0f
-            drawRoundRect(
-                color = successColor,
-                topLeft = Offset(groupX - barWidth - 1.dp.toPx(), size.height - successHeight),
-                size = Size(barWidth, successHeight),
-                cornerRadius = CornerRadius(4.dp.toPx())
-            )
-
-            val failedHeight = if (maxVal > 0) maxHeight * failed / maxVal else 0f
-            drawRoundRect(
-                color = failedColor,
-                topLeft = Offset(groupX + 1.dp.toPx(), size.height - failedHeight),
-                size = Size(barWidth, failedHeight),
-                cornerRadius = CornerRadius(4.dp.toPx())
-            )
+                    if (successValues.any { it > 0 }) drawLineChart(successValues, xStep, ch, yMax, successColor)
+                    if (failedValues.any { it > 0 }) drawLineChart(failedValues, xStep, ch, yMax, failedColor)
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 28.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                data.forEach { item ->
+                    val date = (item["date"] as? String) ?: ""
+                    Text(
+                        text = if (date.length >= 5) date.substring(5) else date,
+                        fontSize = 9.sp,
+                        color = labelColor
+                    )
+                }
+            }
         }
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawLineChart(
+    values: List<Float>, xStep: Float, chartHeight: Float, yMax: Float, color: Color
+) {
+    val path = Path()
+    values.forEachIndexed { index, value ->
+        val x = index * xStep
+        val y = chartHeight - (value / yMax * chartHeight)
+        if (index == 0) path.moveTo(x, y)
+        else {
+            val px = (index - 1) * xStep
+            val py = chartHeight - (values[index - 1] / yMax * chartHeight)
+            path.cubicTo(px + xStep / 2, py, x - xStep / 2, y, x, y)
+        }
+    }
+    val lastX = (values.size - 1) * xStep
+    path.lineTo(lastX, chartHeight)
+    path.lineTo(0f, chartHeight)
+    path.close()
+    drawPath(path, color.copy(alpha = 0.15f))
+
+    val linePath = Path()
+    values.forEachIndexed { index, value ->
+        val x = index * xStep
+        val y = chartHeight - (value / yMax * chartHeight)
+        if (index == 0) linePath.moveTo(x, y)
+        else {
+            val px = (index - 1) * xStep
+            val py = chartHeight - (values[index - 1] / yMax * chartHeight)
+            linePath.cubicTo(px + xStep / 2, py, x - xStep / 2, y, x, y)
+        }
+    }
+    drawPath(linePath, color, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
+}
+
+@Composable
+private fun LegendDot(color: Color, label: String, isLight: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Canvas(modifier = Modifier.size(8.dp)) {
+            drawCircle(color, radius = 4.dp.toPx())
+        }
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(label, fontSize = 10.sp, color = if (isLight) AppColors.slate500 else AppColors.slate400)
     }
 }
 
