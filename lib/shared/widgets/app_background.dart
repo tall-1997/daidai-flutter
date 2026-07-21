@@ -20,7 +20,7 @@ class AppBackground extends ConsumerWidget {
 
     if (!hasBg) return child;
 
-    final blur = settings.blurIntensity.clamp(0, 50);
+    final blur = settings.blurIntensity.clamp(0.0, 50.0);
 
     return Stack(
       children: [
