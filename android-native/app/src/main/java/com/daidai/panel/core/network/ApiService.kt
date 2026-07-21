@@ -184,7 +184,10 @@ interface ApiService {
     suspend fun getScriptsTree(@QueryMap params: Map<String, String>): Response<ApiResponse<List<Map<String, Any>>>>
 
     @GET(ApiEndpoints.SCRIPTS_CONTENT)
-    suspend fun getScriptContent(@QueryMap params: Map<String, String>): Response<ApiResponse<String>>
+    suspend fun getScriptContent(@QueryMap params: Map<String, String>): Response<ApiResponse<Map<String, Any>>>
+
+    @PUT(ApiEndpoints.SCRIPTS_CONTENT)
+    suspend fun putScriptContent(@Body body: Map<String, String>): Response<ApiResponse<Any>>
 
     @GET(ApiEndpoints.SCRIPTS_DOWNLOAD)
     suspend fun downloadScript(@QueryMap params: Map<String, String>): Response<ResponseBody>

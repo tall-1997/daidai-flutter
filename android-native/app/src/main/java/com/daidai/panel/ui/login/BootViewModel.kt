@@ -37,7 +37,9 @@ class BootViewModel @Inject constructor(
 
                 val healthResult = authRepository.checkHealth()
                 if (healthResult.isFailure) {
-                    state.value = BootState.NeedLogin
+                    state.value = BootState.Error(
+                        "无法连接到服务器 ($serverUrl)，请检查地址是否正确"
+                    )
                     return@launch
                 }
 

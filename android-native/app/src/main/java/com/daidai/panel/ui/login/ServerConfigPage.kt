@@ -286,7 +286,7 @@ private fun AddServerDialog(
                     value = url,
                     onValueChange = { url = it; urlError = null },
                     label = { Text("服务器地址") },
-                    placeholder = { Text("http://192.168.1.100:5700") },
+                    placeholder = { Text("例如：192.168.1.100:5700 或 panel.example.com") },
                     singleLine = true,
                     isError = urlError != null,
                     supportingText = urlError?.let { { Text(it) } },
@@ -305,11 +305,15 @@ private fun AddServerDialog(
                     if (url.isBlank()) {
                         urlError = "请输入地址"
                         valid = false
-                    } else if (!url.startsWith("http://") && !url.startsWith("https://")) {
-                        urlError = "地址需以 http:// 或 https:// 开头"
-                        valid = false
                     }
-                    if (valid) onConfirm(name.trim(), url.trim())
+                    if (valid) {
+                        val normalizedUrl = ServerConfigViewModel.normalizeServerUrl(url.trim())
+                        if (normalizedUrl.isNotBlank()) {
+                            onConfirm(name.trim(), normalizedUrl)
+                        } else {
+                            urlError = "无效的服务器地址"
+                        }
+                    }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = AppColors.primary)
             ) {

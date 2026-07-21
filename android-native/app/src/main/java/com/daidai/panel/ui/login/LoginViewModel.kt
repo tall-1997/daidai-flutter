@@ -20,7 +20,8 @@ data class LoginUiState(
     val showTotp: Boolean = false,
     val servers: List<Map<String, Any>> = emptyList(),
     val currentServerUrl: String = "",
-    val currentServerName: String = ""
+    val currentServerName: String = "",
+    val directServerUrl: String = ""
 )
 
 @HiltViewModel
@@ -115,6 +116,32 @@ class LoginViewModel @Inject constructor(
 
     fun showTotpField() {
         _loginState.value = _loginState.value.copy(showTotp = true)
+    }
+
+    fun hideTotpField() {
+        _loginState.value = _loginState.value.copy(showTotp = false, totpCode = "")
+    }
+
+    fun updateDirectServerUrl(value: String) {
+        _loginState.value = _loginState.value.copy(directServerUrl = value)
+    }
+
+    fun setupDirectServerUrl(url: String) {
+        viewModelScope.launch {
+            secureStorage.saveServerUrl(url)
+            saveServerToPanelList(url)
+            _loginState.value = _loginState.value.copy(currentServerUrl = url, currentServerName = url)
+        }
+    }
+
+    private suspend fun saveServerToPanelList(url: String) {
+        val servers = _loginState.value.servers.toMutableList()
+        val exists = servers.any { it["url"] == url }
+        if (!exists) {
+            servers.add(mapOf("name" to url, "url" to url))
+            secureStorage.savePanelsConfig(servers)
+            _loginState.value = _loginState.value.copy(servers = servers)
+        }
     }
 
     private fun saveCredentials() {

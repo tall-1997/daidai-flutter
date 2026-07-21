@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
@@ -69,6 +70,7 @@ import com.daidai.panel.ui.components.GlassCard
 
 @Composable
 fun LoginPage(
+    needsServerUrl: Boolean = false,
     onLoginSuccess: () -> Unit,
     onNavigateToServerConfig: () -> Unit,
     authViewModel: AuthViewModel = hiltViewModel(),
@@ -84,6 +86,14 @@ fun LoginPage(
         if (authState.status == AuthStatus.AUTHENTICATED) {
             isLoginLoading = false
             onLoginSuccess()
+        }
+    }
+
+    // Sync TOTP visibility from auth state
+    LaunchedEffect(authState.needTotp) {
+        if (authState.needTotp) {
+            loginViewModel.showTotpField()
+            isLoginLoading = false
         }
     }
 
@@ -145,7 +155,38 @@ fun LoginPage(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Server selector
+                // Server URL input when no server configured
+                if (needsServerUrl) {
+                    OutlinedTextField(
+                        value = loginState.directServerUrl,
+                        onValueChange = { loginViewModel.updateDirectServerUrl(it) },
+                        label = { Text("服务器地址") },
+                        placeholder = { Text("例如：192.168.1.100:5700 或 panel.example.com") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Language, contentDescription = null)
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AppColors.primary,
+                            cursorColor = AppColors.primary
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = onNavigateToServerConfig) {
+                            Text("管理服务器列表", style = MaterialTheme.typography.bodySmall, color = AppColors.primary)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                // Server selector (multiple servers)
                 if (loginState.servers.size > 1) {
                     var expanded by remember { mutableStateOf(false) }
                     GlassCard(
@@ -295,6 +336,11 @@ fun LoginPage(
                 Button(
                     onClick = {
                         isLoginLoading = true
+                        if (needsServerUrl) {
+                            val rawUrl = loginState.directServerUrl.trim()
+                            val normalizedUrl = ServerConfigViewModel.normalizeServerUrl(rawUrl)
+                            loginViewModel.setupDirectServerUrl(normalizedUrl)
+                        }
                         authViewModel.login(
                             username = loginState.username,
                             password = loginState.password,

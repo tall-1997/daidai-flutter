@@ -6,8 +6,11 @@ import com.daidai.panel.data.model.ApiResponse
 import com.daidai.panel.data.model.User
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import java.net.ConnectException
+import java.net.SocketTimeoutException
 import javax.inject.Inject
 import javax.inject.Singleton
+import javax.net.ssl.SSLHandshakeException
 
 @Singleton
 class AuthRepository @Inject constructor(
@@ -72,10 +75,22 @@ class AuthRepository @Inject constructor(
             val responseBody = response.body()?.string()
 
             if (response.isSuccessful && responseBody != null) {
-                // Parse the login success response
                 val gson = Gson()
                 val mapType = object : TypeToken<Map<String, Any?>>() {}.type
                 val map: Map<String, Any?> = gson.fromJson(responseBody, mapType)
+
+                // Handle two_factor_required
+                if (map["two_factor_required"] == true) {
+                    val errorMsg = map["error"] as? String ?: "需要两步验证码"
+                    return Result.failure(TwoFactorRequiredException(errorMsg))
+                }
+
+                // Handle captcha_required
+                if (map["captcha_required"] == true) {
+                    val errorMsg = map["error"] as? String ?: "验证码已失效，请重新完成验证"
+                    return Result.failure(CaptchaRequiredException(errorMsg))
+                }
+
                 val accessToken = map["access_token"] as? String ?: ""
                 val refreshToken = map["refresh_token"] as? String ?: ""
 
@@ -124,6 +139,13 @@ class AuthRepository @Inject constructor(
                 }
                 Result.failure(Exception(errorMessage))
             }
+        } catch (e: java.net.ConnectException) {
+            val serverUrl = secureStorage.getServerUrlSync() ?: "未知地址"
+            Result.failure(Exception("无法连接到服务器 ($serverUrl)，请检查：\n1. 服务器地址和端口是否正确\n2. 服务器是否已启动\n3. 网络连接是否正常"))
+        } catch (e: java.net.SocketTimeoutException) {
+            Result.failure(Exception("连接服务器超时，请检查网络"))
+        } catch (e: javax.net.ssl.SSLHandshakeException) {
+            Result.failure(Exception("SSL 证书验证失败，如果是自签名证书请使用 HTTP"))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -213,3 +235,6 @@ class AuthRepository @Inject constructor(
         secureStorage.saveTrustedLoginServerUrl(serverUrl)
     }
 }
+
+class TwoFactorRequiredException(message: String) : Exception(message)
+class CaptchaRequiredException(message: String) : Exception(message)

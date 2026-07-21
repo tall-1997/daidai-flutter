@@ -22,6 +22,7 @@ data class ScriptState(
     val tree: List<ScriptTreeNode> = emptyList(),
     val currentPath: String = "",
     val currentContent: String = "",
+    val isBinary: Boolean = false,
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
     val error: String? = null,
@@ -113,13 +114,17 @@ class ScriptViewModel @Inject constructor(
 
     fun loadContent(path: String) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true, currentPath = path, error = null)
+            _state.value = _state.value.copy(isLoading = true, currentPath = path, error = null, isBinary = false)
             try {
                 val api = networkModule.getApiService()
                 val response = api.getScriptContent(mapOf("path" to path))
                 if (response.isSuccessful && response.body()?.isSuccess == true) {
+                    val data = response.body()?.data ?: emptyMap()
+                    val isBinary = data["binary"] == true || data["is_binary"] == true
+                    val content = if (isBinary) "" else (data["content"] as? String) ?: ""
                     _state.value = _state.value.copy(
-                        currentContent = response.body()?.data ?: "",
+                        currentContent = content,
+                        isBinary = isBinary,
                         isLoading = false
                     )
                 } else {
@@ -142,16 +147,16 @@ class ScriptViewModel @Inject constructor(
             _state.value = _state.value.copy(isSaving = true, error = null)
             try {
                 val api = networkModule.getApiService()
-                val response = api.uploadScript(
-                    okhttp3.MultipartBody.Part.createFormData(
-                        "file", path.substringAfterLast("/"),
-                        okhttp3.RequestBody.create(null, content.toByteArray())
-                    ),
-                    okhttp3.RequestBody.create(null, path)
+                val response = api.putScriptContent(
+                    mapOf("path" to path, "content" to content, "message" to "")
                 )
-                _state.value = _state.value.copy(isSaving = false)
-                if (!response.isSuccessful || response.body()?.isSuccess != true) {
-                    _state.value = _state.value.copy(error = response.body()?.message ?: "保存失败")
+                if (response.isSuccessful && response.body()?.isSuccess == true) {
+                    _state.value = _state.value.copy(isSaving = false, isBinary = false)
+                } else {
+                    _state.value = _state.value.copy(
+                        isSaving = false,
+                        error = response.body()?.message ?: "保存失败"
+                    )
                 }
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
@@ -227,6 +232,20 @@ class ScriptViewModel @Inject constructor(
                 }
                 loadTree()
             } catch (_: Exception) {}
+        }
+    }
+
+    fun download(path: String) {
+        viewModelScope.launch {
+            try {
+                val api = networkModule.getApiService()
+                val response = api.downloadScript(mapOf("path" to path))
+                if (response.isSuccessful) {
+                    _state.value = _state.value.copy(error = null)
+                }
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(error = e.message)
+            }
         }
     }
 

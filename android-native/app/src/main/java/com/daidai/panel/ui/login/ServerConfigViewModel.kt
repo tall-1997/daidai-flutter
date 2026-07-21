@@ -43,7 +43,7 @@ class ServerConfigViewModel @Inject constructor(
 
     fun addServer(name: String, url: String) {
         viewModelScope.launch {
-            val cleanUrl = url.trim().trimEnd('/')
+            val cleanUrl = normalizeServerUrl(url)
             val current = _panels.value.toMutableList()
             val exists = current.any { it["url"] == cleanUrl }
             if (exists) {
@@ -91,5 +91,25 @@ class ServerConfigViewModel @Inject constructor(
 
     fun clearError() {
         _error.value = null
+    }
+
+    companion object {
+        private val ipPattern = Regex(
+            """^(\d{1,3}\.){3}\d{1,3}(:\d+)?${'$'}|""" +
+            """^\[.*\](:\d+)?${'$'}|""" +
+            """^localhost(:\d+)?${'$'}"""
+        )
+
+        fun normalizeServerUrl(rawUrl: String): String {
+            var url = rawUrl.trim()
+            if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                val hostPart = url.split("/").first()
+                url = if (ipPattern.matches(hostPart)) "http://$url" else "https://$url"
+            }
+            if (url.endsWith("/")) {
+                url = url.substring(0, url.length - 1)
+            }
+            return url
+        }
     }
 }

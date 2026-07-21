@@ -19,6 +19,8 @@ data class AuthState(
     val status: AuthStatus = AuthStatus.UNKNOWN,
     val user: User? = null,
     val needsInit: Boolean = false,
+    val needTotp: Boolean = false,
+    val needCaptcha: Boolean = false,
     val error: String? = null
 )
 
@@ -96,16 +98,35 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _authState.value = _authState.value.copy(error = null)
             val result = authRepository.login(username, password, captchaCode, captchaId, totpCode)
-            if (result.isSuccess) {
-                _authState.value = _authState.value.copy(
-                    status = AuthStatus.AUTHENTICATED,
-                    user = result.getOrNull()
-                )
-            } else {
-                _authState.value = _authState.value.copy(
-                    error = result.exceptionOrNull()?.message ?: "Login failed"
-                )
-            }
+            result.fold(
+                onSuccess = { user ->
+                    _authState.value = _authState.value.copy(
+                        status = AuthStatus.AUTHENTICATED,
+                        user = user
+                    )
+                },
+                onFailure = { e ->
+                    when (e) {
+                        is TwoFactorRequiredException -> {
+                            _authState.value = _authState.value.copy(
+                                error = e.message,
+                                needTotp = true
+                            )
+                        }
+                        is CaptchaRequiredException -> {
+                            _authState.value = _authState.value.copy(
+                                error = e.message,
+                                needCaptcha = true
+                            )
+                        }
+                        else -> {
+                            _authState.value = _authState.value.copy(
+                                error = e.message ?: "登录失败"
+                            )
+                        }
+                    }
+                }
+            )
         }
     }
 
@@ -132,7 +153,7 @@ class AuthViewModel @Inject constructor(
     }
 
     fun clearError() {
-        _authState.value = _authState.value.copy(error = null)
+        _authState.value = _authState.value.copy(error = null, needTotp = false, needCaptcha = false)
     }
 
     fun restoreSession() {

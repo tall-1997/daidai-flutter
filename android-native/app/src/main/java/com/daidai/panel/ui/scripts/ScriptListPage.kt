@@ -27,7 +27,8 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.DriveFileMove
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -82,6 +83,8 @@ fun ScriptListPage(
     var showCreateDirDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf<String?>(null) }
     var showRenameDialog by remember { mutableStateOf<String?>(null) }
+    var showMoveDialog by remember { mutableStateOf<String?>(null) }
+    var showCopyDialog by remember { mutableStateOf<String?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
@@ -135,6 +138,9 @@ fun ScriptListPage(
                 onToggleExpand = { viewModel.toggleExpand(it) },
                 onFileClick = { onOpenFile(it) },
                 onRename = { showRenameDialog = it },
+                onMove = { showMoveDialog = it },
+                onCopy = { showCopyDialog = it },
+                onDownload = { viewModel.download(it) },
                 onDelete = { showDeleteDialog = it },
                 isLight = isLight
             )
@@ -225,6 +231,73 @@ fun ScriptListPage(
             }
         )
     }
+
+    showMoveDialog?.let { path ->
+        val currentDir = path.substringBeforeLast("/")
+        var destination by remember { mutableStateOf(currentDir + "/") }
+        AlertDialog(
+            onDismissRequest = { showMoveDialog = null },
+            title = { Text("移动到") },
+            text = {
+                OutlinedTextField(
+                    value = destination,
+                    onValueChange = { destination = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("目标路径") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (destination.isNotBlank()) {
+                        viewModel.move(path, destination)
+                        showMoveDialog = null
+                    }
+                }) {
+                    Text("移动", color = AppColors.primary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showMoveDialog = null }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+
+    showCopyDialog?.let { path ->
+        val currentDir = path.substringBeforeLast("/")
+        val fileName = path.substringAfterLast("/")
+        var destination by remember { mutableStateOf(currentDir + "/" + fileName + "_副本") }
+        AlertDialog(
+            onDismissRequest = { showCopyDialog = null },
+            title = { Text("复制到") },
+            text = {
+                OutlinedTextField(
+                    value = destination,
+                    onValueChange = { destination = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("目标路径") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (destination.isNotBlank()) {
+                        viewModel.copy(path, destination)
+                        showCopyDialog = null
+                    }
+                }) {
+                    Text("复制", color = AppColors.primary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCopyDialog = null }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
 }
 
 private fun filterTree(nodes: List<ScriptTreeNode>, query: String): List<ScriptTreeNode> {
@@ -245,6 +318,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.renderTree(
     onToggleExpand: (String) -> Unit,
     onFileClick: (String) -> Unit,
     onRename: (String) -> Unit,
+    onMove: ((String) -> Unit)? = null,
+    onCopy: ((String) -> Unit)? = null,
+    onDownload: ((String) -> Unit)? = null,
     onDelete: (String) -> Unit,
     isLight: Boolean
 ) {
@@ -256,6 +332,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.renderTree(
                 onToggleExpand = { onToggleExpand(node.path) },
                 onFileClick = { onFileClick(node.path) },
                 onRename = { onRename(node.path) },
+                onMove = onMove?.let { { it(node.path) } },
+                onCopy = onCopy?.let { { it(node.path) } },
+                onDownload = onDownload?.let { { it(node.path) } },
                 onDelete = { onDelete(node.path) },
                 isLight = isLight
             )
@@ -267,6 +346,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.renderTree(
                 onToggleExpand = onToggleExpand,
                 onFileClick = onFileClick,
                 onRename = onRename,
+                onMove = onMove,
+                onCopy = onCopy,
+                onDownload = onDownload,
                 onDelete = onDelete,
                 isLight = isLight
             )
@@ -281,6 +363,9 @@ private fun ScriptTreeNodeItem(
     onToggleExpand: () -> Unit,
     onFileClick: () -> Unit,
     onRename: () -> Unit,
+    onMove: (() -> Unit)? = null,
+    onCopy: (() -> Unit)? = null,
+    onDownload: (() -> Unit)? = null,
     onDelete: () -> Unit,
     isLight: Boolean
 ) {
@@ -345,6 +430,29 @@ private fun ScriptTreeNodeItem(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false }
                 ) {
+                    if (!node.isDirectory) {
+                        if (onDownload != null) {
+                            DropdownMenuItem(
+                                text = { Text("下载") },
+                                leadingIcon = { Icon(Icons.Default.CloudDownload, null) },
+                                onClick = { showMenu = false; onDownload() }
+                            )
+                        }
+                        if (onMove != null) {
+                            DropdownMenuItem(
+                                text = { Text("移动") },
+                                leadingIcon = { Icon(Icons.Default.DriveFileMove, null) },
+                                onClick = { showMenu = false; onMove() }
+                            )
+                        }
+                        if (onCopy != null) {
+                            DropdownMenuItem(
+                                text = { Text("复制") },
+                                leadingIcon = { Icon(Icons.Default.ContentCopy, null) },
+                                onClick = { showMenu = false; onCopy() }
+                            )
+                        }
+                    }
                     DropdownMenuItem(
                         text = { Text("重命名") },
                         leadingIcon = { Icon(Icons.Default.Edit, null) },

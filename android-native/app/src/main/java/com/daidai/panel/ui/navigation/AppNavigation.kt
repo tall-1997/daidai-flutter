@@ -44,7 +44,9 @@ import com.daidai.panel.ui.users.UserListPage
 sealed class Screen(val route: String) {
     object Boot : Screen("boot")
     object ServerConfig : Screen("serverConfig")
-    object Login : Screen("login")
+    object Login : Screen("login?needsServerUrl={needsServerUrl}") {
+        fun createRoute(needsServerUrl: Boolean = false) = "login?needsServerUrl=$needsServerUrl"
+    }
     object Main : Screen("main/{tab}") {
         fun createRoute(tab: String = "dashboard") = "main/$tab"
     }
@@ -102,7 +104,7 @@ fun AppNavigation(
                     }
                 },
                 onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route) {
+                    navController.navigate(Screen.Login.createRoute(needsServerUrl = true)) {
                         popUpTo(Screen.Boot.route) { inclusive = true }
                     }
                 },
@@ -124,13 +126,21 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.Login.route) {
+        composable(
+            route = Screen.Login.route,
+            arguments = listOf(navArgument("needsServerUrl") {
+                type = NavType.BoolType
+                defaultValue = false
+            })
+        ) { backStackEntry ->
+            val needsServerUrl = backStackEntry.arguments?.getBoolean("needsServerUrl") ?: false
             if (authState.status == AuthStatus.AUTHENTICATED) {
                 navController.navigate(Screen.Main.createRoute()) {
                     popUpTo(Screen.Login.route) { inclusive = true }
                 }
             } else {
                 LoginPage(
+                    needsServerUrl = needsServerUrl,
                     onLoginSuccess = {
                         navController.navigate(Screen.Main.createRoute()) {
                             popUpTo(Screen.Login.route) { inclusive = true }

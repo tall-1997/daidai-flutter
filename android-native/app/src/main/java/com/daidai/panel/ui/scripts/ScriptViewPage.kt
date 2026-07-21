@@ -131,9 +131,12 @@ fun ScriptViewPage(
                 }) {
                     Icon(Icons.Default.History, contentDescription = "版本历史")
                 }
-                IconButton(onClick = {
-                    isEditing = !isEditing
-                }) {
+                IconButton(
+                    onClick = {
+                        isEditing = !isEditing
+                    },
+                    enabled = !state.isBinary
+                ) {
                     Icon(
                         Icons.Default.Save,
                         contentDescription = if (isEditing) "查看" else "编辑",
@@ -198,6 +201,25 @@ fun ScriptViewPage(
                     contentAlignment = Alignment.Center
                 ) {
                     Text("加载中...", color = AppColors.slate400)
+                }
+            } else if (state.isBinary) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            "二进制文件无法预览",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (isLight) AppColors.slate700 else AppColors.slate300
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "请下载后查看",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AppColors.slate400
+                        )
+                    }
                 }
             } else if (isEditing) {
                 BasicTextField(

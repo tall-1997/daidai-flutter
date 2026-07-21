@@ -11,14 +11,19 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,7 +64,7 @@ fun BootPage(
 
     LaunchedEffect(state) {
         when (state) {
-            is BootState.NoServer -> onNavigateToServerConfig()
+            is BootState.NoServer -> onNavigateToLogin()
             is BootState.Authenticated -> onNavigateToMain()
             is BootState.NeedLogin -> onNavigateToLogin()
             is BootState.Loading -> {}
@@ -131,8 +136,28 @@ fun BootPage(
                 Text(
                     text = (state as BootState.Error).message,
                     style = MaterialTheme.typography.bodySmall,
-                    color = AppColors.red500
+                    color = AppColors.red500,
+                    modifier = Modifier.padding(horizontal = 32.dp)
                 )
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onNavigateToServerConfig,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("修改地址")
+                    }
+                    Button(
+                        onClick = { bootViewModel.checkBootState() },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = AppColors.primary)
+                    ) {
+                        Text("重试")
+                    }
+                }
             }
         }
     }
