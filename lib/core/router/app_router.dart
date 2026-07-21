@@ -281,6 +281,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (_, state) => AppBackground(child: const SshKeysPage()),
       ),
+      GoRoute(
+        path: '/sponsor',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (_, state) => AppBackground(child: const SponsorPage()),
       ),

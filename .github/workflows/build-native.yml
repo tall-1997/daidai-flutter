@@ -1,9 +1,6 @@
 name: Build Native Android & iOS
 
 on:
-  push:
-    branches: [ main ]
-    tags: [ 'v*-native' ]
   workflow_dispatch:
 
 permissions:

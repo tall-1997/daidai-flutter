@@ -1872,7 +1872,7 @@ class _ScriptViewPageState extends ConsumerState<ScriptViewPage> {
       return;
     }
 
-    final hasUnsavedEdits = _editing && _codeController.text != _originalContent;
+    final hasUnsavedEdits = _editing && _contentController.text != ref.read(scriptProvider).content;
 
     if (_editing && hasUnsavedEdits) {
       // 有未保存的编辑内容，使用 runCode 直接执行
@@ -1929,7 +1929,7 @@ class _ScriptViewPageState extends ConsumerState<ScriptViewPage> {
         ApiEndpoints.scriptsRunCode,
         data: {
           'path': widget.path,
-          'code': _codeController.text,
+          'code': _contentController.text,
         },
       );
       final raw = resp.data;
