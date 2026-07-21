@@ -17,23 +17,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.daidai.panel.core.theme.AppColors
+import com.daidai.panel.core.theme.LocalGlassMode
 
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
     borderRadius: Dp = 16.dp,
     padding: PaddingValues = PaddingValues(16.dp),
-    glassMode: Boolean = false,
+    glassMode: Boolean? = null,
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     val isLight = !isSystemInDarkTheme()
+    val effectiveGlassMode = glassMode ?: LocalGlassMode.current
     val shape = RoundedCornerShape(borderRadius)
 
     val cardModifier = modifier
         .clip(shape)
         .then(
-            if (glassMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (effectiveGlassMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 Modifier
                     .background(Color.Transparent)
                     .glassBlur(20f)
@@ -41,7 +43,7 @@ fun GlassCard(
                         color = if (isLight) AppColors.glassCard else Color(0x991E293B),
                         shape = shape
                     )
-            } else if (glassMode) {
+            } else if (effectiveGlassMode) {
                 Modifier.background(
                     color = if (isLight) Color(0xCCFFFFFF) else Color(0xCC1E293B),
                     shape = shape
@@ -55,7 +57,7 @@ fun GlassCard(
         )
         .border(
             width = 0.5.dp,
-            color = if (glassMode) {
+            color = if (effectiveGlassMode) {
                 if (isLight) AppColors.glassCardBorder else Color(0x33334155)
             } else {
                 MaterialTheme.colorScheme.outlineVariant

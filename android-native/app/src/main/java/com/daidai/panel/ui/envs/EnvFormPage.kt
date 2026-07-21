@@ -109,7 +109,6 @@ fun EnvFormPage(
             item {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    glassMode = false,
                     padding = androidx.compose.foundation.layout.PaddingValues(16.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

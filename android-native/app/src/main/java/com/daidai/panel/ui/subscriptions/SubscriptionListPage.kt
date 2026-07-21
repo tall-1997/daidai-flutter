@@ -233,7 +233,6 @@ private fun SubscriptionCard(
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        glassMode = false,
         onClick = if (isBatchMode) onToggleSelection else null
     ) {
         Column {

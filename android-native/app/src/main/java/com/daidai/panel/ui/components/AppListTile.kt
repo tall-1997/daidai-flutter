@@ -24,23 +24,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.daidai.panel.core.theme.AppColors
+import com.daidai.panel.core.theme.LocalGlassMode
 
 @Composable
 fun AppListTile(
     icon: ImageVector,
     title: String,
-    glassMode: Boolean = false,
+    glassMode: Boolean? = null,
     onClick: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val isLight = !isSystemInDarkTheme()
+    val effectiveGlassMode = glassMode ?: LocalGlassMode.current
     val shape = RoundedCornerShape(16.dp)
 
-    if (glassMode) {
+    if (effectiveGlassMode) {
         GlassCard(
             modifier = modifier.fillMaxWidth(),
-            glassMode = true,
             padding = androidx.compose.foundation.layout.PaddingValues(0.dp),
             onClick = onClick
         ) {

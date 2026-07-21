@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
@@ -84,7 +85,6 @@ fun MorePage(
         item {
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
-                glassMode = glassMode,
                 padding = PaddingValues(16.dp)
             ) {
                 Row(
@@ -138,18 +138,25 @@ fun MorePage(
 
         item {
             AppListTile(
+                icon = Icons.Default.Computer,
+                title = "服务器管理",
+                onClick = { onNavigate("serverConfig") }
+            )
+        }
+
+        item {
+            AppListTile(
+                icon = Icons.Default.Description,
+                title = "环境变量",
+                onClick = { onNavigate("envs") }
+            )
+        }
+
+        item {
+            AppListTile(
                 icon = Icons.Default.ColorLens,
                 title = "主题设置",
-                glassMode = glassMode,
-                onClick = { onNavigate("themeSettings") },
-                trailing = {
-                    Icon(
-                        Icons.Default.Dashboard,
-                        contentDescription = null,
-                        tint = AppColors.slate400,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
+                onClick = { onNavigate("themeSettings") }
             )
         }
 
@@ -157,16 +164,15 @@ fun MorePage(
             AppListTile(
                 icon = Icons.Default.Lock,
                 title = "应用锁",
-                glassMode = glassMode,
-                onClick = { onNavigate("appLock") },
-                trailing = {
-                    Icon(
-                        Icons.Default.Dashboard,
-                        contentDescription = null,
-                        tint = AppColors.slate400,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
+                onClick = { onNavigate("appLock") }
+            )
+        }
+
+        item {
+            AppListTile(
+                icon = Icons.Default.Notifications,
+                title = "通知管理",
+                onClick = { onNavigate("notifications") }
             )
         }
 
@@ -179,7 +185,6 @@ fun MorePage(
             AppListTile(
                 icon = Icons.Default.Subscriptions,
                 title = "订阅管理",
-                glassMode = glassMode,
                 onClick = { onNavigate("subscriptions") }
             )
         }
@@ -188,17 +193,7 @@ fun MorePage(
             AppListTile(
                 icon = Icons.Default.Terminal,
                 title = "脚本管理",
-                glassMode = glassMode,
                 onClick = { onNavigate("scripts") }
-            )
-        }
-
-        item {
-            AppListTile(
-                icon = Icons.Default.Notifications,
-                title = "通知管理",
-                glassMode = glassMode,
-                onClick = { onNavigate("notifications") }
             )
         }
 
@@ -206,7 +201,6 @@ fun MorePage(
             AppListTile(
                 icon = Icons.Default.Description,
                 title = "依赖管理",
-                glassMode = glassMode,
                 onClick = { onNavigate("deps") }
             )
         }
@@ -216,7 +210,6 @@ fun MorePage(
                 AppListTile(
                     icon = Icons.Default.People,
                     title = "用户管理",
-                    glassMode = glassMode,
                     onClick = { onNavigate("users") }
                 )
             }
@@ -225,7 +218,6 @@ fun MorePage(
                 AppListTile(
                     icon = Icons.Default.Security,
                     title = "安全管理",
-                    glassMode = glassMode,
                     onClick = { onNavigate("security") }
                 )
             }
@@ -234,7 +226,6 @@ fun MorePage(
                 AppListTile(
                     icon = Icons.Default.Settings,
                     title = "系统设置",
-                    glassMode = glassMode,
                     onClick = { onNavigate("systemSettings") }
                 )
             }
@@ -243,7 +234,6 @@ fun MorePage(
                 AppListTile(
                     icon = Icons.Default.BugReport,
                     title = "面板日志",
-                    glassMode = glassMode,
                     onClick = { onNavigate("panelLog") }
                 )
             }
@@ -252,7 +242,6 @@ fun MorePage(
                 AppListTile(
                     icon = Icons.Default.Backup,
                     title = "备份恢复",
-                    glassMode = glassMode,
                     onClick = { onNavigate("backup") }
                 )
             }
@@ -261,7 +250,6 @@ fun MorePage(
                 AppListTile(
                     icon = Icons.Default.Api,
                     title = "Open API",
-                    glassMode = glassMode,
                     onClick = { onNavigate("openApi") }
                 )
             }
@@ -276,7 +264,6 @@ fun MorePage(
             AppListTile(
                 icon = Icons.Default.Favorite,
                 title = "支持者",
-                glassMode = glassMode,
                 onClick = { onNavigate("sponsors") }
             )
         }
@@ -285,7 +272,6 @@ fun MorePage(
             AppListTile(
                 icon = Icons.Default.Info,
                 title = "关于",
-                glassMode = glassMode,
                 onClick = { onNavigate("about") },
                 trailing = {
                     Text(
@@ -303,7 +289,6 @@ fun MorePage(
             AppListTile(
                 icon = Icons.AutoMirrored.Filled.ExitToApp,
                 title = "退出登录",
-                glassMode = glassMode,
                 onClick = { showLogoutDialog = true },
                 modifier = Modifier.fillMaxWidth()
             )

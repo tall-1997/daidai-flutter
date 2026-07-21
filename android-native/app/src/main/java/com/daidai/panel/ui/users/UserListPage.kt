@@ -251,7 +251,6 @@ private fun UserCard(
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        glassMode = false
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

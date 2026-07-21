@@ -190,7 +190,6 @@ fun ScriptViewPage(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
-            glassMode = false,
             padding = PaddingValues(0.dp)
         ) {
             if (state.isLoading) {
@@ -263,7 +262,6 @@ fun ScriptViewPage(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp),
-                                glassMode = false,
                                 padding = PaddingValues(12.dp)
                             ) {
                                 Column {
@@ -303,7 +301,6 @@ fun ScriptViewPage(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(300.dp),
-                    glassMode = false,
                     padding = PaddingValues(12.dp)
                 ) {
                     Box(

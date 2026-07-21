@@ -1,6 +1,8 @@
 package com.daidai.panel.ui.dashboard
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -73,92 +75,129 @@ fun DashboardPage(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 110.dp)
     ) {
-        // Server info header
+        // Page header
         item {
-            GlassCard(
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                glassMode = glassMode,
-                padding = PaddingValues(16.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(1f)) {
+                    if (state.panelTitle.isNotEmpty()) {
                         Text(
                             text = state.panelTitle,
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            ),
                             color = if (isLight) AppColors.lightOnSurface else AppColors.darkOnSurface
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                    val username = state.systemInfo["username"] as? String ?: ""
+                    if (username.isNotEmpty()) {
                         Text(
-                            text = state.hostname,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (isLight) AppColors.slate500 else AppColors.slate400
+                            text = "欢迎，$username",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Row {
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .border(
+                            width = 1.dp,
+                            color = if (isLight) AppColors.slate200 else AppColors.slate800,
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val avatarUrl = state.systemInfo["user_avatar"] as? String
+                    if (!avatarUrl.isNullOrEmpty()) {
+                        AsyncImage(
+                            model = avatarUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                                .background(AppColors.primary.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Text(
-                                text = state.os,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (isLight) AppColors.slate400 else AppColors.slate500
-                            )
-                            if (state.uptime.isNotEmpty()) {
-                                Text(
-                                    text = " | ",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (isLight) AppColors.slate300 else AppColors.slate600
-                                )
-                                Text(
-                                    text = "运行 ${state.uptime}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (isLight) AppColors.slate400 else AppColors.slate500
-                                )
-                            }
-                        }
-                        if (state.panelVersion.isNotEmpty()) {
-                            Text(
-                                text = "v${state.panelVersion}",
-                                style = MaterialTheme.typography.labelSmall,
+                                text = username.take(1).uppercase().ifEmpty { "?" },
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp
+                                ),
                                 color = AppColors.primary
                             )
                         }
                     }
+                }
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+        }
 
+        // System status section
+        item {
+            SectionTitle("系统状态", isLight)
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // Server info card
+        item {
+            GlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                padding = PaddingValues(16.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        val avatarUrl = state.systemInfo["user_avatar"] as? String
-                        if (!avatarUrl.isNullOrEmpty()) {
-                            AsyncImage(
-                                model = avatarUrl,
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
-                            val username = state.systemInfo["username"] as? String ?: "U"
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape)
-                                    .background(AppColors.primary),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = username.take(1).uppercase(),
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = AppColors.white
-                                )
-                            }
-                        }
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF34C759))
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = state.hostname.ifEmpty { "未知主机" },
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = if (isLight) AppColors.lightOnSurface else AppColors.darkOnSurface
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = if (state.os.isNotEmpty()) "${state.os}  ·  已运行 ${state.uptime}" else "",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                            color = if (isLight) AppColors.slate500 else AppColors.slate400
+                        )
+                    }
+                    if (state.panelVersion.isNotEmpty()) {
+                        Text(
+                            text = "v${state.panelVersion}",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp
+                            ),
+                            color = AppColors.primary
+                        )
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        // Task overview section
+        item {
+            SectionTitle("任务概览", isLight)
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
         // Resource cards
@@ -170,42 +209,50 @@ fun DashboardPage(
                 ResourceCard(
                     percentage = state.cpuUsage,
                     label = "CPU",
-                    glassMode = glassMode,
                     modifier = Modifier.weight(1f),
                     size = 80.dp
                 )
                 ResourceCard(
                     percentage = state.memoryUsage,
                     label = "内存",
-                    glassMode = glassMode,
                     modifier = Modifier.weight(1f),
                     size = 80.dp,
                     subtitle = state.memoryFormatted
                 )
-                ResourceCard(
-                    percentage = state.diskUsage,
-                    label = "磁盘",
-                    glassMode = glassMode,
-                    modifier = Modifier.weight(1f),
-                    size = 80.dp,
-                    subtitle = state.diskFormatted
-                )
             }
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
-        // Task stats
+        item {
+            ResourceCard(
+                percentage = state.diskUsage,
+                label = "磁盘",
+                modifier = Modifier.fillMaxWidth(),
+                size = 56.dp,
+                subtitle = state.diskFormatted,
+                horizontal = true
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        // Execution trend section
+        item {
+            SectionTitle("执行趋势", isLight)
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // Task stats card
         if (state.totalTasks > 0) {
             item {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    glassMode = glassMode,
                     padding = PaddingValues(16.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        StatItem("总计", state.totalTasks, AppColors.primary, isLight, Modifier.weight(1f))
+                        StatItem("总任务", state.totalTasks, AppColors.primary, isLight, Modifier.weight(1f))
                         StatItem("已启用", state.enabledTasks, AppColors.primary, isLight, Modifier.weight(1f))
                         StatItem("运行中", state.runningTasks, AppColors.blue500, isLight, Modifier.weight(1f))
                         StatItem("已禁用", state.disabledTasks, AppColors.slate400, isLight, Modifier.weight(1f))
@@ -226,23 +273,16 @@ fun DashboardPage(
                         StatItem("今日失败", state.todayFailed, AppColors.red500, isLight, Modifier.weight(1f))
                     }
                 }
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
 
-        // Execution trend
+        // Trend chart
         item {
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
-                glassMode = glassMode,
                 padding = PaddingValues(16.dp)
             ) {
-                Text(
-                    "7日执行趋势",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = if (isLight) AppColors.lightOnSurface else AppColors.darkOnSurface
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
                 val trend = state.executionTrend
                 if (trend.isNotEmpty()) {
                     ExecutionTrendChart(
@@ -253,62 +293,63 @@ fun DashboardPage(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(160.dp)
+                            .height(180.dp)
                     )
                 } else {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(160.dp),
+                            .height(180.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            "暂无数据",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = AppColors.slate400
-                        )
+                        Text("暂无数据", style = MaterialTheme.typography.bodySmall, color = AppColors.slate400)
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // Quick actions
+        // Quick actions section
+        item {
+            SectionTitle("快捷操作", isLight)
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
         item {
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
-                glassMode = glassMode,
                 padding = PaddingValues(16.dp)
             ) {
-                Text(
-                    "快捷操作",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = if (isLight) AppColors.lightOnSurface else AppColors.darkOnSurface
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     QuickActionButton(
                         icon = Icons.Default.PlayArrow,
-                        label = "运行全部",
-                        color = AppColors.primary,
+                        label = "新建任务",
+                        color = if (isLight) AppColors.slate700 else AppColors.slate300,
                         onClick = { onNavigate("tasks") },
                         modifier = Modifier.weight(1f)
                     )
                     QuickActionButton(
                         icon = Icons.Default.Terminal,
-                        label = "查看日志",
-                        color = AppColors.blue500,
-                        onClick = { onNavigate("logs") },
+                        label = "脚本管理",
+                        color = if (isLight) AppColors.slate700 else AppColors.slate300,
+                        onClick = { onNavigate("scripts") },
                         modifier = Modifier.weight(1f)
                     )
                     QuickActionButton(
                         icon = Icons.Default.TaskAlt,
-                        label = "任务管理",
-                        color = AppColors.purple500,
-                        onClick = { onNavigate("tasks") },
+                        label = "订阅管理",
+                        color = if (isLight) AppColors.slate700 else AppColors.slate300,
+                        onClick = { onNavigate("subscriptions") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    QuickActionButton(
+                        icon = Icons.Default.TaskAlt,
+                        label = "依赖管理",
+                        color = if (isLight) AppColors.slate700 else AppColors.slate300,
+                        onClick = { onNavigate("deps") },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -320,32 +361,16 @@ fun DashboardPage(
 }
 
 @Composable
-private fun StatItem(label: String, value: Int, color: Color, isLight: Boolean, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = value.toString(),
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 22.sp
-            ),
-            color = color,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 11.sp
-            ),
-            color = if (isLight) AppColors.slate500 else AppColors.slate400,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
+private fun SectionTitle(title: String, isLight: Boolean) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelLarge.copy(
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.5.sp
+        ),
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }
 
 @Composable

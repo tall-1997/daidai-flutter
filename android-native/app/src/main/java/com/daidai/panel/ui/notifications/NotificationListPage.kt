@@ -228,7 +228,6 @@ private fun NotificationChannelCard(
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        glassMode = false
     ) {
         Column {
             Row(

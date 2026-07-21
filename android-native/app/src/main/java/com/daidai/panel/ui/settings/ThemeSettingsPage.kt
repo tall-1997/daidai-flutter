@@ -89,7 +89,6 @@ fun ThemeSettingsPage(
             item {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    glassMode = false
                 ) {
                     Column {
                         Text(
@@ -134,7 +133,6 @@ fun ThemeSettingsPage(
             item {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    glassMode = false
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -170,7 +168,6 @@ fun ThemeSettingsPage(
             item {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    glassMode = false
                 ) {
                     Column {
                         Text(
@@ -185,7 +182,6 @@ fun ThemeSettingsPage(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(120.dp),
-                                glassMode = false
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxSize(),
@@ -253,7 +249,6 @@ fun ThemeSettingsPage(
             item {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    glassMode = false
                 ) {
                     Column {
                         Row(

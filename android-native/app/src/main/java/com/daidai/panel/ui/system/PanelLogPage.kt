@@ -199,7 +199,6 @@ private fun LogEntry(log: Map<String, Any>, isLight: Boolean) {
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        glassMode = false,
         padding = PaddingValues(8.dp)
     ) {
         Row(

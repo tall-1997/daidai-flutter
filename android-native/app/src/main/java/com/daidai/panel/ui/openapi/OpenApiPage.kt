@@ -214,7 +214,6 @@ fun OpenApiPage(
                     Spacer(modifier = Modifier.height(8.dp))
                     GlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        glassMode = false,
                         padding = PaddingValues(12.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -286,7 +285,6 @@ fun OpenApiPage(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp),
-                                glassMode = false,
                                 padding = PaddingValues(12.dp)
                             ) {
                                 Column {
@@ -342,7 +340,6 @@ private fun OpenApiAppCard(
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        glassMode = false
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

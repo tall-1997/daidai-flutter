@@ -107,7 +107,6 @@ fun LogStreamPage(
                 item {
                     GlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        glassMode = false,
                         padding = androidx.compose.foundation.layout.PaddingValues(16.dp)
                     ) {
                         Column {
@@ -176,7 +175,6 @@ fun LogStreamPage(
                 item {
                     GlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        glassMode = false,
                         padding = androidx.compose.foundation.layout.PaddingValues(16.dp)
                     ) {
                         Column {

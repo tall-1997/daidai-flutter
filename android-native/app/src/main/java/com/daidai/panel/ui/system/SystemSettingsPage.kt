@@ -126,7 +126,6 @@ fun SystemSettingsPage(
                 item {
                     GlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        glassMode = false
                     ) {
                         Column {
                             Text(
@@ -169,7 +168,6 @@ fun SystemSettingsPage(
                 item {
                     GlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        glassMode = false
                     ) {
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -233,7 +231,6 @@ fun SystemSettingsPage(
                 item {
                     GlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        glassMode = false
                     ) {
                         Column {
                             Text(
@@ -262,7 +259,6 @@ fun SystemSettingsPage(
                 item {
                     GlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        glassMode = false
                     ) {
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {

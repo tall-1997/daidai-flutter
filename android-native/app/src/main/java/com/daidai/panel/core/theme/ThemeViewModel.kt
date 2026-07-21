@@ -18,7 +18,7 @@ class ThemeViewModel @Inject constructor(
     private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
-    private val _glassMode = MutableStateFlow(false)
+    private val _glassMode = MutableStateFlow(true)
     val glassMode: StateFlow<Boolean> = _glassMode.asStateFlow()
 
     private val _backgroundImagePath = MutableStateFlow<String?>(null)

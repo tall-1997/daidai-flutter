@@ -75,7 +75,6 @@ fun SponsorPage(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            glassMode = false
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -122,7 +121,6 @@ fun SponsorPage(
                 items(state.sponsors) { sponsor ->
                     GlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        glassMode = false
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),

@@ -24,23 +24,9 @@ data class LogStreamState(
 ) {
     val content: String
         get() = if (logLines.isNotEmpty()) {
-            logLines.joinToString("\n").let { raw ->
-                try {
-                    val decoded = android.util.Base64.decode(raw, android.util.Base64.DEFAULT)
-                    String(decoded, Charsets.UTF_8)
-                } catch (_: Exception) {
-                    raw
-                }
-            }
+            logLines.joinToString("\n")
         } else {
-            log?.content?.let { raw ->
-                try {
-                    val decoded = android.util.Base64.decode(raw, android.util.Base64.DEFAULT)
-                    String(decoded, Charsets.UTF_8)
-                } catch (_: Exception) {
-                    raw
-                }
-            } ?: ""
+            log?.content ?: ""
         }
 
     val durationText: String

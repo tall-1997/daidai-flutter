@@ -291,7 +291,6 @@ private fun ScriptTreeNodeItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = (depth * 16).dp),
-        glassMode = false,
         padding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
         onClick = if (node.isDirectory) onToggleExpand else onFileClick
     ) {

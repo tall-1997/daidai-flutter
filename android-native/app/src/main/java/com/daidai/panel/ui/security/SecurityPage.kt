@@ -162,7 +162,6 @@ private fun LoginLogsTab(state: SecurityState) {
             items(state.loginLogs) { log ->
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    glassMode = false,
                     padding = PaddingValues(12.dp)
                 ) {
                     Row(
@@ -230,7 +229,6 @@ private fun SessionsTab(state: SecurityState, viewModel: SecurityViewModel) {
                 items(state.sessions) { session ->
                     GlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        glassMode = false,
                         padding = PaddingValues(12.dp)
                     ) {
                         Row(
@@ -323,7 +321,6 @@ private fun IpWhitelistTab(state: SecurityState, viewModel: SecurityViewModel) {
                 items(state.ipWhitelist) { entry ->
                     GlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        glassMode = false,
                         padding = PaddingValues(12.dp)
                     ) {
                         Row(
@@ -413,7 +410,6 @@ private fun TwoFaTab(state: SecurityState, viewModel: SecurityViewModel) {
     ) {
         GlassCard(
             modifier = Modifier.fillMaxWidth(),
-            glassMode = false
         ) {
             Column {
                 Row(
@@ -563,7 +559,6 @@ private fun AuditLogsTab(state: SecurityState) {
             items(state.auditLogs) { log ->
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    glassMode = false,
                     padding = PaddingValues(12.dp)
                 ) {
                     Column {

@@ -232,7 +232,6 @@ private fun BackupCard(
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        glassMode = false
     ) {
         Column {
             Row(

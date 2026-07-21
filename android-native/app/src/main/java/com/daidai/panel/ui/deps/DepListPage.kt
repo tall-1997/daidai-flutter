@@ -171,7 +171,6 @@ fun DepListPage(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    glassMode = false,
                     padding = PaddingValues(12.dp)
                 ) {
                     Row(
@@ -331,7 +330,6 @@ fun DepListPage(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(300.dp),
-                    glassMode = false,
                     padding = PaddingValues(12.dp)
                 ) {
                     Box(
@@ -378,7 +376,6 @@ private fun DepCard(
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        glassMode = false
     ) {
         Column {
             Row(

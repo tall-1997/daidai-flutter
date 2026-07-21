@@ -101,7 +101,6 @@ fun AppLockSettingsPage(
             item {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    glassMode = false
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -137,7 +136,6 @@ fun AppLockSettingsPage(
                 item {
                     GlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        glassMode = false
                     ) {
                         Column {
                             Text(
@@ -183,7 +181,6 @@ fun AppLockSettingsPage(
                     item {
                         GlassCard(
                             modifier = Modifier.fillMaxWidth(),
-                            glassMode = false
                         ) {
                             Column {
                                 Text(
@@ -241,7 +238,6 @@ fun AppLockSettingsPage(
                     item {
                         GlassCard(
                             modifier = Modifier.fillMaxWidth(),
-                            glassMode = false
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally
@@ -271,7 +267,6 @@ fun AppLockSettingsPage(
                 item {
                     GlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        glassMode = false
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
