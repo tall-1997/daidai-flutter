@@ -279,8 +279,8 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                 hintText: '可选已有分组或直接输入',
               ),
               onSubmitted: (_) => onSubmitted(),
-);
-                          },
+            );
+          },
       optionsViewBuilder: (context, onSelected, autocompleteOptions) {
         final items = autocompleteOptions.toList(growable: false);
         if (items.isEmpty) {
@@ -306,10 +306,10 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                   );
                 },
               ),
-),
-                            ),
-                          },
-                        },
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -867,7 +867,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                             ),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
-                            vertical: 12,
+vertical: 14,
                           ),
                           isDense: true,
                           suffixIcon: _searchController.text.isNotEmpty
@@ -1244,9 +1244,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                         itemCount: state.envs.length,
                         itemBuilder: (_, i) {
                           final env = state.envs[i];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: _EnvCard(
+                          return _EnvCard(
                             env: env,
                             isLight: isLight,
                             glassMode: glassMode,
@@ -1270,11 +1268,11 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                               Clipboard.setData(ClipboardData(text: env.value));
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('已复制值')),
-);
-                          },
-                        ),
-                      },
-                    ),
+                              );
+                            },
+                          );
+                        },
+                      ),
               ),
             ),
           ],
@@ -1926,7 +1924,7 @@ class _EnvCardState extends State<_EnvCard> {
         curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(
           horizontal: 14,
-          vertical: 14,
+          vertical: 12,
         ),
         decoration: BoxDecoration(
           color: glassCardColor(glassMode: widget.glassMode, isLight: widget.isLight),
