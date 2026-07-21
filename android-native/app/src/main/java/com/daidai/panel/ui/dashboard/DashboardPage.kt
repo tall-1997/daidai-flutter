@@ -47,21 +47,18 @@ import com.daidai.panel.core.theme.AppColors
 import com.daidai.panel.ui.components.GlassCard
 import com.daidai.panel.ui.components.ResourceCard
 import coil.compose.AsyncImage
-import com.daidai.panel.core.auth.AuthViewModel
 
 @Composable
 fun DashboardPage(
     contentPadding: PaddingValues,
     glassMode: Boolean,
     onNavigate: (String) -> Unit,
-    viewModel: DashboardViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel()
+    viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    val authState by authViewModel.authState.collectAsState()
     val isLight = !isSystemInDarkTheme()
-    val username = authState.user?.username ?: ""
-    val avatarUrl = authState.user?.avatarUrl
+    val username = state.systemInfo["username"] as? String ?: ""
+    val isAdmin = state.systemInfo["is_admin"] as? Boolean == true || state.systemInfo["role"] as? String == "admin"
 
     if (state.isLoading && state.systemInfo.isEmpty()) {
         Box(
@@ -83,6 +80,7 @@ fun DashboardPage(
     ) {
         // Page header
         item {
+            val avatarUrl = state.systemInfo["user_avatar"] as? String
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -308,7 +306,6 @@ fun DashboardPage(
         }
 
         item {
-            val isAdmin = authState.user?.isAdmin == true
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
                 padding = PaddingValues(16.dp)
