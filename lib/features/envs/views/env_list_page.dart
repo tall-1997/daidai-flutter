@@ -279,8 +279,8 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                 hintText: '可选已有分组或直接输入',
               ),
               onSubmitted: (_) => onSubmitted(),
-            );
-          },
+);
+                          },
       optionsViewBuilder: (context, onSelected, autocompleteOptions) {
         final items = autocompleteOptions.toList(growable: false);
         if (items.isEmpty) {
@@ -1244,7 +1244,9 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                         itemCount: state.envs.length,
                         itemBuilder: (_, i) {
                           final env = state.envs[i];
-                          return _EnvCard(
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _EnvCard(
                             env: env,
                             isLight: isLight,
                             glassMode: glassMode,
@@ -1924,7 +1926,7 @@ class _EnvCardState extends State<_EnvCard> {
         curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(
           horizontal: 14,
-          vertical: 12,
+          vertical: 14,
         ),
         decoration: BoxDecoration(
           color: glassCardColor(glassMode: widget.glassMode, isLight: widget.isLight),
@@ -2003,25 +2005,27 @@ class _EnvCardState extends State<_EnvCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   Text(
-                    widget.env.value.replaceAll('\n', ' '),
+                    widget.env.value,
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 13,
                       fontFamily: 'monospace',
+                      height: 1.55,
                       color: widget.isLight
-                          ? AppColors.slate500
+                          ? AppColors.slate600
                           : AppColors.slate400,
                     ),
-                    maxLines: 2,
+                    maxLines: 8,
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (widget.env.remarks.isNotEmpty) ...[
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 8),
                     Text(
                       widget.env.remarks,
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 12,
+                        height: 1.4,
                         color: widget.isLight
                             ? AppColors.slate400
                             : AppColors.slate500,

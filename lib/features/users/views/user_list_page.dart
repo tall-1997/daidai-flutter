@@ -644,8 +644,8 @@ class _UserCard extends ConsumerWidget {
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
+                        horizontal: 8,
+                        vertical: 3,
                       ),
                       decoration: BoxDecoration(
                         color: roleColor.withAlpha(25),
@@ -654,7 +654,7 @@ class _UserCard extends ConsumerWidget {
                       child: Text(
                         user.roleLabel,
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 11,
                           fontWeight: FontWeight.w700,
                           color: roleColor,
                         ),
@@ -672,18 +672,18 @@ class _UserCard extends ConsumerWidget {
                         : AppColors.slate400,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 6),
                 Text(
                   '最后登录: ${formatTimeCn(user.lastLoginAt)}',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     color: isLight ? AppColors.slate500 : AppColors.slate400,
                   ),
                 ),
                 Text(
                   '创建时间: ${formatTimeCn(user.createdAt)}',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     color: isLight ? AppColors.slate500 : AppColors.slate400,
                   ),
                 ),

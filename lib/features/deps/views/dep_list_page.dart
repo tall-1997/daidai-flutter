@@ -1422,8 +1422,8 @@ class _DepCard extends ConsumerWidget {
     final isLight = Theme.of(context).brightness == Brightness.light;
     final glassMode = ref.watch(appStyleProvider).glassMode;
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
         color: glassCardColor(glassMode: glassMode, isLight: isLight),
         borderRadius: BorderRadius.circular(12),
@@ -1465,7 +1465,7 @@ class _DepCard extends ConsumerWidget {
                       Text(
                         dep.version,
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 12,
                           color: isLight
                               ? AppColors.slate500
                               : AppColors.slate400,
@@ -1474,22 +1474,22 @@ class _DepCard extends ConsumerWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 6),
                 Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 1,
+                        horizontal: 8,
+                        vertical: 3,
                       ),
                       decoration: BoxDecoration(
                         color: _statusBg(),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         dep.statusText,
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 11,
                           fontWeight: FontWeight.w700,
                           color: _statusFg(),
                         ),
@@ -1500,7 +1500,7 @@ class _DepCard extends ConsumerWidget {
                       child: Text(
                         subtitle,
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 12,
                           color: isLight
                               ? AppColors.slate400
                               : AppColors.slate500,

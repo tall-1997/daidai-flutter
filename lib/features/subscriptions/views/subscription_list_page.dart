@@ -1210,7 +1210,7 @@ class _SubCard extends ConsumerWidget {
                   child: Text(
                     sub.statusText,
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: _statusFg(),
                     ),

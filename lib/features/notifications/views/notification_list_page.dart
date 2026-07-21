@@ -886,11 +886,11 @@ class _ChannelCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   typeLabel,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     color: isLight ? AppColors.slate500 : AppColors.slate400,
                   ),
                 ),

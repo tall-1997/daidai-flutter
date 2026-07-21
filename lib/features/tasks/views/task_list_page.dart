@@ -1911,8 +1911,8 @@ class _TaskCardState extends State<_TaskCard> {
                           ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
+                            horizontal: 10,
+                            vertical: 4,
                           ),
                           decoration: BoxDecoration(
                             color: _statusBg(),
@@ -1921,7 +1921,7 @@ class _TaskCardState extends State<_TaskCard> {
                           child: Text(
                             _statusLabel(),
                             style: TextStyle(
-                              fontSize: 10,
+fontSize: 11,
                               fontWeight: FontWeight.w700,
                               color: _statusFg(),
                             ),
@@ -1950,7 +1950,7 @@ class _TaskCardState extends State<_TaskCard> {
                           child: Text(
                             _bottomText(),
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               color: hasFailure
                                   ? AppColors.red500
                                   : (widget.isLight
@@ -2152,19 +2152,19 @@ class _TaskScheduleSummary extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: isLight ? AppColors.slate600 : AppColors.slate300,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 12,
-                    height: 1.2,
+                    fontSize: 13,
+                    height: 1.45,
                     fontWeight: FontWeight.w600,
                     fontFamily: isCron ? 'monospace' : null,
                     color: isLight ? AppColors.slate800 : AppColors.slate100,

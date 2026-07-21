@@ -42,6 +42,26 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
   }
 
   Future<void> _toggleEnabled(bool value) async {
+    if (value) {
+      final state = ref.read(appLockProvider);
+      if (!state.config.hasAnyMethod) {
+        final confirmed = await _confirmAction(
+          '需要配置解锁方式',
+          '开启应用锁前请至少设置一种验证方式（密码、图案或生物识别）。\n\n是否现在前往下方配置？',
+        );
+        if (confirmed != true) return;
+        // 滚动到底部让用户看到配置选项
+        final primaryScrollController = Scrollable.maybeOf(context);
+        if (primaryScrollController != null) {
+          primaryScrollController.animateTo(
+            primaryScrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+          );
+        }
+        return;
+      }
+    }
     try {
       await ref.read(appLockProvider.notifier).setEnabled(value);
       _showMessage(value ? '应用锁已开启' : '应用锁已关闭');

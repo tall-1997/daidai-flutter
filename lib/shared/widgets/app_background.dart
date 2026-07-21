@@ -16,8 +16,11 @@ class AppBackground extends ConsumerWidget {
     final settings = ref.watch(appStyleProvider);
     final hasBg = settings.backgroundImagePath != null &&
         settings.backgroundImagePath!.isNotEmpty;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (!hasBg) return child;
+
+    final blur = settings.blurIntensity.clamp(0, 50);
 
     return Stack(
       children: [
@@ -29,18 +32,19 @@ class AppBackground extends ConsumerWidget {
             errorBuilder: (_, __, ___) => const SizedBox.shrink(),
           ),
         ),
-        // 模糊层
-        if (settings.blurIntensity > 0)
+        // 模糊覆盖层：仅在 blur > 0 时渲染
+        if (blur > 0)
           Positioned.fill(
             child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: settings.blurIntensity,
-                sigmaY: settings.blurIntensity,
+              filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+              child: Container(
+                color: isDark
+                    ? Colors.black.withAlpha(20)
+                    : Colors.white.withAlpha(8),
               ),
-              child: Container(color: Colors.black.withAlpha(15)),
             ),
           ),
-        // 内容层
+        // 内容层：Scaffold 透明背景使图片透过
         Positioned.fill(child: child),
       ],
     );

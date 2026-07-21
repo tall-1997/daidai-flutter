@@ -4,11 +4,21 @@
 
 ## 版本
 
-- App 版本：`v0.1.5`
+- App 版本：`v0.1.6`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.6
+
+- 应用锁：开启开关时要求先配置解锁方式，未配置时引导用户前往设置
+- 主题：修复经典模式下背景图片被过度模糊遮盖导致不可见问题
+- 环境变量：列表卡片布局优化，增大文字和间距，长值自动折行（maxLines 2→8）
+- 依赖管理：卡片扩容（padding 10→14），状态/版本/副标题字体增大，间距优化
+- 任务列表：状态标签、底部时间、计划摘要字体和间距全面上调
+- 用户管理：角色标签、登录/创建时间字体上调，行间距增加
+- 日志/订阅/通知：统一调优辅助文字字体大小和行间距
 
 ### v0.1.5
 
@@ -114,8 +124,8 @@ Material 3 主题 + 液态玻璃风格，支持浅色/深色模式切换、自�
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.1.5-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.5) |
-| iOS | [daidai-flutter-v0.1.5-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.5) |
+| Android | [daidai-flutter-v0.1.6-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.6) |
+| iOS | [daidai-flutter-v0.1.6-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.6) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 

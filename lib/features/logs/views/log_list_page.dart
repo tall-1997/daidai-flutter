@@ -783,7 +783,7 @@ class _LogItem extends ConsumerWidget {
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: Theme.of(context).colorScheme.onSurface,
-                          height: 1.2,
+                          height: 1.35,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
