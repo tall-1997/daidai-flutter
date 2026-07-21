@@ -56,7 +56,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/boot',
     refreshListenable: refreshNotifier,
     redirect: (context, state) {
-      // 每次 redirect 时实时读取最新状态（不用 watch）
       final authState = ref.read(authProvider);
       final isAuth = authState.status == AuthStatus.authenticated;
       final isUnknown = authState.status == AuthStatus.unknown;
@@ -89,14 +88,20 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: '/boot', builder: (_, state) => const AppBootPage()),
+      GoRoute(
+        path: '/boot',
+        builder: (_, state) => const AppBootPage(),
+      ),
       GoRoute(
         path: '/server-config',
         builder: (_, state) => ServerConfigPage(
           manageMode: state.uri.queryParameters['manage'] == '1',
         ),
       ),
-      GoRoute(path: '/login', builder: (_, state) => const LoginPage()),
+      GoRoute(
+        path: '/login',
+        builder: (_, state) => const LoginPage(),
+      ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
         builder: (_, state, child) => MainScaffold(child: child),
@@ -128,7 +133,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-GoRoute(
+      GoRoute(
         path: '/tasks/new',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (_, state) => TaskFormPage(
@@ -159,7 +164,6 @@ GoRoute(
         builder: (_, state) =>
             LogStreamPage(logId: int.parse(state.pathParameters['id']!)),
       ),
-      // Phase 2 routes
       GoRoute(
         path: '/subscriptions',
         parentNavigatorKey: _rootNavigatorKey,
@@ -214,7 +218,6 @@ GoRoute(
         builder: (_, state) =>
             DepLogStreamPage(depId: int.parse(state.pathParameters['id']!)),
       ),
-      // Phase 3 routes
       GoRoute(
         path: '/users',
         parentNavigatorKey: _rootNavigatorKey,
@@ -275,163 +278,6 @@ GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         builder: (_, state) => OpenApiLogsPage(
           appId: int.parse(state.pathParameters['id']!),
-        ),
-      ),
-        ),
-      ),
-      GoRoute(
-        path: '/tasks/edit',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state) {
-          final task = state.extra as Task?;
-          return AppBackground(child: TaskFormPage(task: task));
-        },
-      ),
-      GoRoute(
-        path: '/tasks/:id/live-logs',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state)
-          child: TaskLiveLogPage(
-            taskId: int.parse(state.pathParameters['id']!),
-            taskName: state.extra as String?,
-          ),
-        ),
-      ),
-      GoRoute(
-        path: '/logs/:id/stream',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state)
-          child: LogStreamPage(logId: int.parse(state.pathParameters['id']!)),
-        ),
-      ),
-      // Phase 2 routes
-      GoRoute(
-        path: '/subscriptions',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state)child: const SubscriptionListPage()),
-      ),
-      GoRoute(
-        path: '/subscriptions/:id/pull-stream',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state)
-          child: SubscriptionPullStreamPage(
-            subscriptionId: int.parse(state.pathParameters['id']!),
-          ),
-        ),
-      ),
-      GoRoute(
-        path: '/subscriptions/:id/logs',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state)
-          child: SubscriptionLogsPage(
-            subscriptionId: int.parse(state.pathParameters['id']!),
-            subscriptionName: state.extra as String?,
-          ),
-        ),
-      ),
-      GoRoute(
-        path: '/scripts',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state)child: const ScriptListPage()),
-      ),
-      GoRoute(
-        path: '/scripts/view',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state) {
-          final path = state.extra as String? ?? '';
-          return AppBackground(child: ScriptViewPage(path: path));
-        },
-      ),
-      GoRoute(
-        path: '/notifications',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state)child: const NotificationListPage()),
-      ),
-      GoRoute(
-        path: '/local-notifications',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state) =>
-            AppBackground(child: const LocalNotificationSettingsPage()),
-      ),
-      GoRoute(
-        path: '/deps',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state)child: const DepListPage()),
-      ),
-      GoRoute(
-        path: '/deps/:id/log-stream',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state)
-          child: DepLogStreamPage(depId: int.parse(state.pathParameters['id']!)),
-        ),
-      ),
-      // Phase 3 routes
-      GoRoute(
-        path: '/users',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state)child: const UserListPage()),
-      ),
-      GoRoute(
-        path: '/security',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state)child: const SecurityPage()),
-      ),
-      GoRoute(
-        path: '/app-lock',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state) =>
-            AppBackground(child: const AppLockSettingsPage()),
-      ),
-      GoRoute(
-        path: '/theme-settings',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state) =>
-            AppBackground(child: const ThemeSettingsPage()),
-      ),
-      GoRoute(
-        path: '/system-settings',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state) =>
-            AppBackground(child: const SystemSettingsPage()),
-      ),
-      GoRoute(
-        path: '/panel-settings',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state) =>
-            AppBackground(child: const PanelSettingsPage()),
-      ),
-      GoRoute(
-        path: '/panel-log',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state)child: const PanelLogPage()),
-      ),
-      GoRoute(
-        path: '/backup',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state)child: const BackupPage()),
-      ),
-      GoRoute(
-        path: '/open-api',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state)child: const OpenApiPage()),
-      ),
-      GoRoute(
-        path: '/ssh-keys',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state)child: const SshKeysPage()),
-      ),
-      GoRoute(
-        path: '/sponsor',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state)child: const SponsorPage()),
-      ),
-      GoRoute(
-        path: '/open-api/:id/logs',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state)
-          child: OpenApiLogsPage(
-            appId: int.parse(state.pathParameters['id']!),
-          ),
         ),
       ),
     ],

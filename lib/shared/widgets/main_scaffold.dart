@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../core/theme/app_theme.dart';
-import '../../core/theme/theme_provider.dart';
 
 class MainScaffold extends ConsumerStatefulWidget {
   final Widget child;
@@ -108,7 +107,6 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   @override
   Widget build(BuildContext context) {
     final idx = _currentIndex(context);
-    final settings = ref.watch(appStyleProvider);
 
     return PopScope<void>(
       canPop: false,
