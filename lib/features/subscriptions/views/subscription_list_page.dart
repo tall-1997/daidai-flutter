@@ -1527,9 +1527,7 @@ class _SubscriptionLogsPageState extends ConsumerState<SubscriptionLogsPage> {
                             margin: const EdgeInsets.only(bottom: 10),
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: isLight
-                                  ? Colors.white
-                                  : AppColors.slate900,
+                              color: glassCardColor(isLight: isLight),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
                                 color: isLight

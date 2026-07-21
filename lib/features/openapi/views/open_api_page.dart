@@ -1182,9 +1182,7 @@ class _OpenApiLogsPageState extends ConsumerState<OpenApiLogsPage> {
                               vertical: 12,
                             ),
                             decoration: BoxDecoration(
-                              color: isLight
-                                  ? Colors.white
-                                  : AppColors.slate900,
+                              color: glassCardColor(isLight: isLight),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: isLight

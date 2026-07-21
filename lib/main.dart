@@ -89,9 +89,56 @@ void main() async {
 
   runApp(
     LiquidGlassWidgets.wrap(
-      child: UncontrolledProviderScope(
-        container: container,
-        child: const DaidaiApp(),
+      theme: GlassThemeData(
+        light: GlassThemeVariant(
+          settings: GlassThemeSettings(
+            thickness: 32,
+            blur: 12,
+            glassColor: const Color(0x1A000000),
+            lightIntensity: 0.6,
+            ambientStrength: 0.3,
+          ),
+          quality: GlassQuality.standard,
+        ),
+        dark: GlassThemeVariant(
+          settings: GlassThemeSettings(
+            thickness: 48,
+            blur: 18,
+            glassColor: const Color(0x1EFFFFFF),
+            lightIntensity: 0.5,
+            ambientStrength: 0.15,
+          ),
+          quality: GlassQuality.premium,
+        ),
+      ),
+      adaptiveQuality: true,
+      child: GlassTheme(
+        data: GlassThemeData(
+          light: GlassThemeVariant(
+            settings: GlassThemeSettings(
+              thickness: 32,
+              blur: 12,
+              glassColor: const Color(0x1A000000),
+              lightIntensity: 0.6,
+              ambientStrength: 0.3,
+            ),
+            quality: GlassQuality.standard,
+          ),
+          dark: GlassThemeVariant(
+            settings: GlassThemeSettings(
+              thickness: 48,
+              blur: 18,
+              glassColor: const Color(0x1EFFFFFF),
+              lightIntensity: 0.5,
+              ambientStrength: 0.15,
+            ),
+            quality: GlassQuality.premium,
+          ),
+        ),
+        child: UncontrolledProviderScope(
+          container: container,
+          child: const DaidaiApp(),
+        ),
       ),
     ),
   );

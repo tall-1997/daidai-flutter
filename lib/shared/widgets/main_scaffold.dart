@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/theme_provider.dart';
 
 class MainScaffold extends ConsumerStatefulWidget {
   final Widget child;
@@ -74,6 +75,13 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
       horizontalPadding: 16,
       verticalPadding: 10,
       magnification: 1.05,
+      settings: const LiquidGlassSettings(
+        thickness: 36,
+        blur: 12,
+      ),
+      quality: GlassQuality.premium,
+      selectedIconColor: AppColors.primary,
+      selectedLabelColor: AppColors.primary,
       tabs: const [
         GlassTab(
           icon: Icon(Icons.space_dashboard_outlined),
@@ -107,16 +115,62 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   @override
   Widget build(BuildContext context) {
     final idx = _currentIndex(context);
+    final styleSettings = ref.watch(appStyleProvider);
+    final bg = styleSettings.backgroundImagePath;
+    final blur = styleSettings.blurIntensity;
+
+    Widget backgroundWidget;
+    if (bg != null) {
+      final imageWidget = ClipRRect(
+        borderRadius: BorderRadius.circular(blur > 0 ? blur * 2 : 0),
+        child: Image.asset(
+          bg,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          errorBuilder: (_, __, ___) => Container(
+            color: Theme.of(context).scaffoldBackgroundColor,
+          ),
+        ),
+      );
+      if (blur > 0) {
+        backgroundWidget = Stack(
+          children: [
+            imageWidget,
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+              child: Container(color: Colors.transparent),
+            ),
+          ],
+        );
+      } else {
+        backgroundWidget = imageWidget;
+      }
+    } else {
+      backgroundWidget =
+          Container(color: Theme.of(context).scaffoldBackgroundColor);
+    }
 
     return PopScope<void>(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) => _handleBackPress(didPop),
       child: GlassScaffold(
-        body: Padding(
-          padding: const EdgeInsets.only(bottom: 62),
-          child: widget.child,
+        background: backgroundWidget,
+        statusBarStyle: GlassStatusBarStyle.auto,
+        edgeToEdge: true,
+        contentAwareBrightness: true,
+        settings: const LiquidGlassSettings(
+          thickness: 36,
+          blur: 12,
+          specularSharpness: GlassSpecularSharpness.medium,
+        ),
+        appBar: GlassAppBar(
+          title: const Text('Daidai'),
+          centerTitle: true,
+          quality: GlassQuality.premium,
         ),
         bottomBar: _buildBottomBar(idx),
+        body: widget.child,
       ),
     );
   }

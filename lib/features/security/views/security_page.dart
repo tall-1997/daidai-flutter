@@ -289,9 +289,7 @@ class _LoginLogsTabState extends ConsumerState<_LoginLogsTab>
                         vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: widget.isLight
-                            ? Colors.white
-                            : AppColors.slate900,
+                        color: glassCardColor(isLight: widget.isLight),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: widget.isLight

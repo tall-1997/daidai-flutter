@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/app_card.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../shared/utils/time_utils.dart';
 
@@ -924,7 +925,14 @@ class _BackupPageState extends ConsumerState<BackupPage> {
 
   Widget _buildActionCard(bool isLight) {
     final theme = Theme.of(context);
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: glassCardColor(isLight: isLight),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isLight ? AppColors.slate200 : AppColors.slate800,
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -1026,7 +1034,14 @@ class _BackupPageState extends ConsumerState<BackupPage> {
     final color = _restoreStatusColor(isLight, progress);
     final selectionLabels = progress.selection?.labels() ?? const <String>[];
 
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: glassCardColor(isLight: isLight),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isLight ? AppColors.slate200 : AppColors.slate800,
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -1207,7 +1222,14 @@ class _BackupPageState extends ConsumerState<BackupPage> {
     final downloading = _downloading.contains(record.filename);
     final deleting = _deleting.contains(record.filename);
 
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: glassCardColor(isLight: isLight),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isLight ? AppColors.slate200 : AppColors.slate800,
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

@@ -5,6 +5,7 @@ import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/utils/api_utils.dart';
+import '../../../shared/widgets/app_card.dart';
 import '../../../shared/utils/time_utils.dart';
 
 class SponsorPage extends StatefulWidget {
@@ -115,7 +116,7 @@ class _SponsorPageState extends State<SponsorPage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isLight ? Colors.white : AppColors.slate900,
+color: glassCardColor(isLight: isLight),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isLight
@@ -161,7 +162,7 @@ class _SponsorPageState extends State<SponsorPage> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: isLight ? Colors.white : AppColors.slate900,
+color: glassCardColor(isLight: isLight),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: isLight
@@ -262,11 +263,11 @@ class _SponsorCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isLight ? Colors.white : AppColors.slate900,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isLight ? AppColors.slate200 : AppColors.slate800,
-        ),
+color: glassCardColor(isLight: isLight),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isLight ? AppColors.slate200 : AppColors.slate800,
+          ),
       ),
       child: Row(
         children: [
