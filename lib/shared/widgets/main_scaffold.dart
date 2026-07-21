@@ -167,10 +167,6 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
         appBar: GlassAppBar(
           title: const Text('Daidai'),
           centerTitle: true,
-          settings: const LiquidGlassSettings(
-            thickness: 36,
-            blur: 12,
-          ),
         ),
         bottomBar: _buildBottomBar(idx),
         body: widget.child,
