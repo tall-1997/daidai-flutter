@@ -1,48 +1,119 @@
 # 呆呆面板 Flutter
 
-呆呆面板 Flutter 是面向 Android 和 iOS 的移动端客户端，用于连接呆呆面板服务并在手机端管理任务、脚本、日志、环境变量、依赖、安全设置和开放 API。
+呆呆面板 Flutter 是面向 Android 和 iOS 的移动端客户端，用于连接[呆呆面板](https://github.com/linzixuanzz/daidai-panel)服务并在手机端管理定时任务、脚本、环境变量、依赖、安全设置和开放 API。项目基于 [Dumb-Panel-APP](https://github.com/linzixuanzz/Dumb-Panel-APP) 演进而来，采用 Riverpod 状态管理和 GoRouter 路由，界面风格为液态玻璃 (Liquid Glass)。
 
 ## 版本
 
-- App 版本：`v0.0.60`
-- 适配面板：`v2.3.0`
+- App 版本：`v0.1.4`
+- Dart SDK：`>=3.11.3`
+- 适配面板：`v2.3.0+`
+
+## 更新说明
+
+### v0.1.4
+
+- 安全中心：新增登录统计和审计日志 Tab，当前共 6 个 Tab
+- SSH 密钥管理：新增 SSH Key 增删改查页面，支持在订阅中关联 SSH Key 进行 Git 认证
+- 订阅管理：创建/编辑订阅时新增 SSH Key 下拉选择器
+- 面板设置：新增可视化面板外观配置页面（标题、图标、编辑器/日志背景色）
+- 脚本调试：新增 `_runCode()` 代码直接执行和 `_clearRun()` 清除运行记录
+- 登录诊断：健康检查失败时显示 CORS / NAS 反向代理配置指引，HTTP 状态码异常时给出友好提示
+- 移除 `android-native/` 和 `ios-native/` 原生模块
+
+### v0.1.3
+
+- 初始版本，提供 14 个功能模块的完整管理能力
+
+## 软件架构设计
+
+### 分层架构
+
+```
+lib/
+  core/        -- 基础设施层：认证、网络、存储、主题、路由、系统服务
+  features/    -- 功能模块层：每个模块含 views / providers / widgets
+  shared/      -- 共享层：数据模型、工具类、公共 UI 组件
+```
+
+### 数据流
+
+```
+UI (Views) -> Riverpod Providers -> AuthService / DioClient -> REST API
+                                                     \-> SSE Client -> Stream
+```
+
+- **Views**：用户界面层，Flutter Widget 构建
+- **Providers**：Riverpod 状态管理，负责数据获取、缓存与业务逻辑
+- **Services**：与后端通信的 API 封装层，包括 REST（Dio）和 SSE 流式推送
+- **Storage**：flutter_secure_storage + SharedPreferences 双层持久化
+
+### 路由设计
+
+使用 GoRouter 声明式路由，通过认证守卫控制访问权限。底部导航栏 5 个 Tab：仪表盘、任务、日志、环境变量、更多。
+
+### 主题系统
+
+Material 3 主题 + 液态玻璃风格，支持浅色/深色模式切换、自定义背景图和模糊强度。
+
+## 核心功能
+
+### 功能模块总览
+
+| 模块 | 功能概述 |
+|------|----------|
+| 登录与认证 | 用户名/密码 + TOTP 两步验证，支持极验验证码，本地可信登录会话 7 天有效期 |
+| 仪表盘 | 系统概览、CPU/内存/磁盘资源卡片、任务统计、App 版本更新检测 |
+| 定时任务 | 任务增删改查、Cron 表达式、启停/置顶/复制/批量操作、导入导出、通知绑定 |
+| 执行日志 | 日志列表搜索筛序、批量删除、SSE 实时流式日志、日志清理 |
+| 脚本管理 | 脚本文件树浏览/编辑/上传/下载、版本控制、代码直接运行调试 |
+| 环境变量 | 变量增删改查、分组/排序/启停/批量操作、导入导出 |
+| 依赖管理 | pip/npm 依赖安装/卸载/重装、Python 运行时版本切换、安装日志流式输出 |
+| 订阅管理 | Git 仓库/单文件订阅、同步/启停、SSH Key 关联认证 |
+| 通知管理 | 钉钉/企微/飞书/Bark 等渠道配置、启停/测试发送、本地推送通知 |
+| 安全中心 | 登录日志、在线会话、IP 白名单、审计日志、登录统计、两步验证 |
+| 开放 API | API Token 和应用管理、创建/启禁用/重置密钥 |
+| 用户管理 | 系统用户增删改查、启禁用 |
+| 系统设置 | 并发限制、日志留存、面板更新、数据备份与恢复 |
+| 应用锁 | 密码/图案/生物识别，SHA256 迭代哈希存储 |
+| 面板设置 | 面板外观配置（标题/图标/编辑器背景/日志背景） |
+| SSH 密钥 | SSH Key 增删改查，供订阅 Git 认证使用 |
+
+### 功能模块与依赖库
+
+| 模块 | 引用的依赖库 | 用途 |
+|------|-------------|------|
+| 路由导航 | `go_router` | 声明式路由、认证守卫、深层链接 |
+| 状态管理 | `flutter_riverpod` | 全局状态共享、异步数据加载与缓存 |
+| 网络请求 | `dio` + `http` | REST API 调用、Token 自动刷新拦截器 |
+| SSE 流式 | `dio` + `http` | 服务端事件流接收，断线自动重连 |
+| 安全存储 | `flutter_secure_storage` | Token、用户信息、面板配置的加密存储 |
+| 本地存储 | `shared_preferences` | UI 状态、主题偏好、应用锁配置 |
+| 图表展示 | `fl_chart` | 仪表盘 CPU/内存趋势图 |
+| 生物识别 | `local_auth` | 指纹/面部识别应用锁 |
+| 密码哈希 | `crypto` | SHA256 迭代哈希存储应用锁密码 |
+| 主题 UI | `liquid_glass_widgets` | 液态玻璃卡片、脚手架、导航栏 |
+| 国际化 | `intl` | 日期时间中文格式化 |
+| 文件选择 | `file_picker` | 脚本上传、备份文件选择 |
+| 设备信息 | `device_info_plus` | 客户端 User-Agent 构建 |
+| 应用信息 | `package_info_plus` | 版本号读取、更新检测 |
+| 文件路径 | `path_provider` | 应用文档目录访问 |
+| WebView | `webview_flutter` | 极验验证码 WebView 弹窗 |
+| 本地通知 | `flutter_local_notifications` | 任务执行完成/系统通知推送 |
+| 图标生成 | `flutter_launcher_icons` | Android/iOS 应用图标自动生成 |
+| 代码分析 | `flutter_lints` | Dart 代码规范检查 |
 
 ## 下载安装
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.0.60-android.apk](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.60/daidai-flutter-v0.0.60-android.apk) |
-| iOS | [daidai-flutter-v0.0.60-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/download/v0.0.60/daidai-flutter-v0.0.60-ios.ipa) |
+| Android | [daidai-flutter-v0.1.4-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.4) |
+| iOS | [daidai-flutter-v0.1.4-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.4) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 
-## 功能
-
-- 仪表盘：查看系统概览、资源状态和最近执行记录
-- 定时任务：任务列表、创建编辑、启停、执行、复制、置顶和批量操作
-- 脚本管理：脚本浏览、编辑、上传、批量操作和运行辅助
-- 执行日志：日志列表、详情、导出、清理和实时/流式日志入口
-- 环境变量：变量增删改查、启停、排序和批量操作
-- 依赖管理：Python/Node.js 依赖查看、安装、重装、取消和删除
-- 订阅管理：订阅列表、同步、启停和日志入口
-- 通知渠道：渠道配置、启停、测试和发送
-- 安全设置：2FA、登录日志、会话管理、IP 白名单和审计信息
-- 开放 API：客户端凭据管理和开放接口访问配置
-- 应用锁：密码、图案锁和生物识别
-- 服务器配置：多面板管理
-
-## 技术栈
-
-- Flutter 3.x / Dart 3.x
-- Riverpod 状态管理
-- `dio` 网络请求
-- SharedPreferences 与 SecureStorage 本地存储
-- Miuix 风格主题与组件
-- GitHub Actions 自动构建 Android APK 和 iOS IPA
-
 ## 连接配置
 
-启动 App 后在登录页填写面板地址。
+启动 App 后在登录页填写面板地址：
 
 - 默认地址：`http://127.0.0.1:5700`
 - 常规接口：`/api`
@@ -60,20 +131,28 @@ flutter build ios --release --no-codesign
 
 ## 云端构建
 
-推送到 `main` 分支会触发 `Build Android & iOS` 工作流，自动构建 APK 和 IPA 并发布到 Release。
+推送到 `main` 分支会触发 GitHub Actions 自动构建 APK 和 IPA 并发布到 Release。工作流包括：
 
-## 引用
+- Android 构建 (`android-build.yml`)
+- iOS 构建 (`ios-build.yml`)
+- 统一构建 (`build.yml`)
+- Release 发布 (`release.yml`)
+
+## 开源引用与致谢
 
 本项目基于以下开源项目：
 
-- [linzixuanzz/Dumb-Panel-APP](https://github.com/linzixuanzz/Dumb-Panel-APP) - 呆呆面板 Flutter 客户端原始项目
-  - 提供了核心功能模块和 UI 设计
-  - 使用 Riverpod 状态管理
-  - 使用 Apache 2.0 许可证
-
-- [linzixuanzz/daidai-panel](https://github.com/linzixuanzz/daidai-panel) - 呆呆面板后端服务
-  - 提供了 API 接口和数据模型
-  - 使用 MIT 许可证
+- [Dumb-Panel-APP](https://github.com/linzixuanzz/Dumb-Panel-APP) (Apache 2.0) -- 原始 Flutter 客户端，提供核心功能模块和 UI 设计
+- [daidai-panel](https://github.com/linzixuanzz/daidai-panel) (MIT) -- 呆呆面板后端服务，提供 API 接口和数据模型
+- [Flutter](https://flutter.dev) (BSD-3-Clause) -- Google 的跨平台 UI 框架
+- [Riverpod](https://riverpod.dev) -- Dart/Flutter 响应式状态管理库
+- [GoRouter](https://pub.dev/packages/go_router) -- Flutter 声明式路由库
+- [Dio](https://pub.dev/packages/dio) -- Dart HTTP 客户端
+- [fl_chart](https://pub.dev/packages/fl_chart) -- Flutter 图表库
+- [Liquid Glass Widgets](https://pub.dev/packages/liquid_glass_widgets) -- 液态玻璃 UI 组件库
+- [flutter_secure_storage](https://pub.dev/packages/flutter_secure_storage) -- Flutter 安全存储
+- [local_auth](https://pub.dev/packages/local_auth) -- 本地生物认证
+- [webview_flutter](https://pub.dev/packages/webview_flutter) -- Flutter WebView
 
 ## 许可证
 
