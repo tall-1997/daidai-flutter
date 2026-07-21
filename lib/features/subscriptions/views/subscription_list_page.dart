@@ -158,7 +158,7 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
     final state = ref.watch(subscriptionListProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -228,7 +228,7 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                       color: AppColors.slate400,
                     ),
                     filled: true,
-                    fillColor: glassCardColor(glassMode: glassMode, isLight: isLight),
+                    fillColor: glassCardColor(isLight: isLight),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
@@ -1159,14 +1159,14 @@ class _SubCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     return GestureDetector(
       onTap: onEdit,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: glassCardColor(glassMode: glassMode, isLight: isLight),
+          color: glassCardColor(isLight: isLight),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isLight ? AppColors.slate200 : AppColors.slate800,

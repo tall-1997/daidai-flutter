@@ -81,23 +81,8 @@ class _LocalNotificationSettingsPageState
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          ref.watch(appStyleProvider).glassMode
-              ? GlassCard(useOwnLayer: true, 
+          GlassCard(useOwnLayer: true, 
                   padding: const EdgeInsets.all(16),
-                  child: _buildPermissionCard(isLight),
-                )
-              : Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isLight ? AppColors.glassCard : AppColors.slate900,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isLight
-                          ? AppColors.glassCardBorder
-                          : AppColors.slate800,
-                      width: 0.5,
-                    ),
-                  ),
                   child: _buildPermissionCard(isLight),
                 ),
           const SizedBox(height: 16),
@@ -232,7 +217,7 @@ class _ChannelTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
 
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,21 +271,6 @@ class _ChannelTile extends ConsumerWidget {
       ],
     );
 
-    if (glassMode) {
-      return GlassCard(useOwnLayer: true, padding: const EdgeInsets.all(16), child: content);
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isLight ? AppColors.glassCard : AppColors.slate900,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isLight ? AppColors.glassCardBorder : AppColors.slate800,
-          width: 0.5,
-        ),
-      ),
-      child: content,
-    );
+    return GlassCard(useOwnLayer: true, padding: const EdgeInsets.all(16), child: content);
   }
 }

@@ -37,7 +37,7 @@ class _SecurityPageState extends ConsumerState<SecurityPage>
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -492,7 +492,7 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
   Widget build(BuildContext context) {
     super.build(context);
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _load,
@@ -567,7 +567,7 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
                     vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: glassCardColor(glassMode: glassMode, isLight: isLight),
+                    color: glassCardColor(isLight: isLight),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: widget.isLight
@@ -744,7 +744,7 @@ class _IpWhitelistTabState extends ConsumerState<_IpWhitelistTab>
   Widget build(BuildContext context) {
     super.build(context);
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _load,
@@ -816,7 +816,7 @@ class _IpWhitelistTabState extends ConsumerState<_IpWhitelistTab>
                     vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: glassCardColor(glassMode: glassMode, isLight: isLight),
+                    color: glassCardColor(isLight: isLight),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: widget.isLight
@@ -1000,7 +1000,7 @@ class _TwoFaTabState extends ConsumerState<_TwoFaTab>
   Widget build(BuildContext context) {
     super.build(context);
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     if (_loading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
@@ -1015,7 +1015,7 @@ class _TwoFaTabState extends ConsumerState<_TwoFaTab>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: glassCardColor(glassMode: glassMode, isLight: isLight),
+              color: glassCardColor(isLight: isLight),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: widget.isLight ? AppColors.slate200 : AppColors.slate800,
@@ -1079,7 +1079,7 @@ class _TwoFaTabState extends ConsumerState<_TwoFaTab>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: glassCardColor(glassMode: glassMode, isLight: isLight),
+                color: glassCardColor(isLight: isLight),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: widget.isLight
@@ -1260,7 +1260,7 @@ class _LoginStatsTabState extends ConsumerState<_LoginStatsTab>
   Widget build(BuildContext context) {
     super.build(context);
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
 
     if (_loading) {
       return ListView(
@@ -1306,7 +1306,7 @@ class _LoginStatsTabState extends ConsumerState<_LoginStatsTab>
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: glassCardColor(glassMode: glassMode, isLight: isLight),
+              color: glassCardColor(isLight: isLight),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: widget.isLight ? AppColors.slate200 : AppColors.slate800,
@@ -1395,7 +1395,7 @@ class _AuditLogsTabState extends ConsumerState<_AuditLogsTab>
   Widget build(BuildContext context) {
     super.build(context);
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
 
     return RefreshIndicator(
       color: AppColors.primary,
@@ -1439,7 +1439,7 @@ class _AuditLogsTabState extends ConsumerState<_AuditLogsTab>
                     vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: glassCardColor(glassMode: glassMode, isLight: isLight),
+                    color: glassCardColor(isLight: isLight),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: widget.isLight

@@ -232,7 +232,7 @@ class _SshKeysPageState extends ConsumerState<SshKeysPage> {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -341,7 +341,6 @@ class _SshKeysPageState extends ConsumerState<SshKeysPage> {
                             ),
                             decoration: BoxDecoration(
                               color: glassCardColor(
-                                glassMode: glassMode,
                                 isLight: isLight,
                               ),
                               borderRadius: BorderRadius.circular(12),

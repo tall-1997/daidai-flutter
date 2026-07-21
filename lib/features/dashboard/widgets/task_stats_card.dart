@@ -28,7 +28,7 @@ class TaskStatsCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
 
     final content = Column(
       children: [
@@ -86,33 +86,11 @@ class TaskStatsCard extends ConsumerWidget {
       ],
     );
 
-    if (glassMode) {
-      return GestureDetector(
-        onTap: onTap,
-        child: GlassCard(useOwnLayer: true, 
-          padding: const EdgeInsets.all(16),
-          child: content,
-        ),
-      );
-    }
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isLight ? AppColors.glassCard : AppColors.slate900,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isLight ? AppColors.glassCardBorder : AppColors.slate800,
-              width: 0.5,
-            ),
-          ),
-          child: content,
-        ),
+    return GestureDetector(
+      onTap: onTap,
+      child: GlassCard(useOwnLayer: true, 
+        padding: const EdgeInsets.all(16),
+        child: content,
       ),
     );
   }

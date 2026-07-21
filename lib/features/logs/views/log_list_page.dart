@@ -431,7 +431,7 @@ class _LogListPageState extends ConsumerState<LogListPage> {
     });
     final state = ref.watch(logListProvider);
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
 
     return Scaffold(
       body: Padding(
@@ -513,7 +513,7 @@ class _LogListPageState extends ConsumerState<LogListPage> {
                     color: AppColors.slate400,
                   ),
                   filled: true,
-                  fillColor: glassFillColor(glassMode: glassMode, isLight: isLight),
+                  fillColor: glassFillColor(isLight: isLight),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
@@ -713,7 +713,7 @@ class _LogItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     final color = _statusColor();
     return GestureDetector(
       onLongPress: onLongPress,
@@ -725,7 +725,7 @@ class _LogItem extends ConsumerWidget {
               ? (isLight
                     ? AppColors.primary.withAlpha(12)
                     : AppColors.primary.withAlpha(20))
-              : glassCardColor(glassMode: glassMode, isLight: isLight),
+              : glassCardColor(isLight: isLight),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: selected

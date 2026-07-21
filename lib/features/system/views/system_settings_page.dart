@@ -533,7 +533,7 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -981,11 +981,11 @@ class _Card extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: glassCardColor(glassMode: glassMode, isLight: isLight),
+        color: glassCardColor(isLight: isLight),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isLight ? AppColors.slate200 : AppColors.slate800,
@@ -1195,13 +1195,13 @@ class _ActionBtn extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: glassCardColor(glassMode: glassMode, isLight: isLight),
+          color: glassCardColor(isLight: isLight),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isLight ? AppColors.slate200 : AppColors.slate800,

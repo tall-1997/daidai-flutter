@@ -719,7 +719,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
     final state = ref.watch(envListProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     final messenger = ScaffoldMessenger.of(context);
     final selectedCount = _selectedIds.length;
     final allSelected = _isAllSelected(state.envs);
@@ -945,7 +945,7 @@ vertical: 14,
                       height: 44,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: glassCardColor(glassMode: glassMode, isLight: isLight),
+                        color: glassCardColor(isLight: isLight),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isLight
@@ -992,7 +992,7 @@ vertical: 14,
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: glassCardColor(glassMode: glassMode, isLight: isLight),
+                    color: glassCardColor(isLight: isLight),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: isLight ? AppColors.slate200 : AppColors.slate800,
@@ -1247,7 +1247,6 @@ vertical: 14,
                           return _EnvCard(
                             env: env,
                             isLight: isLight,
-                            glassMode: glassMode,
                             selectionMode: _selectionMode,
                             selected: _isSelected(env.id),
                             onTap: () {
@@ -1654,7 +1653,7 @@ class _EnvValueSheetEditor extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     final isLight = Theme.of(context).brightness == Brightness.light;
     final screenHeight = MediaQuery.of(context).size.height;
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
@@ -1730,7 +1729,7 @@ class _EnvValueSheetEditor extends ConsumerWidget {
                       hintText: '在这里编辑完整变量值',
                       alignLabelWithHint: true,
                       filled: true,
-                      fillColor: glassFillColor(glassMode: glassMode, isLight: isLight),
+                      fillColor: glassFillColor(isLight: isLight),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
@@ -1792,13 +1791,13 @@ class _HeaderChipButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: glassCardColor(glassMode: glassMode, isLight: isLight),
+          color: glassCardColor(isLight: isLight),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: isLight ? AppColors.slate200 : AppColors.slate800,
@@ -1883,7 +1882,6 @@ class _BatchActionButton extends StatelessWidget {
 class _EnvCard extends StatefulWidget {
   final EnvVar env;
   final bool isLight;
-  final bool glassMode;
   final bool selectionMode;
   final bool selected;
   final VoidCallback onTap;
@@ -1894,7 +1892,6 @@ class _EnvCard extends StatefulWidget {
   const _EnvCard({
     required this.env,
     required this.isLight,
-    required this.glassMode,
     required this.selectionMode,
     required this.selected,
     required this.onTap,
@@ -1924,10 +1921,10 @@ class _EnvCardState extends State<_EnvCard> {
         curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(
           horizontal: 14,
-          vertical: 12,
+          vertical: 14,
         ),
         decoration: BoxDecoration(
-          color: glassCardColor(glassMode: widget.glassMode, isLight: widget.isLight),
+          color: glassCardColor(isLight: widget.isLight),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: widget.selected

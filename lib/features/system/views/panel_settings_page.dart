@@ -96,7 +96,7 @@ class _PanelSettingsPageState extends ConsumerState<PanelSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -143,7 +143,6 @@ class _PanelSettingsPageState extends ConsumerState<PanelSettingsPage> {
                           label: '面板标题',
                           hint: '显示在页面标题栏',
                           isLight: isLight,
-                          glassMode: glassMode,
                         ),
                         const SizedBox(height: 12),
                         _buildTextField(
@@ -151,7 +150,6 @@ class _PanelSettingsPageState extends ConsumerState<PanelSettingsPage> {
                           label: '面板图标',
                           hint: '图标 URL 或路径',
                           isLight: isLight,
-                          glassMode: glassMode,
                         ),
                         const SizedBox(height: 24),
                         Text(
@@ -170,7 +168,6 @@ class _PanelSettingsPageState extends ConsumerState<PanelSettingsPage> {
                           label: '编辑器背景色',
                           hint: '例如 #1E1E1E 或 rgba(30,30,30,1)',
                           isLight: isLight,
-                          glassMode: glassMode,
                         ),
                         const SizedBox(height: 12),
                         _buildTextField(
@@ -178,7 +175,6 @@ class _PanelSettingsPageState extends ConsumerState<PanelSettingsPage> {
                           label: '日志背景色',
                           hint: '例如 #000000 或 rgba(0,0,0,1)',
                           isLight: isLight,
-                          glassMode: glassMode,
                         ),
                         const SizedBox(height: 32),
                         SizedBox(
@@ -212,12 +208,11 @@ class _PanelSettingsPageState extends ConsumerState<PanelSettingsPage> {
     required String label,
     String? hint,
     required bool isLight,
-    required bool glassMode,
   }) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: glassCardColor(glassMode: glassMode, isLight: isLight),
+        color: glassCardColor(isLight: isLight),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isLight ? AppColors.slate200 : AppColors.slate800,

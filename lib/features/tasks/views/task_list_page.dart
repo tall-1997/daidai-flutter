@@ -523,7 +523,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     final state = ref.watch(taskProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     _collectKnownGroups(state.tasks);
     final groupedTasks = _sortGroupsByOrder(_groupTasks(state.tasks));
     final selectedCount = _selectedTaskIds.length;
@@ -616,7 +616,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                     color: AppColors.slate400,
                   ),
                   filled: true,
-                  fillColor: glassFillColor(glassMode: glassMode, isLight: isLight),
+                  fillColor: glassFillColor(isLight: isLight),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
@@ -850,15 +850,15 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                         children: [_buildEmpty()],
                       )
                     : _taskSortMode
-                    ? _buildTaskReorderView(state.tasks, isLight, glassMode)
+                    ? _buildTaskReorderView(state.tasks, isLight)
                     : _groupReorderMode
-                    ? _buildGroupReorderView(groupedTasks, isLight, glassMode)
+                    ? _buildGroupReorderView(groupedTasks, isLight)
                     : ListView(
                         controller: _scrollController,
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
                         children: groupedTasks
-                            .map((group) => _buildTaskGroup(group, isLight, glassMode))
+                            .map((group) => _buildTaskGroup(group, isLight))
                             .toList(),
                       ),
               ),
@@ -1187,7 +1187,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     nameController.dispose();
   }
 
-  Widget _buildGroupReorderView(List<_TaskGroup> groups, bool isLight, bool glassMode) {
+  Widget _buildGroupReorderView(List<_TaskGroup> groups, bool isLight) {
     return Column(
       children: [
         Padding(
@@ -1232,7 +1232,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   vertical: 14,
                 ),
                 decoration: BoxDecoration(
-                  color: glassCardColor(glassMode: glassMode, isLight: isLight),
+                  color: glassCardColor(isLight: isLight),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: isLight ? AppColors.slate200 : AppColors.slate800,
@@ -1272,7 +1272,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     );
   }
 
-  Widget _buildTaskReorderView(List<Task> tasks, bool isLight, bool glassMode) {
+  Widget _buildTaskReorderView(List<Task> tasks, bool isLight) {
     return ReorderableListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
       itemCount: tasks.length,
@@ -1288,7 +1288,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
-            color: glassCardColor(glassMode: glassMode, isLight: isLight),
+            color: glassCardColor(isLight: isLight),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: isLight ? AppColors.slate200 : AppColors.slate800,
@@ -1336,7 +1336,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     );
   }
 
-  Widget _buildTaskGroup(_TaskGroup group, bool isLight, bool glassMode) {
+  Widget _buildTaskGroup(_TaskGroup group, bool isLight) {
     final collapsed = _collapsedGroups.contains(group.key);
     final enabledCount = group.tasks.where((task) => task.isEnabled).length;
     final runningCount = group.tasks.where((task) => task.isRunning).length;
@@ -1348,7 +1348,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
         Container(
           margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
-            color: glassCardColor(glassMode: glassMode, isLight: isLight),
+            color: glassCardColor(isLight: isLight),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: isLight ? AppColors.slate200 : AppColors.slate800,
@@ -1437,7 +1437,6 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
               key: ValueKey('task-card-${task.id}'),
               task: task,
               isLight: isLight,
-              glassMode: glassMode,
               selectionMode: _selectionMode,
               selected: _selectedTaskIds.contains(task.id),
               onTap: () => _selectionMode
@@ -1550,7 +1549,6 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
 class _TaskCard extends StatefulWidget {
   final Task task;
   final bool isLight;
-  final bool glassMode;
   final bool selectionMode;
   final bool selected;
   final VoidCallback onTap;
@@ -1568,7 +1566,6 @@ class _TaskCard extends StatefulWidget {
     super.key,
     required this.task,
     required this.isLight,
-    required this.glassMode,
     required this.selectionMode,
     required this.selected,
     required this.onTap,
@@ -1841,7 +1838,7 @@ class _TaskCardState extends State<_TaskCard> {
                 transform: Matrix4.translationValues(_dragOffset, 0, 0),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: glassCardColor(glassMode: widget.glassMode, isLight: widget.isLight),
+                  color: glassCardColor(isLight: widget.isLight),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: widget.selected
@@ -2194,14 +2191,14 @@ class _TaskSubscriptionSummary extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     final visibleLabels = labels.take(3).toList();
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: glassCardColor(glassMode: glassMode, isLight: isLight),
+        color: glassCardColor(isLight: isLight),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isLight ? AppColors.slate200 : AppColors.slate800,
@@ -2434,7 +2431,7 @@ class _MetaChip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     final background = active
         ? (isLight ? AppColors.slate50 : AppColors.slate800)
         : (isLight ? AppColors.slate100 : AppColors.slate900);
@@ -2483,13 +2480,13 @@ class _TaskHeaderChipButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: glassCardColor(glassMode: glassMode, isLight: isLight),
+          color: glassCardColor(isLight: isLight),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: isLight ? AppColors.slate200 : AppColors.slate800,

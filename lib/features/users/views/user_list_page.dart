@@ -151,7 +151,7 @@ class _UserListPageState extends ConsumerState<UserListPage> {
     final state = ref.watch(userListProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     final currentUsername = ref.watch(authProvider).user?.username;
 
     return Scaffold(
@@ -589,7 +589,7 @@ class _UserCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     final roleColor = user.role == 'admin'
         ? AppColors.red500
         : user.role == 'operator'
@@ -601,7 +601,7 @@ class _UserCard extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: glassCardColor(glassMode: glassMode, isLight: isLight),
+        color: glassCardColor(isLight: isLight),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isLight ? AppColors.slate200 : AppColors.slate800,

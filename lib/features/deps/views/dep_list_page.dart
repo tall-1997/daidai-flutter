@@ -888,7 +888,6 @@ class _DepListPageState extends ConsumerState<DepListPage> {
     String label,
     bool selected,
     bool isLight,
-    bool glassMode,
   ) {
     final count = _counts[type] ?? 0;
     return GestureDetector(
@@ -898,7 +897,7 @@ class _DepListPageState extends ConsumerState<DepListPage> {
         decoration: BoxDecoration(
           color: selected
               ? AppColors.primary.withAlpha(isLight ? 18 : 24)
-              : (glassCardColor(glassMode: glassMode, isLight: isLight)),
+              : (glassCardColor(isLight: isLight)),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: selected
@@ -935,7 +934,7 @@ class _DepListPageState extends ConsumerState<DepListPage> {
     );
   }
 
-  Widget _buildPythonRuntimePanel(DepListState state, bool isLight, bool glassMode) {
+  Widget _buildPythonRuntimePanel(DepListState state, bool isLight) {
     final runtimes = state.pythonRuntimes;
     final hasSelected = runtimes.any(
       (runtime) => runtime.version == state.selectedPythonVersion,
@@ -950,7 +949,7 @@ class _DepListPageState extends ConsumerState<DepListPage> {
         width: double.infinity,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: glassCardColor(glassMode: glassMode, isLight: isLight),
+          color: glassCardColor(isLight: isLight),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isLight ? AppColors.slate200 : AppColors.slate800,
@@ -1094,7 +1093,7 @@ class _DepListPageState extends ConsumerState<DepListPage> {
     final state = ref.watch(depListProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     final screenWidth = MediaQuery.of(context).size.width;
     final isNarrow = screenWidth < 420;
 
@@ -1180,7 +1179,6 @@ class _DepListPageState extends ConsumerState<DepListPage> {
                           'NodeJS',
                           state.selectedType == 'nodejs',
                           isLight,
-                          glassMode,
                         ),
                       ),
                       SizedBox(
@@ -1190,7 +1188,6 @@ class _DepListPageState extends ConsumerState<DepListPage> {
                           'Python',
                           state.selectedType == 'python',
                           isLight,
-                          glassMode,
                         ),
                       ),
                       SizedBox(
@@ -1200,7 +1197,6 @@ class _DepListPageState extends ConsumerState<DepListPage> {
                           'Linux',
                           state.selectedType == 'linux',
                           isLight,
-                          glassMode,
                         ),
                       ),
                     ],
@@ -1210,7 +1206,7 @@ class _DepListPageState extends ConsumerState<DepListPage> {
             ),
             const SizedBox(height: 10),
             if (state.selectedType == 'python') ...[
-              _buildPythonRuntimePanel(state, isLight, glassMode),
+              _buildPythonRuntimePanel(state, isLight),
               const SizedBox(height: 10),
             ],
             Padding(
@@ -1420,12 +1416,12 @@ class _DepCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
-        color: glassCardColor(glassMode: glassMode, isLight: isLight),
+        color: glassCardColor(isLight: isLight),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isLight ? AppColors.slate200 : AppColors.slate800,

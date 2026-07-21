@@ -14,7 +14,7 @@ class TrendChart extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
 
     final successSpots = <FlSpot>[];
     final failSpots = <FlSpot>[];
@@ -126,22 +126,8 @@ class TrendChart extends ConsumerWidget {
       ],
     );
 
-    if (glassMode) {
-      return GlassCard(useOwnLayer: true, 
-        padding: const EdgeInsets.all(16),
-        child: chartContent,
-      );
-    }
-
-    return Container(
+    return GlassCard(useOwnLayer: true, 
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isLight ? Colors.white : AppColors.slate900,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isLight ? AppColors.slate200 : AppColors.slate800,
-        ),
-      ),
       child: chartContent,
     );
   }

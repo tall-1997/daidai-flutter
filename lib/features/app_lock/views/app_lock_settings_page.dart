@@ -233,7 +233,7 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
     final lockState = ref.watch(appLockProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -276,7 +276,7 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
                         Container(
                           padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
-                            color: glassCardColor(glassMode: glassMode, isLight: isLight),
+                            color: glassCardColor(isLight: isLight),
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(
                               color: isLight
@@ -478,11 +478,11 @@ class _MethodCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: glassCardColor(glassMode: glassMode, isLight: isLight),
+        color: glassCardColor(isLight: isLight),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isLight ? AppColors.slate200 : AppColors.slate800,

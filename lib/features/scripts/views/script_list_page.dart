@@ -589,7 +589,7 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(scriptProvider);
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     final visibleTree = _sortScriptTree(_filterTree(state.tree, state.keyword));
 
     return Scaffold(
@@ -1675,7 +1675,7 @@ class _FileTreeItemState extends ConsumerState<_FileTreeItem> {
 
   @override
   Widget build(BuildContext context) {
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
     final file = widget.file;
     final indent = widget.depth * 16.0;
 
@@ -1700,7 +1700,7 @@ class _FileTreeItemState extends ConsumerState<_FileTreeItem> {
               bottom: 10,
             ),
             decoration: BoxDecoration(
-              color: glassCardColor(glassMode: glassMode, isLight: widget.isLight),
+              color: glassCardColor(isLight: widget.isLight),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: widget.isLight ? AppColors.slate100 : AppColors.slate800,

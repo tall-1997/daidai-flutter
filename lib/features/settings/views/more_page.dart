@@ -95,23 +95,8 @@ class _MorePageState extends ConsumerState<MorePage> {
 
           // User Card
           if (user != null)
-            ref.watch(appStyleProvider).glassMode
-                ? GlassCard(useOwnLayer: true, 
+            GlassCard(useOwnLayer: true, 
                     padding: const EdgeInsets.all(16),
-                    child: _buildUserCardContent(user, isLight),
-                  )
-                : Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isLight ? AppColors.glassCard : AppColors.slate900,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: isLight
-                            ? AppColors.glassCardBorder
-                            : AppColors.slate800,
-                        width: 0.5,
-                      ),
-                    ),
                     child: _buildUserCardContent(user, isLight),
                   ),
           const SizedBox(height: 24),
@@ -270,35 +255,10 @@ class _MorePageState extends ConsumerState<MorePage> {
           const SizedBox(height: 24),
           GestureDetector(
             onTap: () => _logout(context, ref),
-            child: ref.watch(appStyleProvider).glassMode
-                ? GlassCard(
+            child: GlassCard(
                     useOwnLayer: true,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     child: Center(
-                      child: Text(
-                        '退出登录',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.red500,
-                        ),
-                      ),
-                    ),
-                  )
-                : Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: isLight
-                          ? AppColors.red50
-                          : AppColors.red500.withAlpha(12),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isLight
-                            ? AppColors.red500.withAlpha(50)
-                            : AppColors.red500.withAlpha(40),
-                      ),
-                    ),
-                    child: const Center(
                       child: Text(
                         '退出登录',
                         style: TextStyle(
@@ -649,7 +609,7 @@ class _SettingsItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
 
     final rowContent = Row(
       children: [
@@ -677,30 +637,11 @@ class _SettingsItem extends ConsumerWidget {
       ],
     );
 
-    if (glassMode) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: GlassCard(useOwnLayer: true, 
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: GestureDetector(onTap: onTap, child: rowContent),
-        ),
-      );
-    }
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: GlassCard(useOwnLayer: true, 
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: isLight ? AppColors.glassCard : AppColors.slate900,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isLight ? AppColors.glassCardBorder : AppColors.slate800,
-            width: 0.5,
-          ),
-        ),
-        child: rowContent,
+        child: GestureDetector(onTap: onTap, child: rowContent),
       ),
     );
   }

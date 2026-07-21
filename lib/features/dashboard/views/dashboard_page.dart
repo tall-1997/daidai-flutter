@@ -407,7 +407,7 @@ class _ServerInfoCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
 
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -478,29 +478,8 @@ class _ServerInfoCard extends ConsumerWidget {
       ],
     );
 
-    if (glassMode) {
-      return GlassCard(useOwnLayer: true, 
-        padding: const EdgeInsets.all(20),
-        child: content,
-      );
-    }
-
-    return Container(
+    return GlassCard(useOwnLayer: true, 
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isLight
-              ? [AppColors.glassCard, AppColors.slate50]
-              : [AppColors.slate900, AppColors.slate800],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isLight ? AppColors.glassCardBorder : AppColors.slate800,
-          width: 0.5,
-        ),
-      ),
       child: content,
     );
   }
@@ -535,7 +514,7 @@ class _StatCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
 
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -604,23 +583,8 @@ class _StatCard extends ConsumerWidget {
       ],
     );
 
-    if (glassMode) {
-      return GlassCard(useOwnLayer: true, 
-        padding: const EdgeInsets.all(16),
-        child: content,
-      );
-    }
-
-    return Container(
+    return GlassCard(useOwnLayer: true, 
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isLight ? AppColors.glassCard : AppColors.slate900,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isLight ? AppColors.glassCardBorder : AppColors.slate800,
-          width: 0.5,
-        ),
-      ),
       child: content,
     );
   }
@@ -641,7 +605,7 @@ class _QuickAction extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
 
     final content = Column(
       children: [
@@ -659,31 +623,11 @@ class _QuickAction extends ConsumerWidget {
       ],
     );
 
-    if (glassMode) {
-      return Expanded(
-        child: GestureDetector(
-          onTap: onTap,
-          child: GlassCard(useOwnLayer: true, 
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            child: content,
-          ),
-        ),
-      );
-    }
-
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
+        child: GlassCard(useOwnLayer: true, 
           padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: isLight ? AppColors.glassCard : AppColors.slate900,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isLight ? AppColors.glassCardBorder : AppColors.slate800,
-              width: 0.5,
-            ),
-          ),
           child: content,
         ),
       ),

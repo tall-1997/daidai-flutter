@@ -4,13 +4,18 @@
 
 ## 版本
 
-- App 版本：`v0.1.6`
+- App 版本：`v0.1.7`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
 
-### v0.1.6
+### v0.1.7
+
+- 主题：移除经典风格和液态玻璃开关，全部页面统一使用液态玻璃效果
+- 界面：移除背景图片/模糊强度设置，简化主题配置仅保留浅色/深色/系统
+- 架构：统一使用 `GlassCard`、`GlassScaffold`、`GlassTabBar` 等原生液态玻璃组件
+- 全局：清理 `glassMode` 状态字段和所有条件分支，减少 200+ 行冗余代码
 
 - 应用锁：开启开关时要求先配置解锁方式，未配置时引导用户前往设置
 - 主题：修复经典模式下背景图片被过度模糊遮盖导致不可见问题
@@ -124,8 +129,8 @@ Material 3 主题 + 液态玻璃风格，支持浅色/深色模式切换、自�
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.1.6-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.6) |
-| iOS | [daidai-flutter-v0.1.6-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.6) |
+| Android | [daidai-flutter-v0.1.7-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.7) |
+| iOS | [daidai-flutter-v0.1.7-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.7) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 

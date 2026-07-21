@@ -82,7 +82,7 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final glassMode = ref.watch(appStyleProvider).glassMode;
+    
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -174,7 +174,7 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
                         itemCount: _apps.length,
                         itemBuilder: (_, i) =>
-                            _buildAppCard(app: _apps[i], isLight: isLight, glassMode: glassMode),
+                            _buildAppCard(app: _apps[i], isLight: isLight),
                       ),
               ),
             ),
@@ -355,7 +355,6 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
   Widget _buildAppCard({
     required Map<String, dynamic> app,
     required bool isLight,
-    required bool glassMode,
   }) {
     final id = (app['id'] as num?)?.toInt() ?? 0;
     final name = app['name']?.toString() ?? '';
@@ -369,7 +368,7 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: glassCardColor(glassMode: glassMode, isLight: isLight),
+        color: glassCardColor(isLight: isLight),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isLight ? AppColors.slate200 : AppColors.slate800,
