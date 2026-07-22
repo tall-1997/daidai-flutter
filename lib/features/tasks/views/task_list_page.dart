@@ -68,6 +68,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   bool _taskOrderDirty = false;
   bool _taskTransferBusy = false;
   Timer? _debounce;
+  Timer? _scrollSaveDebounce;
   bool _restoredScrollOffset = false;
 
   @override
@@ -89,12 +90,16 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       ref.read(taskProvider.notifier).loadMore();
     }
 
-    if (_scrollController.hasClients) {
+    _scrollSaveDebounce?.cancel();
+    _scrollSaveDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (!_scrollController.hasClients) {
+        return;
+      }
       SecureStorage.saveUiState(
         _scrollOffsetStorageKey,
         _scrollController.offset.toStringAsFixed(2),
       );
-    }
+    });
   }
 
   void _showMessage(String message) {
@@ -562,6 +567,13 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _scrollSaveDebounce?.cancel();
+    if (_scrollController.hasClients) {
+      SecureStorage.saveUiState(
+        _scrollOffsetStorageKey,
+        _scrollController.offset.toStringAsFixed(2),
+      );
+    }
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -721,6 +733,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     final state = ref.watch(taskProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
+    final compactLayout = MediaQuery.sizeOf(context).width < 380;
     
     _collectKnownGroups(state.tasks);
     final groupedTasks = _sortGroupsByOrder(_groupTasks(state.tasks));
@@ -739,10 +752,18 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    '定时任务',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+                  const Expanded(
+                    child: Text(
+                      '定时任务',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Row(
                     children: [
                       if (!_taskSortMode)
@@ -750,6 +771,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                           label: _selectionMode ? '取消' : '批量',
                           icon: _selectionMode ? Icons.close : Icons.done_all,
                           isLight: isLight,
+                          compact: compactLayout,
                           onTap: () => _setSelectionMode(!_selectionMode),
                         ),
                       if (!_selectionMode) ...[
@@ -758,6 +780,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                           label: _taskSortMode ? '完成' : '排序',
                           icon: _taskSortMode ? Icons.check : Icons.swap_vert,
                           isLight: isLight,
+                          compact: compactLayout,
                           onTap: () async {
                             if (_taskSortMode) {
                               await _finishTaskSortMode(state.tasks);
@@ -915,13 +938,20 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                     ),
                   ),
                   const Spacer(),
-                  TextButton.icon(
-                    onPressed: _showGroupPicker,
-                    icon: const Icon(Icons.label_outline, size: 16),
-                    label: Text(
-                      state.labelFilter?.isNotEmpty == true
-                          ? state.labelFilter!
-                          : '全部分组',
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: compactLayout ? 96 : 132,
+                    ),
+                    child: TextButton.icon(
+                      onPressed: _showGroupPicker,
+                      icon: const Icon(Icons.label_outline, size: 16),
+                      label: Text(
+                        state.labelFilter?.isNotEmpty == true
+                            ? state.labelFilter!
+                            : '全部分组',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
                   PopupMenuButton<_TaskTransferAction>(
@@ -957,8 +987,29 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                         : const Icon(Icons.more_horiz),
                   ),
                   if (state.statusFilter != null || state.labelFilter != null)
-                    TextButton(
-                      onPressed: () {
+                    compactLayout
+                        ? IconButton(
+                            tooltip: '清除筛选',
+                            icon: const Icon(Icons.filter_alt_off, size: 18),
+                            onPressed: () {
+                              if (_scrollController.hasClients &&
+                                  _scrollController.offset > 0) {
+                                _scrollController.jumpTo(0);
+                              }
+                              ref
+                                  .read(taskProvider.notifier)
+                                  .setStatusFilter(null);
+                              ref
+                                  .read(taskProvider.notifier)
+                                  .setLabelFilter(null);
+                              SecureStorage.saveUiState(
+                                _selectedGroupStorageKey,
+                                '',
+                              );
+                            },
+                          )
+                        : TextButton(
+                            onPressed: () {
                         if (_scrollController.hasClients &&
                             _scrollController.offset > 0) {
                           _scrollController.jumpTo(0);
@@ -966,9 +1017,9 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                         ref.read(taskProvider.notifier).setStatusFilter(null);
                         ref.read(taskProvider.notifier).setLabelFilter(null);
                         SecureStorage.saveUiState(_selectedGroupStorageKey, '');
-                      },
-                      child: const Text('清除筛选'),
-                    ),
+                            },
+                            child: const Text('清除筛选'),
+                          ),
                 ],
               ),
             ),
@@ -1632,6 +1683,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   Expanded(
                     child: Text(
                       group.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -2159,8 +2212,8 @@ class _TaskCardState extends State<_TaskCard> {
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     color: widget.isLight
-                        ? AppColors.lightSurface.withAlpha(190)
-                        : AppColors.darkSurface.withAlpha(220),
+                        ? AppColors.lightSurface.withAlpha(150)
+                        : AppColors.darkSurface.withAlpha(150),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: widget.selected
@@ -2172,7 +2225,7 @@ class _TaskCardState extends State<_TaskCard> {
                     ),
                   ),
                   child: GlassCard(
-                    useOwnLayer: true,
+                    useOwnLayer: false,
                     quality: GlassQuality.minimal,
                     settings: const LiquidGlassSettings(
                       blur: 8,
@@ -2812,12 +2865,14 @@ class _TaskHeaderChipButton extends ConsumerWidget {
   final String label;
   final IconData icon;
   final bool isLight;
+  final bool compact;
   final VoidCallback onTap;
 
   const _TaskHeaderChipButton({
     required this.label,
     required this.icon,
     required this.isLight,
+    this.compact = false,
     required this.onTap,
   });
 
@@ -2827,7 +2882,10 @@ class _TaskHeaderChipButton extends ConsumerWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 8 : 12,
+          vertical: 7,
+        ),
         decoration: BoxDecoration(
           color: glassCardColor(isLight: isLight),
           borderRadius: BorderRadius.circular(999),
@@ -2838,15 +2896,17 @@ class _TaskHeaderChipButton extends ConsumerWidget {
         child: Row(
           children: [
             Icon(icon, size: 16, color: AppColors.slate400),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
+            if (!compact) ...[
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
