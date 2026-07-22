@@ -202,6 +202,25 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                     ),
                   ),
                   GestureDetector(
+                    onTap: () => _showSendDialog(state.items),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: isLight
+                            ? AppColors.slate100
+                            : AppColors.slate800,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.send_outlined,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
                     onTap: () => _showChannelDialog(),
                     child: Container(
                       width: 32,
@@ -286,6 +305,143 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showSendDialog(List<NotifyChannel> channels) {
+    final titleC = TextEditingController(text: '呆呆面板通知');
+    final contentC = TextEditingController();
+    final selectedIds = <int>{};
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      useRootNavigator: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          final enabledChannels = channels.where((c) => c.enabled).toList();
+          final navigator = Navigator.of(ctx);
+          final messenger = ScaffoldMessenger.of(context);
+          return Padding(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              0,
+              20,
+              MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    '发送通知',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: titleC,
+                    decoration: const InputDecoration(labelText: '标题'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: contentC,
+                    minLines: 4,
+                    maxLines: 8,
+                    decoration: const InputDecoration(
+                      labelText: '正文',
+                      hintText: '输入要发送的通知内容',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    '发送渠道（留空则发送到全部已启用渠道）',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  if (enabledChannels.isEmpty)
+                    const Text(
+                      '暂无已启用渠道',
+                      style: TextStyle(fontSize: 12, color: AppColors.slate400),
+                    )
+                  else
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: enabledChannels.map((channel) {
+                        return FilterChip(
+                          label: Text(channel.name),
+                          selected: selectedIds.contains(channel.id),
+                          onSelected: (selected) {
+                            setSheetState(() {
+                              if (selected) {
+                                selectedIds.add(channel.id);
+                              } else {
+                                selectedIds.remove(channel.id);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    height: 44,
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.send_outlined, size: 18),
+                      label: const Text('发送'),
+                      onPressed: () async {
+                        final title = titleC.text.trim();
+                        final content = contentC.text.trim();
+                        if (title.isEmpty || content.isEmpty) {
+                          messenger.showSnackBar(
+                            const SnackBar(content: Text('请输入标题和正文')),
+                          );
+                          return;
+                        }
+                        try {
+                          final data = <String, dynamic>{
+                            'title': title,
+                            'content': content,
+                            if (selectedIds.isNotEmpty)
+                              'channel_ids': selectedIds.toList(),
+                          };
+                          final resp = await DioClient.instance.dio.post(
+                            ApiEndpoints.notificationSend,
+                            data: data,
+                          );
+                          final message = resp.data is Map
+                              ? resp.data['message']?.toString()
+                              : null;
+                          if (!mounted) return;
+                          navigator.pop();
+                          messenger.showSnackBar(
+                            SnackBar(content: Text(message ?? '通知已发送')),
+                          );
+                        } catch (error) {
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(_extractMessage(error, '通知发送失败')),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 44,
+                    child: OutlinedButton(
+                      onPressed: () => navigator.pop(),
+                      child: const Text('取消'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
