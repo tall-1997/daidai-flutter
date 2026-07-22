@@ -4,11 +4,22 @@
 
 ## 版本
 
-- App 版本：`v0.1.9`
+- App 版本：`v0.1.10`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.10
+
+- 任务：新增 Cron 模板加载和 Cron 表达式解析预览。
+- 任务：新增任务统计和任务日志文件入口。
+- Open API：新增获取访问 Token 功能，可通过 App Key/App Secret 获取 24 小时访问令牌。
+- 通知：新增主动发送通知入口，可选择渠道并发送自定义标题和正文。
+- 系统：新增部署与 Python 运行时状态信息展示。
+- 日志流：SSE 支持 Token 过期自动刷新后重连，并按标准 SSE 聚合多行 data 事件。
+- 本地通知：权限检查不再触发系统权限申请弹窗，仅在用户点击申请权限时请求授权。
+- 环境变量：加载失败时显示明确错误与重试入口。
 
 ### v0.1.9
 
@@ -145,8 +156,8 @@ Material 3 主题 + Liquid Glass 液态玻璃风格，全局对齐 iOS26 ultraTh
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.1.9-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.9) |
-| iOS | [daidai-flutter-v0.1.9-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.9) |
+| Android | [daidai-flutter-v0.1.10-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.10) |
+| iOS | [daidai-flutter-v0.1.10-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.10) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 
