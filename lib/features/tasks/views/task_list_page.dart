@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
@@ -15,7 +14,6 @@ import '../../../core/storage/secure_storage.dart';
 import '../../../core/network/sse_client.dart';
 import '../../../core/services/local_notification_service.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/theme/theme_provider.dart';
 import '../../../shared/models/task.dart';
 import '../../../shared/utils/ansi_text.dart';
 import '../../../shared/utils/api_utils.dart';
@@ -691,26 +689,43 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       context: context,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const ListTile(title: Text('选择任务分组'), subtitle: Text('可筛选已有分组任务')),
-            ListTile(
-              leading: const Icon(Icons.layers_clear_outlined),
-              title: const Text('全部分组'),
-              onTap: () => Navigator.pop(sheetContext, ''),
-            ),
-            ...options.map(
-              (group) => ListTile(
-                leading: const Icon(Icons.label_outline),
-                title: Text(group),
-                trailing: ref.watch(taskProvider).labelFilter == group
-                    ? const Icon(Icons.check, color: AppColors.primary)
-                    : null,
-                onTap: () => Navigator.pop(sheetContext, group),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.7,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const ListTile(
+                title: Text('选择任务分组'),
+                subtitle: Text('可筛选已有分组任务'),
               ),
-            ),
-          ],
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: options.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return ListTile(
+                        leading: const Icon(Icons.layers_clear_outlined),
+                        title: const Text('全部分组'),
+                        onTap: () => Navigator.pop(sheetContext, ''),
+                      );
+                    }
+                    final group = options[index - 1];
+                    return ListTile(
+                      leading: const Icon(Icons.label_outline),
+                      title: Text(group),
+                      trailing: ref.watch(taskProvider).labelFilter == group
+                          ? const Icon(Icons.check, color: AppColors.primary)
+                          : null,
+                      onTap: () => Navigator.pop(sheetContext, group),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -737,6 +752,13 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     
     _collectKnownGroups(state.tasks);
     final groupedTasks = _sortGroupsByOrder(_groupTasks(state.tasks));
+    final taskRows = <_TaskListRow>[];
+    for (final group in groupedTasks) {
+      taskRows.add(_TaskListRow.group(group));
+      if (!_collapsedGroups.contains(group.key)) {
+        taskRows.addAll(group.tasks.map(_TaskListRow.task));
+      }
+    }
     final selectedCount = _selectedTaskIds.length;
     final allSelected = _isAllTasksSelected(state.tasks);
     _restoreScrollOffsetIfNeeded();
@@ -1143,14 +1165,19 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                     ? _buildTaskReorderView(state.tasks, isLight)
                     : _groupReorderMode
                     ? _buildGroupReorderView(groupedTasks, isLight)
-                    : ListView(
+                    : ListView.builder(
                         controller: _scrollController,
                         clipBehavior: Clip.hardEdge,
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
-                        children: groupedTasks
-                            .map((group) => _buildTaskGroup(group, isLight))
-                            .toList(),
+                        itemCount: taskRows.length,
+                        itemBuilder: (context, index) {
+                          final row = taskRows[index];
+                          if (row.group != null) {
+                            return _buildTaskGroupHeader(row.group!, isLight);
+                          }
+                          return _buildTaskCard(row.task!, isLight);
+                        },
                       ),
               ),
             ),
@@ -1308,10 +1335,14 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
           title: Text('添加任务到 "$targetGroup"'),
           content: SizedBox(
             width: double.maxFinite,
-            height: 400,
-            child: ListView.builder(
-              itemCount: ungroupedTasks.length,
-              itemBuilder: (ctx, i) {
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(ctx).height * 0.55,
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: ungroupedTasks.length,
+                itemBuilder: (ctx, i) {
                 final task = ungroupedTasks[i];
                 return CheckboxListTile(
                   value: selected.contains(task.id),
@@ -1327,7 +1358,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                     });
                   },
                 );
-              },
+                },
+              ),
             ),
           ),
           actions: [
@@ -1385,8 +1417,11 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
           title: const Text('新建分组'),
           content: SizedBox(
             width: double.maxFinite,
-            height: 450,
-            child: Column(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(ctx).height * 0.6,
+              ),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextField(
@@ -1429,6 +1464,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   ),
                 ),
               ],
+              ),
             ),
           ),
           actions: [
@@ -1634,16 +1670,16 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     );
   }
 
-  Widget _buildTaskGroup(_TaskGroup group, bool isLight) {
+  Widget _buildTaskGroupHeader(_TaskGroup group, bool isLight) {
     final collapsed = _collapsedGroups.contains(group.key);
     final enabledCount = group.tasks.where((task) => task.isEnabled).length;
     final runningCount = group.tasks.where((task) => task.isRunning).length;
     final isUngrouped = group.key.isEmpty;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ClipRRect(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 340;
+        return ClipRRect(
           borderRadius: BorderRadius.circular(14),
           child: Container(
             margin: const EdgeInsets.only(bottom: 8),
@@ -1699,13 +1735,14 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  if (runningCount > 0)
-                    _MetaChip(label: '$runningCount 运行中', active: true)
-                  else
-                    _MetaChip(
-                      label: '$enabledCount 已启用',
-                      active: enabledCount > 0,
-                    ),
+                  if (!compact)
+                    if (runningCount > 0)
+                      _MetaChip(label: '$runningCount 运行中', active: true)
+                    else
+                      _MetaChip(
+                        label: '$enabledCount 已启用',
+                        active: enabledCount > 0,
+                      ),
                   const SizedBox(width: 4),
                   _GroupPopupMenu(
                     isUngrouped: isUngrouped,
@@ -1733,40 +1770,35 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
             ),
             ),
           ),
-        ),
-        if (!collapsed)
-          ...group.tasks.map(
-            (task) => RepaintBoundary(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: _TaskCard(
-                  key: ValueKey('task-card-${task.id}'),
-                  task: task,
-                  isLight: isLight,
-                  selectionMode: _selectionMode,
-                  selected: _selectedTaskIds.contains(task.id),
-                  onTap: () => _selectionMode
-                      ? _toggleTaskSelection(task.id)
-                      : _openLatestLog(task),
-                  onLongPress: () {
-                    HapticFeedback.mediumImpact();
-                    _toggleTaskSelection(task.id);
-                  },
-                  onSelectedChanged: () => _toggleTaskSelection(task.id),
-                  onRun: () => _runTask(task),
-                  onStop: () => _stopTask(task),
-                  onToggleEnabled: () => _toggleTaskEnabled(task),
-                  onCopy: () => _copyTask(task),
-                  onTogglePinned: () => _togglePinned(task),
-                  onStats: () => _showTaskStats(task),
-                  onLogFiles: () => _showTaskLogFiles(task),
-                  onEdit: () => context.push('/tasks/edit', extra: task),
-                  onDelete: () => _confirmDelete(task),
-                ),
-              ),
-            ),
-          ),
-      ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTaskCard(Task task, bool isLight) {
+    return _TaskCard(
+      key: ValueKey('task-card-${task.id}'),
+      task: task,
+      isLight: isLight,
+      selectionMode: _selectionMode,
+      selected: _selectedTaskIds.contains(task.id),
+      onTap: () => _selectionMode
+          ? _toggleTaskSelection(task.id)
+          : _openLatestLog(task),
+      onLongPress: () {
+        HapticFeedback.mediumImpact();
+        _toggleTaskSelection(task.id);
+      },
+      onSelectedChanged: () => _toggleTaskSelection(task.id),
+      onRun: () => _runTask(task),
+      onStop: () => _stopTask(task),
+      onToggleEnabled: () => _toggleTaskEnabled(task),
+      onCopy: () => _copyTask(task),
+      onTogglePinned: () => _togglePinned(task),
+      onStats: () => _showTaskStats(task),
+      onLogFiles: () => _showTaskLogFiles(task),
+      onEdit: () => context.push('/tasks/edit', extra: task),
+      onDelete: () => _confirmDelete(task),
     );
   }
 
@@ -1936,9 +1968,9 @@ class _TaskCard extends StatefulWidget {
 }
 
 class _TaskCardState extends State<_TaskCard> {
-  static const double _actionWidth = 36;
-  static const double _actionGap = 2;
-  static const double _actionsWidth = _actionWidth * 7 + _actionGap * 6 + 8;
+  static const double _actionWidth = 52;
+  static const double _actionGap = 4;
+  static const double _actionsWidth = _actionWidth * 3 + _actionGap * 2 + 8;
 
   double _dragOffset = 0;
   bool _dragging = false;
@@ -1997,7 +2029,7 @@ class _TaskCardState extends State<_TaskCard> {
           ? AppColors.blue100
           : AppColors.blue500.withAlpha(25);
     }
-    return widget.isLight ? AppColors.slate100 : AppColors.slate800;
+    return widget.isLight ? AppColors.slate100 : AppColors.darkSurfaceMuted;
   }
 
   Color _statusFg() {
@@ -2065,12 +2097,75 @@ class _TaskCardState extends State<_TaskCard> {
     action();
   }
 
+  Future<void> _showMoreActions() async {
+    _closeActions();
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: Icon(
+                task.isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+                color: AppColors.amber500,
+              ),
+              title: Text(task.isPinned ? '取消置顶' : '置顶'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                widget.onTogglePinned();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.copy_outlined, color: AppColors.blue500),
+              title: const Text('复制任务'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                widget.onCopy();
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.bar_chart_outlined,
+                color: AppColors.primary,
+              ),
+              title: const Text('任务统计'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                widget.onStats();
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.folder_open_outlined,
+                color: AppColors.amber500,
+              ),
+              title: const Text('日志文件'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                widget.onLogFiles();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('编辑任务'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                widget.onEdit();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final dotColor = _dotColor();
     final borderColor = widget.isLight
         ? AppColors.slate200
-        : AppColors.slate800;
+        : AppColors.darkBorder;
     final labels = task.userLabelsForDisplay;
     final hasFailure = task.lastRunStatus == 1;
     final primaryColor = task.isRunning ? AppColors.red500 : AppColors.primary;
@@ -2114,40 +2209,10 @@ class _TaskCardState extends State<_TaskCard> {
                     ),
                     const SizedBox(width: _actionGap),
                     _TaskSwipeActionButton(
-                      label: task.isPinned ? '取消' : '置顶',
-                      icon: task.isPinned
-                          ? Icons.push_pin_outlined
-                          : Icons.push_pin,
-                      color: AppColors.amber500,
-                      onTap: () => _runSwipeAction(widget.onTogglePinned),
-                    ),
-                    const SizedBox(width: _actionGap),
-                    _TaskSwipeActionButton(
-                      label: '复制',
-                      icon: Icons.copy_outlined,
+                      label: '更多',
+                      icon: Icons.more_horiz,
                       color: AppColors.blue500,
-                      onTap: () => _runSwipeAction(widget.onCopy),
-                    ),
-                    const SizedBox(width: _actionGap),
-                    _TaskSwipeActionButton(
-                      label: '统计',
-                      icon: Icons.bar_chart_outlined,
-                      color: AppColors.primary,
-                      onTap: () => _runSwipeAction(widget.onStats),
-                    ),
-                    const SizedBox(width: _actionGap),
-                    _TaskSwipeActionButton(
-                      label: '日志',
-                      icon: Icons.folder_open_outlined,
-                      color: AppColors.amber500,
-                      onTap: () => _runSwipeAction(widget.onLogFiles),
-                    ),
-                    const SizedBox(width: _actionGap),
-                    _TaskSwipeActionButton(
-                      label: '编辑',
-                      icon: Icons.edit_outlined,
-                      color: AppColors.slate500,
-                      onTap: () => _runSwipeAction(widget.onEdit),
+                      onTap: _showMoreActions,
                     ),
                     const SizedBox(width: _actionGap),
                     _TaskSwipeActionButton(
@@ -2211,10 +2276,23 @@ class _TaskCardState extends State<_TaskCard> {
                 transform: Matrix4.translationValues(_dragOffset, 0, 0),
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: widget.isLight
-                        ? AppColors.lightSurface.withAlpha(150)
-                        : AppColors.darkSurface.withAlpha(150),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: widget.isLight
+                          ? const [Color(0xEFFFFFFF), Color(0xD9F4F7FA)]
+                          : const [Color(0xE61A2638), Color(0xDD111C2D)],
+                    ),
                     borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: widget.isLight
+                            ? Colors.white.withAlpha(90)
+                            : Colors.black.withAlpha(32),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                     border: Border.all(
                       color: widget.selected
                           ? AppColors.primary
@@ -2224,15 +2302,7 @@ class _TaskCardState extends State<_TaskCard> {
                       width: widget.selected ? 1.4 : 1,
                     ),
                   ),
-                  child: GlassCard(
-                    useOwnLayer: false,
-                    quality: GlassQuality.minimal,
-                    settings: const LiquidGlassSettings(
-                      blur: 8,
-                      thickness: 20,
-                      specularSharpness: GlassSpecularSharpness.soft,
-                    ),
-                    clipBehavior: Clip.antiAlias,
+                  child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2362,7 +2432,6 @@ fontSize: 11,
                       ],
                     ),
                       ],
-                    ),
                   ),
                 ),
               ),
@@ -2714,6 +2783,17 @@ class _TaskGroup {
   final List<Task> tasks = <Task>[];
 
   _TaskGroup({required this.key, required this.title});
+}
+
+class _TaskListRow {
+  final _TaskGroup? group;
+  final Task? task;
+
+  const _TaskListRow._({this.group, this.task});
+
+  factory _TaskListRow.group(_TaskGroup group) => _TaskListRow._(group: group);
+
+  factory _TaskListRow.task(Task task) => _TaskListRow._(task: task);
 }
 
 String? _extractScriptPathFromCommand(String command) {
