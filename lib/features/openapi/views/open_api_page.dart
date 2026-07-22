@@ -29,7 +29,9 @@ const _apiScopeOptions = [
 
 Future<List<Map<String, dynamic>>> _loadAllOpenApiLogs(int appId) async {
   const pageSize = 100;
+  const maxPages = 20;
   final allItems = <Map<String, dynamic>>[];
+  final seenIds = <String>{};
   var page = 1;
   var total = 0;
   do {
@@ -44,9 +46,18 @@ Future<List<Map<String, dynamic>>> _loadAllOpenApiLogs(int appId) async {
     if (paginated.items.isEmpty) {
       break;
     }
-    allItems.addAll(paginated.items);
+    final before = seenIds.length;
+    for (final item in paginated.items) {
+      final key = item['id']?.toString() ?? item.toString();
+      if (seenIds.add(key)) {
+        allItems.add(item);
+      }
+    }
+    if (seenIds.length == before) {
+      break;
+    }
     page++;
-  } while (allItems.length < total);
+  } while (allItems.length < total && page <= maxPages);
   return allItems;
 }
 
