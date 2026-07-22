@@ -14,10 +14,8 @@ class ApiEndpoints {
 
   // System
   static const String health = '$baseApiV1/health';
-  static const String version = '$baseApiV1/version';
   static const String systemInfo = '$baseApi/system/info';
   static const String dashboard = '$baseApi/system/dashboard';
-  static const String systemStats = '$baseApi/system/stats';
   static const String systemVersion = '$baseApi/system/version';
   static const String checkUpdate = '$baseApi/system/check-update';
   static const String panelSettings = '$baseApi/system/panel-settings';
@@ -45,12 +43,10 @@ class ApiEndpoints {
   static String taskLiveLogs(int id) => '$baseApi/tasks/$id/live-logs';
   static String taskLogFiles(int id) => '$baseApi/tasks/$id/log-files';
   static String taskStats(int id) => '$baseApi/tasks/$id/stats';
-  static const String tasksBatch = '$baseApi/tasks/batch';
   static const String tasksBatchEnable = '$baseApi/tasks/batch/enable';
   static const String tasksBatchDisable = '$baseApi/tasks/batch/disable';
   static const String tasksBatchDelete = '$baseApi/tasks/batch/delete';
   static const String tasksBatchRun = '$baseApi/tasks/batch/run';
-  static const String tasksCleanLogs = '$baseApi/tasks/clean-logs';
   static const String tasksExport = '$baseApi/tasks/export';
   static const String tasksImport = '$baseApi/tasks/import';
   static const String cronParse = '$baseApi/tasks/cron/parse';
@@ -76,9 +72,7 @@ class ApiEndpoints {
   static const String scriptsRename = '$baseApi/scripts/rename';
   static const String scriptsMove = '$baseApi/scripts/move';
   static const String scriptsCopy = '$baseApi/scripts/copy';
-  static const String scriptsBatchDelete = '$baseApi/scripts/batch';
   static const String scriptsVersions = '$baseApi/scripts/versions';
-  static String scriptVersionById(int id) => '$baseApi/scripts/versions/$id';
   static String scriptVersionRollback(int id) =>
       '$baseApi/scripts/versions/$id/rollback';
   static const String scriptsRun = '$baseApi/scripts/run';
@@ -95,17 +89,13 @@ class ApiEndpoints {
   static String envById(int id) => '$baseApi/envs/$id';
   static String envEnable(int id) => '$baseApi/envs/$id/enable';
   static String envDisable(int id) => '$baseApi/envs/$id/disable';
-  static String envMoveTop(int id) => '$baseApi/envs/$id/move-top';
-  static String envCancelTop(int id) => '$baseApi/envs/$id/cancel-top';
   static const String envsBatchDelete = '$baseApi/envs/batch';
   static const String envsBatchEnable = '$baseApi/envs/batch/enable';
   static const String envsBatchDisable = '$baseApi/envs/batch/disable';
   static const String envsBatchGroup = '$baseApi/envs/batch/group';
   static const String envsSort = '$baseApi/envs/sort';
   static const String envsGroups = '$baseApi/envs/groups';
-  static const String envsExport = '$baseApi/envs/export';
   static const String envsExportAll = '$baseApi/envs/export-all';
-  static const String envsExportFiles = '$baseApi/envs/export-files';
   static const String envsImport = '$baseApi/envs/import';
 
   // Subscriptions
@@ -121,7 +111,6 @@ class ApiEndpoints {
   static String subscriptionPullStream(int id) =>
       '$baseApiV1/subscriptions/$id/pull-stream';
   static String subscriptionLogs(int id) => '$baseApi/subscriptions/$id/logs';
-  static const String subscriptionsBatchDelete = '$baseApi/subscriptions/batch';
 
   // Notifications
   static const String notifications = '$baseApi/notifications';
@@ -142,8 +131,6 @@ class ApiEndpoints {
   static String depCancel(int id) => '$baseApi/deps/$id/cancel';
   static String depLogStream(int id) => '$baseApiV1/deps/$id/log-stream';
   static const String depsBatchDelete = '$baseApi/deps/batch-delete';
-  static const String depsPip = '$baseApi/deps/pip';
-  static const String depsNpm = '$baseApi/deps/npm';
   static const String depsMirrors = '$baseApi/deps/mirrors';
   static const String depsPythonRuntimes = '$baseApi/deps/python-runtimes';
   static const String depsPythonRuntimeDefault =
@@ -170,13 +157,8 @@ class ApiEndpoints {
   static const String twoFa = '$baseApi/security/2fa';
   static const String twoFaStatus = '$baseApi/security/2fa/status';
 
-  // System Settings
-  static const String systemSettings = '$baseApi/system/settings';
-  static const String panelLogs = '$baseApi/system/panel-log';
-
   // Configs
   static const String configs = '$baseApi/configs';
-  static String configByKey(String key) => '$baseApi/configs/$key';
   static const String configsBatch = '$baseApi/configs/batch';
 
   // SSH Keys
@@ -184,7 +166,6 @@ class ApiEndpoints {
   static String sshKeyById(int id) => '$baseApi/ssh-keys/$id';
 
   // Open API
-  static const String openapi = '$baseApi/open-api';
   static const String openApiToken = '$baseApi/open-api/token';
   static const String openApiApps = '$baseApi/open-api/apps';
   static String openApiAppById(int id) => '$baseApi/open-api/apps/$id';
