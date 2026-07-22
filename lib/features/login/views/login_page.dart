@@ -6,6 +6,7 @@ import '../../../core/auth/auth_service.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/utils/api_utils.dart';
 import '../../dashboard/providers/dashboard_provider.dart';
 import '../widgets/geetest_captcha_dialog.dart';
 
@@ -177,7 +178,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             _usernameController.text.trim(),
             _passwordController.text,
           );
-        } catch (_) {}
+        } catch (error) {
+          setState(() {
+            _needsInit = true;
+            _error = extractErrorMessage(error, '初始化失败，请检查输入后重试');
+            _loading = false;
+          });
+          return;
+        }
         setState(() => _needsInit = false);
       }
 
