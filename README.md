@@ -4,11 +4,17 @@
 
 ## 版本
 
-- App 版本：`v0.1.10`
+- App 版本：`v0.1.11`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.11
+
+- 应用锁：后台返回触发锁定时改用根 ProviderContainer，不再依赖 `rootElement!` 强制解包，异常会输出调试日志。
+- 架构：标记 AuthService 中旧式功能 API 包装，避免后续新功能误用旧路径或旧 HTTP 方法。
+- Open API：调用日志改为自动分页加载全部记录，避免固定 page size 导致日志截断。
 
 ### v0.1.10
 
@@ -156,8 +162,8 @@ Material 3 主题 + Liquid Glass 液态玻璃风格，全局对齐 iOS26 ultraTh
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.1.10-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.10) |
-| iOS | [daidai-flutter-v0.1.10-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.10) |
+| Android | [daidai-flutter-v0.1.11-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.11) |
+| iOS | [daidai-flutter-v0.1.11-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.11) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 
