@@ -31,3 +31,12 @@
   - 自定义控件复用 `appGlassDecoration` 或 `AppGlassIconButton`。
   - 视觉与底部 `GlassTabBar` 保持一致，滚动内容继续使用确定性表面。
   - 新控件需要提供圆角裁剪和窄屏防溢出处理。
+
+### liquid_glass_easy 架构
+- Date: 2026-07-22
+- Context: 全应用迁移到 `liquid_glass_easy 3.3.1`
+- Instructions:
+  - 使用 `LiquidGlassScaffold`、`LiquidGlassBottomNavBar` 和 `LiquidGlassLens` 公共 API。
+  - 禁止引用 `liquid_glass_easy/src/` 私有实现。
+  - 滚动 Lens 使用低失真、低模糊和零色散性能配置。
+  - Android 全局关闭 Stretch Overscroll，避免滚动边缘玻璃变黑。

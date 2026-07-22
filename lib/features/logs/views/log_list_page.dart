@@ -818,33 +818,20 @@ class _StatusFilterChip extends StatelessWidget {
     final foreground = selected
         ? selectedColor
         : (isLight ? AppColors.slate600 : AppColors.slate300);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: appGlassDecoration(
-            isLight: isLight,
-            borderRadius: 18,
-            accentColor: selectedColor,
-            selected: selected,
+    return AppLiquidGlassSurface(
+      onTap: onTap,
+      borderRadius: 18,
+      accentColor: selectedColor,
+      selected: selected,
+      performanceMode: true,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          color: foreground,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: foreground,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

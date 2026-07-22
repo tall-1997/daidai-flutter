@@ -102,16 +102,11 @@ class _ThemeModeSelector extends ConsumerWidget {
         return Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 3),
-            child: GestureDetector(
-            onTap: () => onChanged(mode),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+            child: AppLiquidGlassSurface(
+              onTap: () => onChanged(mode),
+              borderRadius: 12,
+              selected: isSelected,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: appGlassDecoration(
-                isLight: isLight,
-                borderRadius: 12,
-                selected: isSelected,
-              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -134,7 +129,6 @@ class _ThemeModeSelector extends ConsumerWidget {
                     ),
                   ),
                 ],
-              ),
               ),
             ),
           ),

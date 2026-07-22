@@ -96,3 +96,14 @@ flutter build ios --release --no-codesign
 - 危险操作使用红色前景和玻璃背景。
 - 主要操作使用 Emerald 前景和玻璃背景。
 - 真实 `BackdropFilter` 继续限定在页面级背景和固定覆盖层。
+
+## liquid_glass_easy 3.3.1 迁移
+
+- 主页面使用 `LiquidGlassScaffold`。
+- 底部导航使用 `LiquidGlassBottomNavBar`。
+- 内容卡片使用 `LiquidGlassLens`。
+- 筛选和操作表面使用 `AppLiquidGlassSurface`。
+- 页头按钮使用 `AppGlassIconButton`。
+- 所有包引用通过 `package:liquid_glass_easy/liquid_glass_easy.dart` 公共入口。
+- 全局关闭 Stretch Overscroll，防止 Android 滚动边缘 Lens 变黑。
+- 滚动卡片采用低失真、低模糊、零色散配置。

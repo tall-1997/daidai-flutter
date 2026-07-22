@@ -1965,14 +1965,11 @@ class _HeaderChipButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     
-    return GestureDetector(
+    return AppLiquidGlassSurface(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: appGlassDecoration(
-          isLight: isLight,
-          borderRadius: 16,
-        ),
+      borderRadius: 16,
+      performanceMode: true,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1988,7 +1985,6 @@ class _HeaderChipButton extends ConsumerWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }
@@ -2014,16 +2010,13 @@ class _BatchActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final foregroundColor = enabled ? color : AppColors.slate400;
 
-    return GestureDetector(
+    return AppLiquidGlassSurface(
       onTap: enabled ? onTap : null,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: appGlassDecoration(
-          isLight: isLight,
-          borderRadius: 12,
-          accentColor: color,
-          selected: enabled,
-        ),
+      borderRadius: 12,
+      accentColor: color,
+      selected: enabled,
+      performanceMode: true,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -2039,7 +2032,6 @@ class _BatchActionButton extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }
@@ -2201,21 +2193,14 @@ class _MiniBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Material(
-        color: Colors.transparent,
-        child: Ink(
-          decoration: appGlassDecoration(isLight: isLight, borderRadius: 8),
-          child: InkWell(
-            onTap: onTap,
-            child: SizedBox(
-              width: 30,
-              height: 30,
-              child: Icon(icon, size: 14, color: AppColors.slate400),
-            ),
-          ),
-        ),
+    return AppLiquidGlassSurface(
+      onTap: onTap,
+      borderRadius: 8,
+      performanceMode: true,
+      child: SizedBox(
+        width: 30,
+        height: 30,
+        child: Icon(icon, size: 14, color: AppColors.slate400),
       ),
     );
   }

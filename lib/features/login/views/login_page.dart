@@ -720,13 +720,11 @@ class _IconInput extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      clipBehavior: Clip.antiAlias,
-      child: Container(
-        height: 52,
+    return SizedBox(
+      height: 52,
+      child: AppLiquidGlassSurface(
+        borderRadius: 14,
         padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: appGlassDecoration(isLight: isLight, borderRadius: 14),
         child: Row(
           children: [
             Icon(icon, size: 20, color: AppColors.slate400),
@@ -735,7 +733,7 @@ class _IconInput extends StatelessWidget {
             if (suffix != null) ...[const SizedBox(width: 8), suffix!],
           ],
         ),
-      ),
+        ),
     );
   }
 }

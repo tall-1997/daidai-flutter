@@ -21,6 +21,9 @@ class DaidaiApp extends ConsumerWidget {
       themeMode: styleSettings.themeMode,
       routerConfig: router,
       locale: const Locale('zh', 'CN'),
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        overscroll: false,
+      ),
       builder: (context, child) =>
           AppLockGate(child: child ?? const SizedBox.shrink()),
     );

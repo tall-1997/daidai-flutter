@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:liquid_glass_easy/liquid_glass_easy.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/theme_provider.dart';
@@ -66,50 +66,70 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     }
   }
 
-  Widget _buildBottomBar(int idx) {
-    return GlassTabBar.bottom(
-      selectedIndex: idx,
-      onTabSelected: _onTabSelected,
-      iconSize: 22,
-      labelFontSize: 10,
-      barHeight: 58,
-      horizontalPadding: 16,
-      verticalPadding: 10,
-      magnification: 1.05,
-      settings: const LiquidGlassSettings(
-        thickness: 36,
-        blur: 12,
-      ),
-      quality: GlassQuality.premium,
-      selectedIconColor: AppColors.primary,
-      selectedLabelColor: AppColors.primary,
-      tabs: const [
-        GlassTab(
-          icon: Icon(Icons.space_dashboard_outlined),
-          activeIcon: Icon(Icons.space_dashboard),
-          label: '主页',
-        ),
-        GlassTab(
-          icon: Icon(Icons.schedule_outlined),
-          activeIcon: Icon(Icons.schedule),
-          label: '任务',
-        ),
-        GlassTab(
-          icon: Icon(Icons.terminal_outlined),
-          activeIcon: Icon(Icons.terminal),
-          label: '日志',
-        ),
-        GlassTab(
-          icon: Icon(Icons.key_outlined),
-          activeIcon: Icon(Icons.key),
-          label: '变量',
-        ),
-        GlassTab(
-          icon: Icon(Icons.menu_outlined),
-          activeIcon: Icon(Icons.menu),
-          label: '更多',
-        ),
+  Widget _buildBottomBar(BuildContext context, int idx) {
+    final theme = Theme.of(context);
+    final isLight = theme.brightness == Brightness.light;
+    final width = (MediaQuery.sizeOf(context).width - 32).clamp(280.0, 380.0);
+
+    return LiquidGlassBottomNavBar(
+      items: const [
+        LiquidGlassTabBarItem(icon: Icons.space_dashboard_outlined, selectedIcon: Icons.space_dashboard, label: '主页'),
+        LiquidGlassTabBarItem(icon: Icons.schedule_outlined, selectedIcon: Icons.schedule, label: '任务'),
+        LiquidGlassTabBarItem(icon: Icons.terminal_outlined, selectedIcon: Icons.terminal, label: '日志'),
+        LiquidGlassTabBarItem(icon: Icons.key_outlined, selectedIcon: Icons.key, label: '变量'),
+        LiquidGlassTabBarItem(icon: Icons.menu_outlined, selectedIcon: Icons.menu, label: '更多'),
       ],
+      selectedIndex: idx,
+      onChanged: _onTabSelected,
+      width: width,
+      height: 64,
+      margin: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
+      itemPadding: 5,
+      itemStyle: LiquidGlassNavItemStyle(
+        selectedColor: AppColors.primary,
+        unselectedColor: isLight ? AppColors.slate600 : AppColors.slate300,
+        iconSize: 22,
+        labelFontSize: 10,
+      ),
+      pillStyle: LiquidGlassNavPillStyle(
+        mode: LiquidGlassPillMode.both,
+        animated: true,
+        color: AppColors.primary.withAlpha(isLight ? 28 : 42),
+        glassStyle: LiquidGlassStyle(
+          appearance: LiquidGlassAppearance(
+            color: AppColors.primary.withAlpha(isLight ? 22 : 34),
+            blur: const LiquidGlassBlur(sigmaX: 2, sigmaY: 2),
+          ),
+          refraction: const LiquidGlassRefraction(
+            distortion: 0.06,
+            distortionWidth: 12,
+            chromaticAberration: 0.001,
+          ),
+        ),
+      ),
+      style: LiquidGlassStyle(
+        shape: LiquidGlassShape.roundedRectangle(
+          cornerRadius: 32,
+          borderWidth: 1.2,
+          lightIntensity: 1.1,
+          lightDirection: 80,
+          borderType: const OpticalBorder(
+            borderSaturation: 1.2,
+            ambientIntensity: 1,
+            borderSolidity: 0.3,
+          ),
+        ),
+        appearance: LiquidGlassAppearance(
+          color: isLight ? const Color(0x2EFFFFFF) : const Color(0x52111C2D),
+          blur: const LiquidGlassBlur(sigmaX: 3, sigmaY: 3),
+          saturation: 1.08,
+        ),
+        refraction: const LiquidGlassRefraction(
+          distortion: 0.07,
+          distortionWidth: 28,
+          chromaticAberration: 0.0015,
+        ),
+      ),
     );
   }
 
@@ -160,18 +180,19 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     return PopScope<void>(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) => _handleBackPress(didPop),
-      child: GlassScaffold(
-        background: backgroundWidget,
-        statusBarStyle: GlassStatusBarStyle.auto,
-        edgeToEdge: true,
-        contentAwareBrightness: true,
-        settings: const LiquidGlassSettings(
-          thickness: 36,
-          blur: 12,
-          specularSharpness: GlassSpecularSharpness.medium,
+      child: LiquidGlassScaffold(
+        pixelRatio: 0.8,
+        realTimeCapture: true,
+        useSync: true,
+        safeArea: true,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            backgroundWidget,
+            widget.child,
+          ],
         ),
-        bottomBar: _buildBottomBar(idx),
-        body: widget.child,
+        bottomNavigationBar: _buildBottomBar(context, idx),
       ),
     );
   }

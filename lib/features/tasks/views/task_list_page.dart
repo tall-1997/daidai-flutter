@@ -2418,22 +2418,14 @@ class _TaskPrimaryActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(999),
-      child: Ink(
-        decoration: appGlassDecoration(
-          isLight: isLight,
-          borderRadius: 18,
-          accentColor: color,
-          selected: true,
-        ),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
+    return AppLiquidGlassSurface(
+      onTap: onTap,
+      borderRadius: 18,
+      accentColor: color,
+      selected: true,
+      performanceMode: true,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, size: 16, color: color),
@@ -2448,8 +2440,6 @@ class _TaskPrimaryActionButton extends StatelessWidget {
               ),
             ],
           ),
-          ),
-        ),
       ),
     );
   }
@@ -2473,20 +2463,13 @@ class _TaskSwipeActionButton extends StatelessWidget {
     final isLight = Theme.of(context).brightness == Brightness.light;
     return SizedBox(
       width: _TaskCardState._actionWidth,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        child: Ink(
-          decoration: appGlassDecoration(
-            isLight: isLight,
-            borderRadius: 8,
-            accentColor: color,
-            selected: true,
-          ),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(8),
-            child: Column(
+      child: AppLiquidGlassSurface(
+        onTap: onTap,
+        borderRadius: 8,
+        accentColor: color,
+        selected: true,
+        performanceMode: true,
+        child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 15, color: color),
@@ -2502,8 +2485,6 @@ class _TaskSwipeActionButton extends StatelessWidget {
                 ),
               ),
             ],
-            ),
-          ),
         ),
       ),
     );
@@ -2933,17 +2914,14 @@ class _TaskHeaderChipButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     
-    return GestureDetector(
+    return AppLiquidGlassSurface(
       onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: compact ? 8 : 12,
-          vertical: 7,
-        ),
-        decoration: appGlassDecoration(
-          isLight: isLight,
-          borderRadius: 16,
-        ),
+      borderRadius: 16,
+      performanceMode: true,
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 8 : 12,
+        vertical: 7,
+      ),
         child: Row(
           children: [
             Icon(icon, size: 16, color: AppColors.slate400),
@@ -2960,7 +2938,6 @@ class _TaskHeaderChipButton extends ConsumerWidget {
             ],
           ],
         ),
-      ),
     );
   }
 }
@@ -2986,16 +2963,13 @@ class _TaskBatchActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final foregroundColor = enabled ? color : AppColors.slate400;
 
-    return GestureDetector(
+    return AppLiquidGlassSurface(
       onTap: enabled ? onTap : null,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: appGlassDecoration(
-          isLight: isLight,
-          borderRadius: 12,
-          accentColor: color,
-          selected: enabled,
-        ),
+      borderRadius: 12,
+      accentColor: color,
+      selected: enabled,
+      performanceMode: true,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -3011,7 +2985,6 @@ class _TaskBatchActionButton extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }

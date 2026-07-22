@@ -1680,16 +1680,13 @@ class _StatusFilterChip extends StatelessWidget {
         ? activeColor
         : (isLight ? AppColors.slate600 : AppColors.slate400);
 
-    return GestureDetector(
+    return AppLiquidGlassSurface(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: appGlassDecoration(
-          isLight: isLight,
-          borderRadius: 16,
-          accentColor: activeColor,
-          selected: selected,
-        ),
+      borderRadius: 16,
+      accentColor: activeColor,
+      selected: selected,
+      performanceMode: true,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1721,7 +1718,6 @@ class _StatusFilterChip extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }

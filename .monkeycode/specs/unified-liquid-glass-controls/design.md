@@ -5,20 +5,21 @@ Updated: 2026-07-22
 
 ## 设计说明
 
-底部导航栏继续使用 `GlassTabBar` 的真实液态玻璃渲染。滚动内容中的按钮、搜索框、Chip 和选项卡片使用确定性液态玻璃视觉，避免逐控件背景采样引发纯黑块、彩虹条和快速滚动透明。
+UI 基于 `liquid_glass_easy 3.3.1` 重构。主 Shell 使用 `LiquidGlassScaffold`，底部导航使用 `LiquidGlassBottomNavBar`，卡片和自定义控件使用布局驱动的 `LiquidGlassLens`。
 
 ## 架构
 
-- `AppColors` 定义浅色和深色控件表面状态。
-- `ThemeData` 统一标准 Material 控件。
-- `appGlassDecoration` 统一自定义控件和内容卡片。
-- `AppGlassIconButton` 统一页头图标按钮。
-- 页面级 `GlassScaffold` 与 `GlassTabBar` 继续提供真实玻璃氛围。
+- `LiquidGlassScaffold` 提供 Impeller 实时背景和 Skia 捕获管线。
+- `LiquidGlassBottomNavBar` 提供五入口折射导航和动态选择胶囊。
+- `LiquidGlassLens` 提供卡片、筛选、选项和操作按钮。
+- `appLiquidGlassStyle` 统一浅色、深色、选中和滚动性能配置。
+- `MaterialScrollBehavior(overscroll: false)` 防止 Android Stretch Overscroll 隔离 Lens 背景。
 
 ## 组件接口
 
-- `AppCard`：内容卡片和选项卡片。
-- `AppGlassIconButton`：页头新增、发送和快捷操作。
+- `AppCard`：基于 `LiquidGlassLens` 的内容卡片和选项卡片。
+- `AppLiquidGlassSurface`：基于 `LiquidGlassLens` 的筛选和操作表面。
+- `AppGlassIconButton`：基于 `LiquidGlassLens` 的页头按钮。
 - `InputDecorationTheme`：搜索框和表单输入。
 - `FilledButtonThemeData`：主要操作按钮。
 - `OutlinedButtonThemeData`：次要操作按钮。
@@ -28,8 +29,10 @@ Updated: 2026-07-22
 
 ## 正确性约束
 
-- 内容代码中保持 `GlassCard(` 搜索结果为空。
-- 滚动列表项中不使用 `BackdropFilter`。
+- 项目不再依赖 `liquid_glass_widgets`。
+- 项目仅通过 `liquid_glass_easy` 公共 barrel API 使用组件。
+- 滚动 Lens 使用低失真、低模糊、零色散配置。
+- 全局关闭 Stretch Overscroll。
 - 危险操作保留红色前景语义。
 - 主要操作保留 Emerald 前景语义。
 - 所有圆角玻璃控件使用裁剪或 Material 形状限制绘制范围。
