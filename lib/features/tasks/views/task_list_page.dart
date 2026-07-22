@@ -412,6 +412,75 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     context.push('/tasks/${task.id}/live-logs', extra: task.name);
   }
 
+  Future<void> _showTaskStats(Task task) async {
+    try {
+      final response = await DioClient.instance.dio.get(
+        ApiEndpoints.taskStats(task.id),
+      );
+      final data = extractData(response.data);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text('${task.name} 统计'),
+          content: _TaskInfoDialogContent(
+            emptyText: '暂无统计数据',
+            lines: _formatTaskInfoLines(data),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('关闭'),
+            ),
+          ],
+        ),
+      );
+    } catch (error) {
+      await _showActionError(error, '加载任务统计失败');
+    }
+  }
+
+  Future<void> _showTaskLogFiles(Task task) async {
+    try {
+      final response = await DioClient.instance.dio.get(
+        ApiEndpoints.taskLogFiles(task.id),
+      );
+      final data = extractData(response.data);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text('${task.name} 日志文件'),
+          content: _TaskInfoDialogContent(
+            emptyText: '暂无日志文件',
+            lines: _formatTaskInfoLines(data),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('关闭'),
+            ),
+          ],
+        ),
+      );
+    } catch (error) {
+      await _showActionError(error, '加载任务日志文件失败');
+    }
+  }
+
+  List<String> _formatTaskInfoLines(dynamic data) {
+    if (data is List) {
+      return data.map((item) => item.toString()).toList();
+    }
+    if (data is Map) {
+      return data.entries
+          .map((entry) => '${entry.key}: ${entry.value}')
+          .toList();
+    }
+    final text = data?.toString().trim() ?? '';
+    return text.isEmpty ? const [] : [text];
+  }
+
   Future<void> _runTask(Task task) async {
     try {
       await ref.read(taskProvider.notifier).runTask(task.id);
@@ -1612,6 +1681,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
               onToggleEnabled: () => _toggleTaskEnabled(task),
               onCopy: () => _copyTask(task),
               onTogglePinned: () => _togglePinned(task),
+              onStats: () => _showTaskStats(task),
+              onLogFiles: () => _showTaskLogFiles(task),
               onEdit: () => context.push('/tasks/edit', extra: task),
               onDelete: () => _confirmDelete(task),
             ),
@@ -1706,6 +1777,43 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   }
 }
 
+class _TaskInfoDialogContent extends StatelessWidget {
+  final List<String> lines;
+  final String emptyText;
+
+  const _TaskInfoDialogContent({
+    required this.lines,
+    required this.emptyText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (lines.isEmpty) {
+      return Text(emptyText);
+    }
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 420, maxHeight: 360),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: lines
+              .map(
+                (line) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: SelectableText(
+                    line,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
+}
+
 class _TaskCard extends StatefulWidget {
   final Task task;
   final bool isLight;
@@ -1719,6 +1827,8 @@ class _TaskCard extends StatefulWidget {
   final VoidCallback onToggleEnabled;
   final VoidCallback onCopy;
   final VoidCallback onTogglePinned;
+  final VoidCallback onStats;
+  final VoidCallback onLogFiles;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -1736,6 +1846,8 @@ class _TaskCard extends StatefulWidget {
     required this.onToggleEnabled,
     required this.onCopy,
     required this.onTogglePinned,
+    required this.onStats,
+    required this.onLogFiles,
     required this.onEdit,
     required this.onDelete,
   });
@@ -1747,7 +1859,7 @@ class _TaskCard extends StatefulWidget {
 class _TaskCardState extends State<_TaskCard> {
   static const double _actionWidth = 52;
   static const double _actionGap = 6;
-  static const double _actionsWidth = _actionWidth * 5 + _actionGap * 4 + 8;
+  static const double _actionsWidth = _actionWidth * 7 + _actionGap * 6 + 8;
 
   double _dragOffset = 0;
   bool _dragging = false;
@@ -1929,6 +2041,20 @@ class _TaskCardState extends State<_TaskCard> {
                       icon: Icons.copy_outlined,
                       color: AppColors.blue500,
                       onTap: () => _runSwipeAction(widget.onCopy),
+                    ),
+                    const SizedBox(width: _actionGap),
+                    _TaskSwipeActionButton(
+                      label: '统计',
+                      icon: Icons.bar_chart_outlined,
+                      color: AppColors.primary,
+                      onTap: () => _runSwipeAction(widget.onStats),
+                    ),
+                    const SizedBox(width: _actionGap),
+                    _TaskSwipeActionButton(
+                      label: '日志',
+                      icon: Icons.folder_open_outlined,
+                      color: AppColors.amber500,
+                      onTap: () => _runSwipeAction(widget.onLogFiles),
                     ),
                     const SizedBox(width: _actionGap),
                     _TaskSwipeActionButton(
