@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/theme/app_theme.dart';
@@ -282,22 +283,21 @@ class _LoginLogsTabState extends ConsumerState<_LoginLogsTab>
                     final time = DateTime.tryParse(
                       log['created_at']?.toString() ?? '',
                     );
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: glassCardColor(isLight: widget.isLight),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: widget.isLight
-                              ? AppColors.slate200
-                              : AppColors.slate800,
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: GlassCard(
+                        useOwnLayer: true,
+                        quality: GlassQuality.standard,
+                        settings: const LiquidGlassSettings(
+                          blur: 8,
+                          thickness: 24,
+                          specularSharpness: GlassSpecularSharpness.soft,
                         ),
-                      ),
-                      child: Row(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        child: Row(
                         children: [
                           Icon(
                             success ? Icons.check_circle : Icons.cancel,
@@ -355,6 +355,7 @@ class _LoginLogsTabState extends ConsumerState<_LoginLogsTab>
                             ),
                           ),
                         ],
+                        ),
                       ),
                     );
                   }),
@@ -558,22 +559,21 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
                 final expires = DateTime.tryParse(
                   s['expires_at']?.toString() ?? '',
                 );
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: glassCardColor(isLight: isLight),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: widget.isLight
-                          ? AppColors.slate200
-                          : AppColors.slate800,
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: GlassCard(
+                    useOwnLayer: true,
+                    quality: GlassQuality.standard,
+                    settings: const LiquidGlassSettings(
+                      blur: 8,
+                      thickness: 24,
+                      specularSharpness: GlassSpecularSharpness.soft,
                     ),
-                  ),
-                  child: Row(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    child: Row(
                     children: [
                       const Icon(
                         Icons.devices,
@@ -643,6 +643,7 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
                         ),
                       ),
                     ],
+                    ),
                   ),
                 );
               },
