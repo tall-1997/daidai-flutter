@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:typed_data';
 
+import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +23,8 @@ final envListProvider = StateNotifierProvider<EnvListNotifier, EnvListState>((
 const _selectedGroupUnset = Object();
 
 enum _EnvBatchAction { enable, disable, delete }
+
+enum _EnvTransferAction { exportAll, importEnvs }
 
 class EnvListState {
   final List<EnvVar> envs;
@@ -249,6 +254,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
 
   bool _selectionMode = false;
   bool _sortMode = false;
+  bool _transferBusy = false;
   int? _lastMovedSourceId;
   int? _lastMovedTargetId;
 
@@ -340,6 +346,135 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
     _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _handleEnvTransferAction(_EnvTransferAction? action) async {
+    if (action == null || _transferBusy) {
+      return;
+    }
+    switch (action) {
+      case _EnvTransferAction.exportAll:
+        await _exportEnvs();
+        break;
+      case _EnvTransferAction.importEnvs:
+        await _importEnvs();
+        break;
+    }
+  }
+
+  Future<void> _exportEnvs() async {
+    setState(() => _transferBusy = true);
+    try {
+      final resp = await DioClient.instance.dio.get(
+        ApiEndpoints.envsExportAll,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = _extractBytes(resp.data);
+      if (bytes == null || bytes.isEmpty) {
+        throw StateError('导出内容为空');
+      }
+
+      final savedPath = await FilePicker.platform.saveFile(
+        dialogTitle: '保存环境变量导出文件',
+        fileName: 'daidai-envs-export.json',
+        type: FileType.custom,
+        allowedExtensions: const ['json'],
+        bytes: bytes,
+      );
+      if (savedPath == null) {
+        _showMessage('已取消保存');
+        return;
+      }
+      _showMessage('环境变量已导出');
+    } on UnsupportedError {
+      _showMessage('当前平台暂不支持直接保存文件');
+    } catch (error) {
+      _showMessage(extractErrorMessage(error, '导出环境变量失败'));
+    } finally {
+      if (mounted) {
+        setState(() => _transferBusy = false);
+      }
+    }
+  }
+
+  Future<void> _importEnvs() async {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: false,
+      withData: false,
+      withReadStream: true,
+      type: FileType.custom,
+      allowedExtensions: const ['json'],
+      dialogTitle: '选择环境变量导入文件',
+    );
+    if (result == null || result.files.isEmpty) {
+      return;
+    }
+
+    final file = result.files.first;
+    final multipart = await _toMultipartFile(file);
+    if (multipart == null) {
+      _showMessage('无法读取所选环境变量文件');
+      return;
+    }
+
+    setState(() => _transferBusy = true);
+    try {
+      final formData = FormData();
+      formData.files.add(MapEntry('file', multipart));
+      await DioClient.instance.dio.post(
+        ApiEndpoints.envsImport,
+        data: formData,
+        options: Options(contentType: 'multipart/form-data'),
+      );
+      await ref.read(envListProvider.notifier).load();
+      _showMessage('环境变量导入成功');
+    } catch (error) {
+      _showMessage(extractErrorMessage(error, '导入环境变量失败'));
+    } finally {
+      if (mounted) {
+        setState(() => _transferBusy = false);
+      }
+    }
+  }
+
+  Future<MultipartFile?> _toMultipartFile(PlatformFile file) async {
+    if (file.path != null && file.path!.isNotEmpty) {
+      return MultipartFile.fromFile(file.path!, filename: file.name);
+    }
+    if (file.readStream != null) {
+      return MultipartFile.fromStream(
+        () => file.readStream!,
+        file.size,
+        filename: file.name,
+      );
+    }
+    if (file.bytes != null) {
+      return MultipartFile.fromBytes(file.bytes!, filename: file.name);
+    }
+    return null;
+  }
+
+  Uint8List? _extractBytes(dynamic data) {
+    if (data is Uint8List) {
+      return data;
+    }
+    if (data is List<int>) {
+      return Uint8List.fromList(data);
+    }
+    if (data is List) {
+      final values = data.whereType<num>().map((item) => item.toInt()).toList();
+      return Uint8List.fromList(values);
+    }
+    return null;
   }
 
   bool _isSelected(int id) => _selectedIds.contains(id);
@@ -867,7 +1002,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                             ),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
-vertical: 14,
+                            vertical: 14,
                           ),
                           isDense: true,
                           suffixIcon: _searchController.text.isNotEmpty
@@ -978,6 +1113,60 @@ vertical: 14,
                             color: AppColors.slate400,
                           ),
                         ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  PopupMenuButton<_EnvTransferAction>(
+                    tooltip: '导入导出',
+                    enabled: !_transferBusy,
+                    onSelected: _handleEnvTransferAction,
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: _EnvTransferAction.exportAll,
+                        child: ListTile(
+                          leading: Icon(Icons.file_download_outlined),
+                          title: Text('导出全部变量'),
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: _EnvTransferAction.importEnvs,
+                        child: ListTile(
+                          leading: Icon(Icons.file_upload_outlined),
+                          title: Text('导入变量'),
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ],
+                    child: Container(
+                      height: 44,
+                      width: 44,
+                      decoration: BoxDecoration(
+                        color: glassCardColor(isLight: isLight),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isLight
+                              ? AppColors.slate200
+                              : AppColors.slate800,
+                        ),
+                      ),
+                      child: Center(
+                        child: _transferBusy
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.more_horiz,
+                                size: 20,
+                                color: AppColors.slate400,
+                              ),
                       ),
                     ),
                   ),
