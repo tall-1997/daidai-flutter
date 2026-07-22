@@ -79,6 +79,7 @@ class _MorePageState extends ConsumerState<MorePage> {
     final isLight = theme.brightness == Brightness.light;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: ListView(
         padding: EdgeInsets.only(
           top: MediaQuery.of(context).padding.top + 16,

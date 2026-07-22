@@ -602,12 +602,13 @@ class _UserCard extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: GlassCard(
         useOwnLayer: true,
-        quality: GlassQuality.standard,
+        quality: GlassQuality.minimal,
         settings: const LiquidGlassSettings(
           blur: 8,
           thickness: 24,
           specularSharpness: GlassSpecularSharpness.soft,
         ),
+        clipBehavior: Clip.antiAlias,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
         children: [

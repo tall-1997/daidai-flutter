@@ -867,6 +867,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
     final allSelected = _isAllSelected(state.envs);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Padding(
         padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 12),
         child: Column(
@@ -2137,24 +2138,18 @@ class _EnvCardState extends State<_EnvCard> {
       onLongPress: widget.onLongPress,
       child: GlassCard(
         useOwnLayer: true,
-        quality: GlassQuality.standard,
+        quality: GlassQuality.minimal,
         settings: const LiquidGlassSettings(
           blur: 8,
           thickness: 24,
           specularSharpness: GlassSpecularSharpness.soft,
         ),
+        clipBehavior: Clip.antiAlias,
         padding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 14,
         ),
-        child: Container(
-          decoration: widget.selected
-              ? BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primary, width: 1.4),
-                )
-              : null,
-          child: Column(
+        child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
             Row(
@@ -2253,7 +2248,6 @@ class _EnvCardState extends State<_EnvCard> {
               ),
             ),
             ],
-          ),
         ),
       ),
     );

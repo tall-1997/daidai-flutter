@@ -729,6 +729,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     _restoreScrollOffsetIfNeeded();
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Padding(
         padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 12),
         child: Column(
@@ -2125,26 +2126,15 @@ class _TaskCardState extends State<_TaskCard> {
                 transform: Matrix4.translationValues(_dragOffset, 0, 0),
                 child: GlassCard(
                   useOwnLayer: true,
-                  quality: GlassQuality.standard,
+                  quality: GlassQuality.minimal,
                   settings: const LiquidGlassSettings(
                     blur: 8,
                     thickness: 24,
                     specularSharpness: GlassSpecularSharpness.soft,
                   ),
+                  clipBehavior: Clip.antiAlias,
                   padding: const EdgeInsets.all(14),
-                  child: Container(
-                    decoration: widget.selected || hasFailure
-                        ? BoxDecoration(
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: widget.selected
-                                  ? AppColors.primary
-                                  : AppColors.red500.withAlpha(60),
-                              width: widget.selected ? 1.4 : 1,
-                            ),
-                          )
-                        : null,
-                    child: Column(
+                  child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                     Row(
@@ -2272,7 +2262,6 @@ fontSize: 11,
                       ],
                     ),
                       ],
-                    ),
                   ),
                 ),
               ),

@@ -287,12 +287,13 @@ class _LoginLogsTabState extends ConsumerState<_LoginLogsTab>
                       padding: const EdgeInsets.only(bottom: 8),
                       child: GlassCard(
                         useOwnLayer: true,
-                        quality: GlassQuality.standard,
+                        quality: GlassQuality.minimal,
                         settings: const LiquidGlassSettings(
                           blur: 8,
                           thickness: 24,
                           specularSharpness: GlassSpecularSharpness.soft,
                         ),
+                        clipBehavior: Clip.antiAlias,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
                           vertical: 12,
@@ -563,12 +564,13 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
                   padding: const EdgeInsets.only(bottom: 8),
                   child: GlassCard(
                     useOwnLayer: true,
-                    quality: GlassQuality.standard,
+                    quality: GlassQuality.minimal,
                     settings: const LiquidGlassSettings(
                       blur: 8,
                       thickness: 24,
                       specularSharpness: GlassSpecularSharpness.soft,
                     ),
+                    clipBehavior: Clip.antiAlias,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,
                       vertical: 12,

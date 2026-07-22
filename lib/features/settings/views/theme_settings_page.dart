@@ -17,6 +17,7 @@ class ThemeSettingsPage extends ConsumerWidget {
     final isLight = Theme.of(context).brightness == Brightness.light;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('主题设置'),
         backgroundColor: Colors.transparent,
@@ -29,12 +30,10 @@ class ThemeSettingsPage extends ConsumerWidget {
           const SizedBox(height: 8),
           GlassCard(
             useOwnLayer: true,
-            settings: const LiquidGlassSettings(
-              blur: 8,
-              thickness: 24,
-              specularSharpness: GlassSpecularSharpness.soft,
-            ),
-            padding: EdgeInsets.zero,
+            quality: GlassQuality.minimal,
+            settings: const LiquidGlassSettings(blur: 8, thickness: 20),
+            clipBehavior: Clip.antiAlias,
+            padding: const EdgeInsets.all(6),
             child: _ThemeModeSelector(
               isLight: isLight,
               currentMode: settings.themeMode,
@@ -117,7 +116,9 @@ class _ThemeModeSelector extends ConsumerWidget {
       children: ThemeMode.values.map((mode) {
         final isSelected = mode == currentMode;
         return Expanded(
-          child: GestureDetector(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 3),
+            child: GestureDetector(
             onTap: () => onChanged(mode),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
@@ -125,10 +126,19 @@ class _ThemeModeSelector extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: isSelected
                     ? (isLight
-                        ? AppColors.primary.withAlpha(20)
-                        : AppColors.primary.withAlpha(30))
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
+                        ? AppColors.primary.withAlpha(24)
+                        : AppColors.primary.withAlpha(40))
+                    : (isLight
+                        ? AppColors.lightSurfaceMuted
+                        : AppColors.darkSurfaceMuted),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.primary.withAlpha(150)
+                      : (isLight
+                          ? AppColors.slate200
+                          : AppColors.darkBorder),
+                ),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -152,6 +162,7 @@ class _ThemeModeSelector extends ConsumerWidget {
                     ),
                   ),
                 ],
+              ),
               ),
             ),
           ),

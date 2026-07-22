@@ -95,9 +95,9 @@ void main() async {
       theme: GlassThemeData(
         light: GlassThemeVariant(
           settings: GlassThemeSettings(
-            thickness: 32,
-            blur: 12,
-            glassColor: const Color(0x1A000000),
+            thickness: 28,
+            blur: 10,
+            glassColor: const Color(0x70FFFFFF),
             lightIntensity: 0.6,
             ambientStrength: 0.3,
           ),
@@ -105,9 +105,9 @@ void main() async {
         ),
         dark: GlassThemeVariant(
           settings: GlassThemeSettings(
-            thickness: 48,
-            blur: 18,
-            glassColor: const Color(0xB30F172A),
+            thickness: 32,
+            blur: 12,
+            glassColor: const Color(0x70111C2D),
             lightIntensity: 0.5,
             ambientStrength: 0.15,
           ),
@@ -115,33 +115,9 @@ void main() async {
         ),
       ),
       adaptiveQuality: false,
-      child: GlassTheme(
-        data: GlassThemeData(
-          light: GlassThemeVariant(
-            settings: GlassThemeSettings(
-              thickness: 32,
-              blur: 12,
-              glassColor: const Color(0x1A000000),
-              lightIntensity: 0.6,
-              ambientStrength: 0.3,
-            ),
-            quality: GlassQuality.standard,
-          ),
-          dark: GlassThemeVariant(
-            settings: GlassThemeSettings(
-              thickness: 48,
-              blur: 18,
-              glassColor: const Color(0xB30F172A),
-              lightIntensity: 0.5,
-              ambientStrength: 0.15,
-            ),
-            quality: GlassQuality.standard,
-          ),
-        ),
-        child: UncontrolledProviderScope(
-          container: container,
-          child: const DaidaiApp(),
-        ),
+      child: UncontrolledProviderScope(
+        container: container,
+        child: const DaidaiApp(),
       ),
     ),
   );

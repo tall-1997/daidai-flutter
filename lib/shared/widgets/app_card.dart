@@ -10,6 +10,7 @@ class AppCard extends ConsumerWidget {
   final EdgeInsetsGeometry? margin;
   final double borderRadius;
   final VoidCallback? onTap;
+  final bool stableForScrolling;
 
   const AppCard({
     super.key,
@@ -18,19 +19,23 @@ class AppCard extends ConsumerWidget {
     this.margin,
     this.borderRadius = 16,
     this.onTap,
+    this.stableForScrolling = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     Widget card = GlassCard(
       useOwnLayer: true,
-      quality: GlassQuality.standard,
+      quality: stableForScrolling
+          ? GlassQuality.minimal
+          : GlassQuality.standard,
       settings: const LiquidGlassSettings(
         blur: 8,
         thickness: 24,
         specularSharpness: GlassSpecularSharpness.soft,
       ),
       padding: padding ?? const EdgeInsets.all(16),
+      clipBehavior: Clip.antiAlias,
       child: child,
     );
 
@@ -67,13 +72,14 @@ class AppListTile extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: GlassCard(
         useOwnLayer: true,
-        quality: GlassQuality.standard,
+        quality: GlassQuality.minimal,
         settings: const LiquidGlassSettings(
           blur: 8,
           thickness: 24,
           specularSharpness: GlassSpecularSharpness.soft,
         ),
         padding: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
         child: ListTile(
           leading: Icon(icon, size: 20),
           title: Text(title),
@@ -97,14 +103,14 @@ Color glassCardColor({
   Color? darkColor,
 }) {
   return isLight
-      ? (lightColor ?? Colors.white.withAlpha(160))
-      : (darkColor ?? const Color(0xEE0F172A));
+      ? (lightColor ?? AppColors.lightSurface)
+      : (darkColor ?? AppColors.darkSurface);
 }
 
 Color glassFillColor({
   required bool isLight,
 }) {
   return isLight
-      ? Colors.white.withAlpha(120)
-      : const Color(0xF20F172A);
+      ? AppColors.lightSurfaceMuted
+      : AppColors.darkSurfaceMuted;
 }

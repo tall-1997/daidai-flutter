@@ -118,7 +118,8 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     final idx = _currentIndex(context);
     final styleSettings = ref.watch(appStyleProvider);
     final bg = styleSettings.backgroundImagePath;
-    final blur = styleSettings.blurIntensity;
+    final blur = styleSettings.blurIntensity.clamp(0.0, 50.0);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     Widget backgroundWidget;
     if (bg != null) {
@@ -139,7 +140,11 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
               imageWidget,
               BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-                child: Container(color: Colors.transparent),
+                child: ColoredBox(
+                  color: isDark
+                      ? AppColors.darkPage.withAlpha(72)
+                      : Colors.white.withAlpha(28),
+                ),
               ),
             ],
           ),

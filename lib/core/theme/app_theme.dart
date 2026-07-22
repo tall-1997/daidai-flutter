@@ -25,6 +25,14 @@ class AppColors {
   static const glassCard = Color(0xFFFFFFFF);
   static const glassCardBorder = Color(0xFFE5E5EA);
   static const glassDivider = Color(0xFFE5E5EA);
+  static const lightPage = Color(0xFFF4F7F9);
+  static const darkPage = Color(0xFF07111F);
+  static const lightSurface = Color(0xE6FFFFFF);
+  static const darkSurface = Color(0xD91A2638);
+  static const lightSurfaceMuted = Color(0xCCF8FAFC);
+  static const darkSurfaceMuted = Color(0xCC111C2D);
+  static const lightBorder = Color(0x99FFFFFF);
+  static const darkBorder = Color(0x6636475C);
   static const miuixRed = Color(0xFFE5534B);
   static const miuixGreen = Color(0xFF30A14E);
   static const miuixBlue = Color(0xFF3B82F6);
@@ -61,7 +69,7 @@ class AppTheme {
       primary: AppColors.primary,
       onPrimary: Colors.white,
       secondary: AppColors.blue500,
-      surface: Colors.white,
+      surface: AppColors.lightSurface,
       onSurface: AppColors.slate900,
       onSurfaceVariant: AppColors.slate500,
       outline: AppColors.glassCardBorder,
@@ -79,7 +87,7 @@ class AppTheme {
       primary: AppColors.primary,
       onPrimary: Colors.white,
       secondary: AppColors.blue500,
-      surface: AppColors.slate950,
+      surface: AppColors.darkSurface,
       onSurface: AppColors.slate50,
       onSurfaceVariant: AppColors.slate400,
       outline: AppColors.slate800,
@@ -92,9 +100,9 @@ class AppTheme {
 
   static ThemeData _buildTheme(ColorScheme cs) {
     final isLight = cs.brightness == Brightness.light;
-    final cardColor = isLight ? AppColors.glassCard : AppColors.slate900;
-    final borderColor = isLight ? AppColors.glassCardBorder : AppColors.slate800;
-    final scaffoldBg = isLight ? AppColors.glassBg : AppColors.slate950;
+    final cardColor = isLight ? AppColors.lightSurface : AppColors.darkSurface;
+    final borderColor = isLight ? AppColors.slate200 : AppColors.darkBorder;
+    final scaffoldBg = isLight ? AppColors.lightPage : AppColors.darkPage;
 
     return ThemeData(
       useMaterial3: true,
@@ -104,7 +112,7 @@ class AppTheme {
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: scaffoldBg.withAlpha(200),
+        backgroundColor: scaffoldBg.withAlpha(isLight ? 224 : 230),
         foregroundColor: cs.onSurface,
         titleTextStyle: TextStyle(
           color: cs.onSurface,
@@ -219,6 +227,19 @@ class AppTheme {
         space: 0,
       ),
       chipTheme: ChipThemeData(
+        backgroundColor: isLight
+            ? AppColors.lightSurfaceMuted
+            : AppColors.darkSurfaceMuted,
+        selectedColor: AppColors.primary.withAlpha(isLight ? 24 : 38),
+        disabledColor: isLight ? AppColors.slate100 : AppColors.slate800,
+        side: BorderSide(color: borderColor),
+        labelStyle: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+        secondaryLabelStyle: const TextStyle(
+          color: AppColors.primary,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       listTileTheme: ListTileThemeData(

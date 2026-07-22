@@ -164,6 +164,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           ];
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: RefreshIndicator(
         color: AppColors.primary,
         onRefresh: () => ref.read(dashboardProvider.notifier).load(),

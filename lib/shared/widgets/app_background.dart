@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/theme_provider.dart';
+import '../../core/theme/app_theme.dart';
 
 /// 页面级背景组件，为二级/三级页面提供背景图片和模糊效果
 /// 主页面由 MainScaffold 的 GlassScaffold 处理，不需要此组件
