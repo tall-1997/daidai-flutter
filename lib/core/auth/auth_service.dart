@@ -158,6 +158,15 @@ class AuthService {
     }
   }
 
+  // Legacy feature API wrappers.
+  //
+  // The active code path uses feature-specific providers/notifiers with
+  // DioClient + ApiEndpoints directly. Keep the following wrappers only for
+  // historical compatibility. New feature code should not call these methods,
+  // because several of them preserve older endpoint paths or HTTP methods.
+  // Before reusing any method below, verify it against ApiEndpoints and the
+  // current backend route implementation.
+
   // Dashboard API
   Future<Map<String, dynamic>> getDashboard() async {
     final response = await _dio.get(ApiEndpoints.dashboard);
