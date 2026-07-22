@@ -230,7 +230,7 @@ class AppUpdateService {
         expectedSize: expectedSize,
         expectedDigest: expectedDigest,
       )) {
-        throw const StateError('安装包校验失败，请重新下载');
+        throw StateError('安装包校验失败，请重新下载');
       }
 
       onDone();
