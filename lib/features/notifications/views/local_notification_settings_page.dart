@@ -56,6 +56,7 @@ class _LocalNotificationSettingsPageState
   Future<void> _requestPermission() async {
     final granted = await _service.requestPermissions();
     if (!mounted) return;
+    setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(granted ? '通知权限已开启' : '通知权限未开启，请在系统设置中打开'),
@@ -65,7 +66,7 @@ class _LocalNotificationSettingsPageState
   }
 
   Future<bool> _checkPermission() async {
-    return await _service.requestPermissions();
+    return await _service.areNotificationsEnabled();
   }
 
   @override
