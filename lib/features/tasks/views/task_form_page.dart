@@ -290,9 +290,6 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
           map['default_version']?.toString().trim().isNotEmpty == true
           ? map['default_version'].toString().trim()
           : '3.12';
-      final currentExists = runtimes.any(
-        (runtime) => runtime.version == _pythonVersion,
-      );
       if (!mounted) {
         return;
       }
@@ -300,11 +297,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
         _pythonRuntimes = runtimes;
         _pythonDefaultVersion = defaultVersion;
         // 编辑已有任务时保留原值；新建任务时直接跟随后端默认版本。
-        if (isEditing) {
-          if (!currentExists && runtimes.isNotEmpty) {
-            _pythonVersion = widget.task?.pythonVersion ?? defaultVersion;
-          }
-        } else {
+        if (!isEditing) {
           _pythonVersion = defaultVersion;
         }
         _loadingPythonRuntimes = false;
@@ -519,13 +512,20 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
 
   List<DropdownMenuItem<String>> get _pythonRuntimeItems {
     if (_pythonRuntimes.isEmpty) {
-      return const [
-        DropdownMenuItem(value: '3.10', child: Text('Python 3.10')),
-        DropdownMenuItem(value: '3.11', child: Text('Python 3.11')),
-        DropdownMenuItem(value: '3.12', child: Text('Python 3.12')),
+      final fallback = ['3.10', '3.11', '3.12'];
+      if (_pythonVersion.trim().isNotEmpty &&
+          !fallback.contains(_pythonVersion)) {
+        fallback.insert(0, _pythonVersion);
+      }
+      return [
+        for (final version in fallback)
+          DropdownMenuItem(
+            value: version,
+            child: Text('Python $version'),
+          ),
       ];
     }
-    return _pythonRuntimes.map((runtime) {
+    final items = _pythonRuntimes.map((runtime) {
       final suffix = runtime.version == _pythonDefaultVersion ? '（默认）' : '';
       final status = runtime.available ? '' : ' · 需安装';
       return DropdownMenuItem(
@@ -533,6 +533,17 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
         child: Text('${runtime.label}$suffix$status'),
       );
     }).toList();
+    if (_pythonVersion.trim().isNotEmpty &&
+        items.every((item) => item.value != _pythonVersion)) {
+      items.insert(
+        0,
+        DropdownMenuItem(
+          value: _pythonVersion,
+          child: Text('Python $_pythonVersion（当前任务，运行时不可用）'),
+        ),
+      );
+    }
+    return items;
   }
 
   @override
