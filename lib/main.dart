@@ -23,6 +23,11 @@ class _AppLifecycleHandler extends WidgetsBindingObserver {
   static final _AppLifecycleHandler instance = _AppLifecycleHandler._();
 
   DateTime? _pausedAt;
+  ProviderContainer? _container;
+
+  void attachContainer(ProviderContainer container) {
+    _container = container;
+  }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -42,14 +47,13 @@ class _AppLifecycleHandler extends WidgetsBindingObserver {
 
   void _triggerAppLock() {
     try {
-      final binding = WidgetsBinding.instance;
-      if (!binding.rootElement!.mounted) return;
-      final container = ProviderScope.containerOf(
-        binding.rootElement!,
-        listen: false,
-      );
+      final container = _container;
+      if (container == null) return;
       container.read(appLockProvider.notifier).lockIfEnabled();
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      debugPrint('Failed to trigger app lock: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
   }
 }
 
@@ -63,6 +67,9 @@ void main() async {
     await LocalNotificationService().initialize();
   } catch (_) {}
 
+  final container = ProviderContainer();
+  _AppLifecycleHandler.instance.attachContainer(container);
+
   // 添加生命周期观察者用于后台通知和应用锁
   _appLifecycleObserver();
 
@@ -71,8 +78,6 @@ void main() async {
   if (serverUrl != null && serverUrl.isNotEmpty) {
     DioClient.instance.setBaseUrl(serverUrl);
   }
-
-  final container = ProviderContainer();
 
   // 注入认证拦截器
   DioClient.instance.dio.interceptors.insert(
