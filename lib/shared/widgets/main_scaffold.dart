@@ -165,10 +165,6 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
           blur: 12,
           specularSharpness: GlassSpecularSharpness.medium,
         ),
-        appBar: GlassAppBar(
-          title: const Text('Daidai'),
-          centerTitle: true,
-        ),
         bottomBar: _buildBottomBar(idx),
         body: widget.child,
       ),

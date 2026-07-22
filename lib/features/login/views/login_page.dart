@@ -78,6 +78,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (serverUrl == null || serverUrl.isEmpty) {
       // 没有已保存的服务器地址，显示服务器地址输入框
       _needsServerUrl = true;
+      _serverUrlController.text = '127.0.0.1:5700';
       _panels = await SecureStorage.getPanels();
       if (mounted) setState(() {});
       return;
@@ -352,7 +353,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           child: TextFormField(
                             controller: _serverUrlController,
                             decoration: const InputDecoration(
-                              hintText: 'dd.19850214.xyz',
+                              hintText: '127.0.0.1:5700',
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
