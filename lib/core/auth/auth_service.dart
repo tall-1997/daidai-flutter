@@ -134,13 +134,6 @@ class AuthService {
     return user;
   }
 
-  Future<void> changePassword(String oldPassword, String newPassword) async {
-    await _dio.put(
-      ApiEndpoints.password,
-      data: {'old_password': oldPassword, 'new_password': newPassword},
-    );
-  }
-
   Future<bool> checkHealth(String serverUrl) async {
     try {
       final dio = Dio(

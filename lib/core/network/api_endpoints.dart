@@ -9,7 +9,6 @@ class ApiEndpoints {
   static const String logout = '$baseApi/auth/logout';
   static const String refresh = '$baseApi/auth/refresh';
   static const String user = '$baseApi/auth/user';
-  static const String password = '$baseApi/auth/password';
   static const String captchaConfig = '$baseApi/auth/captcha-config';
 
   // System
