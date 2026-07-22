@@ -599,7 +599,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           onPressed: _loading ? null : _submit,
                           style: FilledButton.styleFrom(
                             foregroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
