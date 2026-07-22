@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -38,12 +39,20 @@ String _applyGitHubMirror(String url) {
   return url;
 }
 
+int? _toInt(dynamic value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '');
+}
+
 class AppUpdateInfo {
   final String latestVersion;
   final String currentVersion;
   final String releaseNotes;
   final String downloadUrl;
   final String assetName;
+  final int assetSize;
+  final String assetDigest;
   final bool hasUpdate;
   final DateTime? publishedAt;
 
@@ -53,6 +62,8 @@ class AppUpdateInfo {
     required this.releaseNotes,
     required this.downloadUrl,
     required this.assetName,
+    required this.assetSize,
+    required this.assetDigest,
     required this.hasUpdate,
     this.publishedAt,
   });
@@ -94,6 +105,8 @@ class AppUpdateService {
 
       String apkUrl = '';
       String assetName = '';
+      int assetSize = 0;
+      String assetDigest = '';
       if (assets is List) {
         for (final asset in assets) {
           final name = asset['name']?.toString() ?? '';
@@ -102,6 +115,8 @@ class AppUpdateService {
             if (_isTrustedDownloadUrl(rawUrl)) {
               apkUrl = rawUrl;
               assetName = name;
+              assetSize = _toInt(asset['size']) ?? 0;
+              assetDigest = asset['digest']?.toString() ?? '';
               break;
             }
           }
@@ -117,6 +132,8 @@ class AppUpdateService {
         releaseNotes: body,
         downloadUrl: apkUrl,
         assetName: assetName,
+        assetSize: assetSize,
+        assetDigest: assetDigest,
         hasUpdate: hasUpdate,
         publishedAt: publishedAt,
       );
@@ -155,8 +172,10 @@ class AppUpdateService {
     String assetName,
     ValueChanged<double> onProgress,
     VoidCallback onDone,
-    ValueChanged<String> onError,
-  ) async {
+    ValueChanged<String> onError, {
+    int expectedSize = 0,
+    String expectedDigest = '',
+  }) async {
     try {
       if (!_isTrustedDownloadUrl(url)) {
         throw const FormatException('更新地址不可信，已拒绝下载');
@@ -172,8 +191,11 @@ class AppUpdateService {
       bool needsDownload = true;
 
       if (await existingFile.exists()) {
-        final existingSize = await existingFile.length();
-        if (existingSize > 1024 * 1024) {
+        if (await _isCachedInstallerValid(
+          existingFile,
+          expectedSize: expectedSize,
+          expectedDigest: expectedDigest,
+        )) {
           needsDownload = false;
           onProgress(1.0);
         } else {
@@ -203,6 +225,14 @@ class AppUpdateService {
         }
       }
 
+      if (!await _isCachedInstallerValid(
+        existingFile,
+        expectedSize: expectedSize,
+        expectedDigest: expectedDigest,
+      )) {
+        throw const StateError('安装包校验失败，请重新下载');
+      }
+
       onDone();
 
       if (Platform.isAndroid) {
@@ -215,6 +245,39 @@ class AppUpdateService {
     } catch (e) {
       onError(e.toString());
     }
+  }
+
+  static Future<bool> _isCachedInstallerValid(
+    File file, {
+    required int expectedSize,
+    required String expectedDigest,
+  }) async {
+    if (!await file.exists()) {
+      return false;
+    }
+    final size = await file.length();
+    if (expectedSize > 0 && size != expectedSize) {
+      return false;
+    }
+    if (expectedSize <= 0 && size <= 1024 * 1024) {
+      return false;
+    }
+    return _matchesDigest(file, expectedDigest);
+  }
+
+  static Future<bool> _matchesDigest(File file, String expectedDigest) async {
+    final normalized = expectedDigest.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return true;
+    }
+    final expected = normalized.startsWith('sha256:')
+        ? normalized.substring('sha256:'.length)
+        : normalized;
+    if (expected.isEmpty) {
+      return true;
+    }
+    final actual = await sha256.bind(file.openRead()).first;
+    return actual.toString().toLowerCase() == expected;
   }
 
   /// Show update dialog.
@@ -278,6 +341,8 @@ class _UpdateDialogState extends State<_UpdateDialog> {
           });
         }
       },
+      expectedSize: widget.info.assetSize,
+      expectedDigest: widget.info.assetDigest,
     );
   }
 
