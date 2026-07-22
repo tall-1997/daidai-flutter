@@ -188,6 +188,7 @@ class AppUpdateService {
       final filePath = '${dir.path}/$safeName';
 
       final existingFile = File(filePath);
+      final tempFile = File('$filePath.download');
       bool needsDownload = true;
 
       if (await existingFile.exists()) {
@@ -198,17 +199,18 @@ class AppUpdateService {
         )) {
           needsDownload = false;
           onProgress(1.0);
-        } else {
-          await existingFile.delete();
         }
       }
 
       if (needsDownload) {
         final downloadUrl = _applyGitHubMirror(url);
+        if (await tempFile.exists()) {
+          await tempFile.delete();
+        }
 
         final response = await _dio.download(
           downloadUrl,
-          filePath,
+          tempFile.path,
           onReceiveProgress: (received, total) {
             if (total > 0) {
               onProgress(received / total);
@@ -223,6 +225,18 @@ class AppUpdateService {
             finalHost.endsWith('.$_kGitHubAssetHost'))) {
           throw const FormatException('更新资源跳转到了不受信任的来源');
         }
+        if (!await _isCachedInstallerValid(
+          tempFile,
+          expectedSize: expectedSize,
+          expectedDigest: expectedDigest,
+        )) {
+          await tempFile.delete();
+          throw StateError('安装包校验失败，请重新下载');
+        }
+        if (await existingFile.exists()) {
+          await existingFile.delete();
+        }
+        await tempFile.rename(filePath);
       }
 
       if (!await _isCachedInstallerValid(
