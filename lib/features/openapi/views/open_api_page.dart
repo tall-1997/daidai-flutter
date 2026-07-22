@@ -352,6 +352,119 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
     );
   }
 
+  void _showTokenRequestDialog(String appKey) {
+    final secretC = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('获取访问 Token'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '输入 App Secret 后获取 24 小时有效的 Open API 访问 Token。',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            _CopyableField(label: 'App Key', value: appKey),
+            const SizedBox(height: 12),
+            TextField(
+              controller: secretC,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'App Secret'),
+            ),
+          ],
+        ),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(dialogCtx),
+                    child: const Text('取消'),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: FilledButton(
+                    onPressed: () async {
+                      final secret = secretC.text.trim();
+                      if (secret.isEmpty) {
+                        return;
+                      }
+                      try {
+                        final resp = await DioClient.instance.dio.post(
+                          ApiEndpoints.openApiToken,
+                          data: {'app_key': appKey, 'app_secret': secret},
+                        );
+                        final data = extractData(resp.data);
+                        if (!mounted) return;
+                        Navigator.pop(dialogCtx);
+                        if (data is Map) {
+                          _showAccessTokenDialog(Map<String, dynamic>.from(data));
+                        }
+                      } catch (error) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              extractErrorMessage(error, '获取访问 Token 失败'),
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text('获取'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAccessTokenDialog(Map<String, dynamic> data) {
+    final token = data['access_token']?.toString() ?? '';
+    final tokenType = data['token_type']?.toString() ?? 'Bearer';
+    final expiresIn = data['expires_in']?.toString() ?? '86400';
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('访问 Token'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '类型：$tokenType · 有效期：$expiresIn 秒',
+              style: const TextStyle(fontSize: 12, color: AppColors.slate500),
+            ),
+            const SizedBox(height: 12),
+            _CopyableField(label: 'Access Token', value: token),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: FilledButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('关闭'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAppCard({
     required Map<String, dynamic> app,
     required bool isLight,
@@ -480,6 +593,10 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                     value: 'view_secret',
                     child: Text('查看密钥'),
                   ),
+                  const PopupMenuItem(
+                    value: 'token',
+                    child: Text('获取 Token'),
+                  ),
                   PopupMenuItem(
                     value: 'toggle',
                     child: Text(enabled ? '禁用' : '启用'),
@@ -501,6 +618,9 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                       break;
                     case 'view_secret':
                       _showViewSecretDialog(id, appKey);
+                      break;
+                    case 'token':
+                      _showTokenRequestDialog(appKey);
                       break;
                     case 'toggle':
                       final confirm = await showDialog<bool>(
