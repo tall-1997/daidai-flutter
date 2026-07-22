@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/theme/app_theme.dart';
@@ -2134,28 +2135,27 @@ class _EnvCardState extends State<_EnvCard> {
         }
       },
       onLongPress: widget.onLongPress,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        curve: Curves.easeOutCubic,
+      child: GlassCard(
+        useOwnLayer: true,
+        settings: const LiquidGlassSettings(
+          blur: 8,
+          thickness: 24,
+          specularSharpness: GlassSpecularSharpness.soft,
+        ),
         padding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 14,
         ),
-        decoration: BoxDecoration(
-          color: glassCardColor(isLight: widget.isLight),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: widget.selected
-                ? AppColors.primary
-                : (widget.isLight
-                      ? AppColors.slate200
-                      : AppColors.slate800),
-            width: widget.selected ? 1.4 : 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: Container(
+          decoration: widget.selected
+              ? BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary, width: 1.4),
+                )
+              : null,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Row(
               children: [
                 if (widget.selectionMode) ...[
@@ -2251,7 +2251,8 @@ class _EnvCardState extends State<_EnvCard> {
                 ],
               ),
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );
