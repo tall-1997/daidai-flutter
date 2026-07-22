@@ -4,11 +4,16 @@
 
 ## 版本
 
-- App 版本：`v0.1.14`
+- App 版本：`v0.1.15`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.15
+
+- 通知：自定义通知渠道配置 JSON 解析失败时会阻止保存并提示格式错误。
+- 清理：移除 `main.dart` 中未使用的导入，降低 analyzer warning 风险。
 
 ### v0.1.14
 
@@ -182,8 +187,8 @@ Material 3 主题 + Liquid Glass 液态玻璃风格，全局对齐 iOS26 ultraTh
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.1.14-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.14) |
-| iOS | [daidai-flutter-v0.1.14-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.14) |
+| Android | [daidai-flutter-v0.1.15-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.15) |
+| iOS | [daidai-flutter-v0.1.15-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.15) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 
