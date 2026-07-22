@@ -4,11 +4,16 @@
 
 ## 版本
 
-- App 版本：`v0.1.17`
+- App 版本：`v0.1.18`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.18
+
+- 玻璃效果：任务列表卡片采用低风险 `AnimatedContainer + GlassCard` 包裹结构，保留左滑动画并增强液态玻璃稳定性。
+- 稳定性：修复上一轮任务列表真实玻璃改造引入的构建语法问题。
 
 ### v0.1.17
 
@@ -198,8 +203,8 @@ Material 3 主题 + Liquid Glass 液态玻璃风格，全局对齐 iOS26 ultraTh
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.1.17-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.17) |
-| iOS | [daidai-flutter-v0.1.17-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.17) |
+| Android | [daidai-flutter-v0.1.18-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.18) |
+| iOS | [daidai-flutter-v0.1.18-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.18) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 
