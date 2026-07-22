@@ -4,11 +4,18 @@
 
 ## 版本
 
-- App 版本：`v0.1.11`
+- App 版本：`v0.1.12`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.12
+
+- 兼容性：将 `DropdownButtonFormField.initialValue` 全部替换为 `value`，兼容更多 Flutter 稳定版。
+- 任务：编辑历史任务时，已保存但当前运行时不可用的 Python 版本会保留为可选项，避免下拉值不匹配崩溃。
+- 日志流：SSE 解析支持 CRLF 行尾，修复实时日志可能不刷新的问题。
+- 登录：初始化管理员失败时停止后续登录流程，保留初始化状态并显示明确错误。
 
 ### v0.1.11
 
@@ -162,8 +169,8 @@ Material 3 主题 + Liquid Glass 液态玻璃风格，全局对齐 iOS26 ultraTh
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.1.11-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.11) |
-| iOS | [daidai-flutter-v0.1.11-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.11) |
+| Android | [daidai-flutter-v0.1.12-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.12) |
+| iOS | [daidai-flutter-v0.1.12-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.12) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 
