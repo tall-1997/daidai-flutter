@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import '../../../core/services/local_notification_service.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/theme/theme_provider.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class LocalNotificationSettingsPage extends ConsumerStatefulWidget {
   const LocalNotificationSettingsPage({super.key});
@@ -82,11 +81,10 @@ class _LocalNotificationSettingsPageState
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          GlassCard(useOwnLayer: true,
-                  settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft),
-                  padding: const EdgeInsets.all(16),
-                  child: _buildPermissionCard(isLight),
-                ),
+          AppCard(
+            padding: const EdgeInsets.all(16),
+            child: _buildPermissionCard(isLight),
+          ),
           const SizedBox(height: 16),
           Text(
             '通知渠道',
@@ -273,6 +271,6 @@ class _ChannelTile extends ConsumerWidget {
       ],
     );
 
-    return GlassCard(useOwnLayer: true, settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft), padding: const EdgeInsets.all(16), child: content);
+    return AppCard(padding: const EdgeInsets.all(16), child: content);
   }
 }

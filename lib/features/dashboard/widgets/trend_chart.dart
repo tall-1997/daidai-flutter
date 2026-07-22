@@ -1,9 +1,8 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/theme/theme_provider.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class TrendChart extends ConsumerWidget {
   final List<dynamic> data;
@@ -126,8 +125,7 @@ class TrendChart extends ConsumerWidget {
       ],
     );
 
-    return GlassCard(useOwnLayer: true,
-      settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft),
+    return AppCard(
       padding: const EdgeInsets.all(16),
       child: chartContent,
     );

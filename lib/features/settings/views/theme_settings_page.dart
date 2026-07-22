@@ -3,10 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_provider.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class ThemeSettingsPage extends ConsumerWidget {
   const ThemeSettingsPage({super.key});
@@ -28,11 +28,7 @@ class ThemeSettingsPage extends ConsumerWidget {
         children: [
           _buildSectionTitle('主题模式', isLight),
           const SizedBox(height: 8),
-          GlassCard(
-            useOwnLayer: true,
-            quality: GlassQuality.minimal,
-            settings: const LiquidGlassSettings(blur: 8, thickness: 20),
-            clipBehavior: Clip.antiAlias,
+          AppCard(
             padding: const EdgeInsets.all(6),
             child: _ThemeModeSelector(
               isLight: isLight,
@@ -44,13 +40,7 @@ class ThemeSettingsPage extends ConsumerWidget {
           const SizedBox(height: 24),
           _buildSectionTitle('背景图片', isLight),
           const SizedBox(height: 8),
-          GlassCard(
-            useOwnLayer: true,
-            settings: const LiquidGlassSettings(
-              blur: 8,
-              thickness: 24,
-              specularSharpness: GlassSpecularSharpness.soft,
-            ),
+          AppCard(
             padding: const EdgeInsets.all(16),
             child: _BackgroundImagePicker(
               isLight: isLight,
@@ -63,13 +53,7 @@ class ThemeSettingsPage extends ConsumerWidget {
             const SizedBox(height: 24),
             _buildSectionTitle('模糊强度', isLight),
             const SizedBox(height: 8),
-            GlassCard(
-              useOwnLayer: true,
-              settings: const LiquidGlassSettings(
-                blur: 8,
-                thickness: 24,
-                specularSharpness: GlassSpecularSharpness.soft,
-              ),
+            AppCard(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: _BlurIntensitySlider(
                 isLight: isLight,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/network/dio_client.dart';
@@ -9,6 +8,7 @@ import '../../../core/services/app_update_service.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_provider.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class MorePage extends ConsumerStatefulWidget {
   const MorePage({super.key});
@@ -96,11 +96,10 @@ class _MorePageState extends ConsumerState<MorePage> {
 
           // User Card
           if (user != null)
-            GlassCard(useOwnLayer: true, 
-                    settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft),
-                    padding: const EdgeInsets.all(16),
-                    child: _buildUserCardContent(user, isLight),
-                  ),
+            AppCard(
+              padding: const EdgeInsets.all(16),
+              child: _buildUserCardContent(user, isLight),
+            ),
           const SizedBox(height: 24),
 
           // App Settings Section
@@ -257,9 +256,7 @@ class _MorePageState extends ConsumerState<MorePage> {
           const SizedBox(height: 24),
           GestureDetector(
             onTap: () => _logout(context, ref),
-            child: GlassCard(
-                    useOwnLayer: true,
-                    settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft),
+            child: AppCard(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     child: Center(
                       child: Text(
@@ -642,8 +639,7 @@ class _SettingsItem extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: GlassCard(useOwnLayer: true, 
-        settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft),
+      child: AppCard(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: GestureDetector(onTap: onTap, child: rowContent),
       ),

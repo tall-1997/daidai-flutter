@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/sse_client.dart';
@@ -1420,15 +1419,8 @@ class _DepCard extends ConsumerWidget {
     
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: GlassCard(
-        useOwnLayer: true,
-        quality: GlassQuality.minimal,
-        settings: const LiquidGlassSettings(
-          blur: 8,
-          thickness: 24,
-          specularSharpness: GlassSpecularSharpness.soft,
-        ),
-        clipBehavior: Clip.antiAlias,
+      child: AppCard(
+        stableForScrolling: true,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         child: Row(
         children: [

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../core/theme/app_theme.dart';
 
@@ -24,18 +23,25 @@ class AppCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    Widget card = GlassCard(
-      useOwnLayer: true,
-      quality: stableForScrolling
-          ? GlassQuality.minimal
-          : GlassQuality.standard,
-      settings: const LiquidGlassSettings(
-        blur: 8,
-        thickness: 24,
-        specularSharpness: GlassSpecularSharpness.soft,
-      ),
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    Widget card = Container(
       padding: padding ?? const EdgeInsets.all(16),
-      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: glassCardColor(isLight: isLight),
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(
+          color: isLight ? AppColors.slate200 : AppColors.darkBorder,
+        ),
+        boxShadow: isLight
+            ? [
+                BoxShadow(
+                  color: AppColors.slate900.withAlpha(8),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ]
+            : null,
+      ),
       child: child,
     );
 
@@ -70,16 +76,14 @@ class AppListTile extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: GlassCard(
-        useOwnLayer: true,
-        quality: GlassQuality.minimal,
-        settings: const LiquidGlassSettings(
-          blur: 8,
-          thickness: 24,
-          specularSharpness: GlassSpecularSharpness.soft,
+      child: Container(
+        decoration: BoxDecoration(
+          color: glassCardColor(isLight: isLight),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isLight ? AppColors.slate200 : AppColors.darkBorder,
+          ),
         ),
-        padding: EdgeInsets.zero,
-        clipBehavior: Clip.antiAlias,
         child: ListTile(
           leading: Icon(icon, size: 20),
           title: Text(title),

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/services/app_update_service.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_provider.dart';
+import '../../../shared/widgets/app_card.dart';
 import '../providers/dashboard_provider.dart';
 import '../widgets/task_stats_card.dart';
 import '../widgets/trend_chart.dart';
@@ -479,8 +479,7 @@ class _ServerInfoCard extends ConsumerWidget {
       ],
     );
 
-    return GlassCard(useOwnLayer: true,
-      settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft),
+    return AppCard(
       padding: const EdgeInsets.all(20),
       child: content,
     );
@@ -585,8 +584,7 @@ class _StatCard extends ConsumerWidget {
       ],
     );
 
-    return GlassCard(useOwnLayer: true,
-      settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft),
+    return AppCard(
       padding: const EdgeInsets.all(16),
       child: content,
     );
@@ -629,8 +627,7 @@ class _QuickAction extends ConsumerWidget {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
-        child: GlassCard(useOwnLayer: true,
-          settings: const LiquidGlassSettings(blur: 8, thickness: 24, specularSharpness: GlassSpecularSharpness.soft),
+        child: AppCard(
           padding: const EdgeInsets.symmetric(vertical: 14),
           child: content,
         ),
