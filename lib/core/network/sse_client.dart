@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
 import 'app_user_agent.dart';
+import 'api_endpoints.dart';
 import '../network/dio_client.dart';
 import '../storage/secure_storage.dart';
 
@@ -59,13 +61,54 @@ class SseClient {
       final response = await _client!.send(request);
 
       if (response.statusCode == 401 && !_closed) {
-        // Token 可能过期，尝试刷新后重连
+        final refreshed = await _refreshAccessToken();
+        if (refreshed && !_closed) {
+          _disposeConnection();
+          await _doConnect(
+            path: path,
+            onEvent: onEvent,
+            onDone: onDone,
+            onError: onError,
+            autoReconnect: autoReconnect,
+          );
+          return;
+        }
         onError?.call('认证失败，请重新登录');
         return;
       }
 
       String buffer = '';
       String? currentEvent;
+      final dataLines = <String>[];
+
+      void emitEvent() {
+        if (dataLines.isEmpty) {
+          currentEvent = null;
+          return;
+        }
+        final data = dataLines.join('\n');
+        final event = SseEvent(event: currentEvent, data: data);
+        onEvent(event);
+
+        if (currentEvent == 'done' &&
+            data == 'reconnect' &&
+            autoReconnect &&
+            !_closed) {
+          _disposeConnection();
+          Future.delayed(const Duration(seconds: 1), () {
+            _doConnect(
+              path: path,
+              onEvent: onEvent,
+              onDone: onDone,
+              onError: onError,
+              autoReconnect: autoReconnect,
+            );
+          });
+        }
+
+        currentEvent = null;
+        dataLines.clear();
+      }
 
       _subscription = response.stream
           .transform(utf8.decoder)
@@ -79,35 +122,22 @@ class SseClient {
                 if (line.startsWith('event: ')) {
                   currentEvent = line.substring(7).trim();
                 } else if (line.startsWith('data: ')) {
-                  final data = line.substring(6);
-                  final event = SseEvent(event: currentEvent, data: data);
-                  onEvent(event);
-
-                  // 处理 done 事件的 reconnect
-                  if (currentEvent == 'done' &&
-                      data == 'reconnect' &&
-                      autoReconnect &&
-                      !_closed) {
-                    _disposeConnection();
-                    Future.delayed(const Duration(seconds: 1), () {
-                      _doConnect(
-                        path: path,
-                        onEvent: onEvent,
-                        onDone: onDone,
-                        onError: onError,
-                        autoReconnect: autoReconnect,
-                      );
-                    });
-                    return;
-                  }
-
-                  currentEvent = null;
+                  dataLines.add(line.substring(6));
                 } else if (line.isEmpty) {
-                  currentEvent = null;
+                  emitEvent();
                 }
               }
             },
             onDone: () {
+              if (buffer.isNotEmpty) {
+                if (buffer.startsWith('data: ')) {
+                  dataLines.add(buffer.substring(6));
+                } else if (buffer.startsWith('event: ')) {
+                  currentEvent = buffer.substring(7).trim();
+                }
+                buffer = '';
+              }
+              emitEvent();
               if (!_closed) onDone?.call();
             },
             onError: (error) {
@@ -125,6 +155,43 @@ class SseClient {
     _subscription = null;
     _client?.close();
     _client = null;
+  }
+
+  Future<bool> _refreshAccessToken() async {
+    final refreshToken = await SecureStorage.getRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) {
+      await SecureStorage.clearAuthSession();
+      return false;
+    }
+    try {
+      final response = await DioClient.instance.rawDio.post(
+        ApiEndpoints.refresh,
+        options: Options(headers: {'Authorization': 'Bearer $refreshToken'}),
+      );
+      final token = _extractAccessToken(response.data);
+      await SecureStorage.saveAccessToken(token);
+      return true;
+    } catch (_) {
+      await SecureStorage.clearAuthSession();
+      return false;
+    }
+  }
+
+  String _extractAccessToken(dynamic responseData) {
+    if (responseData is Map) {
+      final directToken = responseData['access_token']?.toString();
+      if (directToken != null && directToken.isNotEmpty) {
+        return directToken;
+      }
+      final nestedData = responseData['data'];
+      if (nestedData is Map) {
+        final nestedToken = nestedData['access_token']?.toString();
+        if (nestedToken != null && nestedToken.isNotEmpty) {
+          return nestedToken;
+        }
+      }
+    }
+    throw StateError('Missing access_token in refresh response');
   }
 
   void close() {
