@@ -719,7 +719,9 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                             ? AppColors.slate50
                             : AppColors.slate900,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: borderColor),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant,
+                        ),
                       ),
                       child: Text(
                         _cronPreview!,
@@ -958,14 +960,10 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
               ]),
 
               // 钩子脚本（折叠）
-              Container(
-                width: double.infinity,
+              AppCard(
+                stableForScrolling: true,
                 margin: const EdgeInsets.only(bottom: 14),
-                decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: borderColor),
-                ),
+                padding: EdgeInsets.zero,
                 child: Column(
                   children: [
                     InkWell(
