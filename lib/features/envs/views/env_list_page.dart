@@ -2137,6 +2137,7 @@ class _EnvCardState extends State<_EnvCard> {
       onLongPress: widget.onLongPress,
       child: GlassCard(
         useOwnLayer: true,
+        quality: GlassQuality.standard,
         settings: const LiquidGlassSettings(
           blur: 8,
           thickness: 24,

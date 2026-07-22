@@ -107,7 +107,7 @@ void main() async {
           settings: GlassThemeSettings(
             thickness: 48,
             blur: 18,
-            glassColor: const Color(0x1EFFFFFF),
+            glassColor: const Color(0xB30F172A),
             lightIntensity: 0.5,
             ambientStrength: 0.15,
           ),
@@ -131,7 +131,7 @@ void main() async {
             settings: GlassThemeSettings(
               thickness: 48,
               blur: 18,
-              glassColor: const Color(0x1EFFFFFF),
+              glassColor: const Color(0xB30F172A),
               lightIntensity: 0.5,
               ambientStrength: 0.15,
             ),

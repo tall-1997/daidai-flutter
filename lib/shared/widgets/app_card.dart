@@ -24,6 +24,7 @@ class AppCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     Widget card = GlassCard(
       useOwnLayer: true,
+      quality: GlassQuality.standard,
       settings: const LiquidGlassSettings(
         blur: 8,
         thickness: 24,
@@ -66,6 +67,7 @@ class AppListTile extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: GlassCard(
         useOwnLayer: true,
+        quality: GlassQuality.standard,
         settings: const LiquidGlassSettings(
           blur: 8,
           thickness: 24,
@@ -96,7 +98,7 @@ Color glassCardColor({
 }) {
   return isLight
       ? (lightColor ?? Colors.white.withAlpha(160))
-      : (darkColor ?? AppColors.slate900.withAlpha(170));
+      : (darkColor ?? const Color(0xEE0F172A));
 }
 
 Color glassFillColor({
@@ -104,5 +106,5 @@ Color glassFillColor({
 }) {
   return isLight
       ? Colors.white.withAlpha(120)
-      : AppColors.slate900.withAlpha(145);
+      : const Color(0xF20F172A);
 }

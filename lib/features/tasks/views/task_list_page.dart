@@ -2125,6 +2125,7 @@ class _TaskCardState extends State<_TaskCard> {
                 transform: Matrix4.translationValues(_dragOffset, 0, 0),
                 child: GlassCard(
                   useOwnLayer: true,
+                  quality: GlassQuality.standard,
                   settings: const LiquidGlassSettings(
                     blur: 8,
                     thickness: 24,

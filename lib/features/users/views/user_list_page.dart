@@ -602,6 +602,7 @@ class _UserCard extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: GlassCard(
         useOwnLayer: true,
+        quality: GlassQuality.standard,
         settings: const LiquidGlassSettings(
           blur: 8,
           thickness: 24,
