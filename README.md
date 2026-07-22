@@ -4,11 +4,15 @@
 
 ## 版本
 
-- App 版本：`v0.1.20`
+- App 版本：`v0.1.21`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.21
+
+- 玻璃效果：通知渠道列表改用真实 GlassCard 渲染，提升深色模式和快速滚动下的视觉一致性。
 
 ### v0.1.20
 
@@ -214,8 +218,8 @@ Material 3 主题 + Liquid Glass 液态玻璃风格，全局对齐 iOS26 ultraTh
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.1.20-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.20) |
-| iOS | [daidai-flutter-v0.1.20-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.20) |
+| Android | [daidai-flutter-v0.1.21-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.21) |
+| iOS | [daidai-flutter-v0.1.21-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.21) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 
