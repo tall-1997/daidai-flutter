@@ -805,9 +805,11 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
                   hintText: '搜索任务名称或命令...',
                   prefixIcon: const Icon(
                     Icons.search,
@@ -851,20 +853,23 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                           },
                         )
                       : null,
+                  ),
+                  style: const TextStyle(fontSize: 14),
+                  onChanged: _onSearchChanged,
                 ),
-                style: const TextStyle(fontSize: 14),
-                onChanged: _onSearchChanged,
               ),
             ),
             const SizedBox(height: 12),
             SizedBox(
               height: 38,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                scrollDirection: Axis.horizontal,
-                itemCount: _taskStatusFilters.length,
-                separatorBuilder: (_, index) => const SizedBox(width: 8),
-                itemBuilder: (_, index) {
+              child: ClipRect(
+                child: ListView.separated(
+                  clipBehavior: Clip.hardEdge,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _taskStatusFilters.length,
+                  separatorBuilder: (_, index) => const SizedBox(width: 8),
+                  itemBuilder: (_, index) {
                   final filter = _taskStatusFilters[index];
                   final selected = state.statusFilter == filter.value;
                   return ChoiceChip(
@@ -879,11 +884,13 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                           .read(taskProvider.notifier)
                           .setStatusFilter(filter.value);
                     },
-                    selectedColor: AppColors.primary.withAlpha(18),
+                    selectedColor: theme.colorScheme.primaryContainer,
                     side: BorderSide(
                       color: selected
                           ? AppColors.primary.withAlpha(90)
-                          : AppColors.slate200,
+                          : (isLight
+                                ? AppColors.slate200
+                                : AppColors.darkBorder),
                     ),
                     labelStyle: TextStyle(
                       fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
@@ -891,7 +898,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                     ),
                     visualDensity: VisualDensity.compact,
                   );
-                },
+                  },
+                ),
               ),
             ),
             const SizedBox(height: 10),
@@ -1086,6 +1094,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                     ? _buildGroupReorderView(groupedTasks, isLight)
                     : ListView(
                         controller: _scrollController,
+                        clipBehavior: Clip.hardEdge,
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
                         children: groupedTasks
@@ -1442,6 +1451,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
         ),
         Expanded(
           child: ReorderableListView.builder(
+            clipBehavior: Clip.hardEdge,
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
             itemCount: groups.length,
             onReorder: (oldIndex, newIndex) {
@@ -1466,7 +1476,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   color: glassCardColor(isLight: isLight),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: isLight ? AppColors.slate200 : AppColors.slate800,
+                    color: isLight ? AppColors.slate200 : AppColors.darkBorder,
                   ),
                 ),
                 child: Row(
@@ -1505,6 +1515,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
 
   Widget _buildTaskReorderView(List<Task> tasks, bool isLight) {
     return ReorderableListView.builder(
+      clipBehavior: Clip.hardEdge,
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
       itemCount: tasks.length,
       onReorder: (oldIndex, newIndex) {
@@ -1514,18 +1525,21 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       },
       itemBuilder: (context, index) {
         final task = tasks[index];
-        return Container(
+        return RepaintBoundary(
           key: ValueKey('task-sort-${task.id}'),
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            color: glassCardColor(isLight: isLight),
+          child: ClipRRect(
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isLight ? AppColors.slate200 : AppColors.slate800,
-            ),
-          ),
-          child: Row(
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              decoration: BoxDecoration(
+                color: glassCardColor(isLight: isLight),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isLight ? AppColors.slate200 : AppColors.darkBorder,
+                ),
+              ),
+              child: Row(
             children: [
               const Icon(
                 Icons.drag_handle,
@@ -1561,6 +1575,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
               ),
               _MetaChip(label: task.statusText, active: !task.isDisabled),
             ],
+              ),
+            ),
           ),
         );
       },
@@ -1576,16 +1592,18 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          decoration: BoxDecoration(
-            color: glassCardColor(isLight: isLight),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isLight ? AppColors.slate200 : AppColors.slate800,
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              color: glassCardColor(isLight: isLight),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isLight ? AppColors.slate200 : AppColors.darkBorder,
+              ),
             ),
-          ),
-          child: InkWell(
+            child: InkWell(
             borderRadius: BorderRadius.circular(14),
             onTap: () {
               setState(() {
@@ -1660,33 +1678,39 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                 ],
               ),
             ),
+            ),
           ),
         ),
         if (!collapsed)
           ...group.tasks.map(
-            (task) => _TaskCard(
-              key: ValueKey('task-card-${task.id}'),
-              task: task,
-              isLight: isLight,
-              selectionMode: _selectionMode,
-              selected: _selectedTaskIds.contains(task.id),
-              onTap: () => _selectionMode
-                  ? _toggleTaskSelection(task.id)
-                  : _openLatestLog(task),
-              onLongPress: () {
-                HapticFeedback.mediumImpact();
-                _toggleTaskSelection(task.id);
-              },
-              onSelectedChanged: () => _toggleTaskSelection(task.id),
-              onRun: () => _runTask(task),
-              onStop: () => _stopTask(task),
-              onToggleEnabled: () => _toggleTaskEnabled(task),
-              onCopy: () => _copyTask(task),
-              onTogglePinned: () => _togglePinned(task),
-              onStats: () => _showTaskStats(task),
-              onLogFiles: () => _showTaskLogFiles(task),
-              onEdit: () => context.push('/tasks/edit', extra: task),
-              onDelete: () => _confirmDelete(task),
+            (task) => RepaintBoundary(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: _TaskCard(
+                  key: ValueKey('task-card-${task.id}'),
+                  task: task,
+                  isLight: isLight,
+                  selectionMode: _selectionMode,
+                  selected: _selectedTaskIds.contains(task.id),
+                  onTap: () => _selectionMode
+                      ? _toggleTaskSelection(task.id)
+                      : _openLatestLog(task),
+                  onLongPress: () {
+                    HapticFeedback.mediumImpact();
+                    _toggleTaskSelection(task.id);
+                  },
+                  onSelectedChanged: () => _toggleTaskSelection(task.id),
+                  onRun: () => _runTask(task),
+                  onStop: () => _stopTask(task),
+                  onToggleEnabled: () => _toggleTaskEnabled(task),
+                  onCopy: () => _copyTask(task),
+                  onTogglePinned: () => _togglePinned(task),
+                  onStats: () => _showTaskStats(task),
+                  onLogFiles: () => _showTaskLogFiles(task),
+                  onEdit: () => context.push('/tasks/edit', extra: task),
+                  onDelete: () => _confirmDelete(task),
+                ),
+              ),
             ),
           ),
       ],
@@ -1859,8 +1883,8 @@ class _TaskCard extends StatefulWidget {
 }
 
 class _TaskCardState extends State<_TaskCard> {
-  static const double _actionWidth = 52;
-  static const double _actionGap = 6;
+  static const double _actionWidth = 36;
+  static const double _actionGap = 2;
   static const double _actionsWidth = _actionWidth * 7 + _actionGap * 6 + 8;
 
   double _dragOffset = 0;
@@ -2007,15 +2031,22 @@ class _TaskCardState extends State<_TaskCard> {
         // 侧滑按钮展开时，系统返回先收起按钮，避免用户回滑时误退出 APP。
         _closeActions();
       },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        child: Stack(
-          clipBehavior: Clip.none,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          clipBehavior: Clip.hardEdge,
+          child: Stack(
+          clipBehavior: Clip.hardEdge,
           children: [
             Positioned.fill(
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Row(
+              child: ColoredBox(
+                color: widget.isLight
+                    ? AppColors.lightSurfaceMuted
+                    : AppColors.darkSurfaceMuted,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _TaskSwipeActionButton(
@@ -2073,6 +2104,7 @@ class _TaskCardState extends State<_TaskCard> {
                       onTap: () => _runSwipeAction(widget.onDelete),
                     ),
                   ],
+                  ),
                 ),
               ),
             ),
@@ -2124,17 +2156,32 @@ class _TaskCardState extends State<_TaskCard> {
                     : const Duration(milliseconds: 160),
                 curve: Curves.easeOutCubic,
                 transform: Matrix4.translationValues(_dragOffset, 0, 0),
-                child: GlassCard(
-                  useOwnLayer: true,
-                  quality: GlassQuality.minimal,
-                  settings: const LiquidGlassSettings(
-                    blur: 8,
-                    thickness: 24,
-                    specularSharpness: GlassSpecularSharpness.soft,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: widget.isLight
+                        ? AppColors.lightSurface.withAlpha(190)
+                        : AppColors.darkSurface.withAlpha(220),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: widget.selected
+                          ? AppColors.primary
+                          : hasFailure
+                          ? AppColors.red500.withAlpha(90)
+                          : borderColor,
+                      width: widget.selected ? 1.4 : 1,
+                    ),
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
+                  child: GlassCard(
+                    useOwnLayer: true,
+                    quality: GlassQuality.minimal,
+                    settings: const LiquidGlassSettings(
+                      blur: 8,
+                      thickness: 20,
+                      specularSharpness: GlassSpecularSharpness.soft,
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                     Row(
@@ -2262,11 +2309,13 @@ fontSize: 11,
                       ],
                     ),
                       ],
+                    ),
                   ),
                 ),
               ),
             ),
           ],
+          ),
         ),
       ),
     );
@@ -2338,21 +2387,21 @@ class _TaskSwipeActionButton extends StatelessWidget {
       width: _TaskCardState._actionWidth,
       child: Material(
         color: color.withAlpha(isLight ? 22 : 34),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 17, color: color),
-              const SizedBox(height: 4),
+              Icon(icon, size: 15, color: color),
+              const SizedBox(height: 3),
               Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: 9,
                   fontWeight: FontWeight.w700,
                   color: color,
                 ),
@@ -2408,10 +2457,12 @@ class _TaskScheduleSummary extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       decoration: BoxDecoration(
-        color: isLight ? AppColors.slate50 : AppColors.slate800,
+        color: isLight
+            ? AppColors.lightSurfaceMuted
+            : AppColors.darkSurfaceMuted,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isLight ? AppColors.slate200 : AppColors.slate700,
+          color: isLight ? AppColors.slate200 : AppColors.darkBorder,
         ),
       ),
       child: Row(
@@ -2484,10 +2535,12 @@ class _TaskSubscriptionSummary extends ConsumerWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: glassCardColor(isLight: isLight),
+        color: isLight
+            ? AppColors.lightSurfaceMuted
+            : AppColors.darkSurfaceMuted,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isLight ? AppColors.slate200 : AppColors.slate800,
+          color: isLight ? AppColors.slate200 : AppColors.darkBorder,
         ),
       ),
       child: Row(
@@ -2552,10 +2605,12 @@ class _TaskSubscriptionChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: isLight ? AppColors.slate50 : AppColors.slate800,
+        color: isLight
+            ? AppColors.lightSurfaceMuted
+            : AppColors.darkSurfaceMuted,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: isLight ? AppColors.slate200 : AppColors.slate700,
+          color: isLight ? AppColors.slate200 : AppColors.darkBorder,
         ),
       ),
       child: Text(
@@ -2583,7 +2638,9 @@ class _TaskMiniCountChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: isLight ? AppColors.slate100 : AppColors.slate800,
+        color: isLight
+            ? AppColors.slate100
+            : AppColors.darkSurfaceMuted,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -2719,8 +2776,8 @@ class _MetaChip extends ConsumerWidget {
     final isLight = theme.brightness == Brightness.light;
     
     final background = active
-        ? (isLight ? AppColors.slate50 : AppColors.slate800)
-        : (isLight ? AppColors.slate100 : AppColors.slate900);
+        ? (isLight ? AppColors.lightSurfaceMuted : AppColors.darkSurfaceMuted)
+        : (isLight ? AppColors.slate100 : AppColors.darkSurface);
     final foreground = active
         ? (isLight ? AppColors.slate700 : AppColors.slate300)
         : AppColors.slate400;
@@ -2731,7 +2788,7 @@ class _MetaChip extends ConsumerWidget {
         color: background,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: isLight ? AppColors.slate200 : AppColors.slate800,
+          color: isLight ? AppColors.slate200 : AppColors.darkBorder,
         ),
       ),
       child: Row(
@@ -2775,7 +2832,7 @@ class _TaskHeaderChipButton extends ConsumerWidget {
           color: glassCardColor(isLight: isLight),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: isLight ? AppColors.slate200 : AppColors.slate800,
+            color: isLight ? AppColors.slate200 : AppColors.darkBorder,
           ),
         ),
         child: Row(
