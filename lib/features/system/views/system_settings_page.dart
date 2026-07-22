@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/models/python_runtime_info.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../shared/widgets/app_card.dart';
@@ -18,8 +19,11 @@ class SystemSettingsPage extends ConsumerStatefulWidget {
 
 class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
   Map<String, dynamic>? _versionInfo;
+  Map<String, dynamic>? _panelSettings;
   Map<String, dynamic>? _updateInfo;
   Map<String, dynamic>? _updateStatus;
+  List<PythonRuntimeInfo> _pythonRuntimes = const [];
+  String _pythonDefaultVersion = '';
   bool _loading = true;
   bool _checking = false;
   bool _savingConfigs = false;
@@ -81,6 +85,22 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
       ]);
       final versionData = extractData(results[0].data);
       final configData = extractData(results[1].data);
+      dynamic panelData;
+      dynamic runtimeRaw;
+
+      try {
+        final panelResp = await DioClient.instance.dio.get(
+          ApiEndpoints.panelSettings,
+        );
+        panelData = extractData(panelResp.data);
+      } catch (_) {}
+
+      try {
+        final runtimeResp = await DioClient.instance.dio.get(
+          ApiEndpoints.depsPythonRuntimes,
+        );
+        runtimeRaw = runtimeResp.data;
+      } catch (_) {}
 
       final configs = configData is Map<String, dynamic>
           ? configData
@@ -122,11 +142,38 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
 
       setState(() {
         _versionInfo = versionData is Map<String, dynamic> ? versionData : null;
+        _panelSettings = panelData is Map<String, dynamic> ? panelData : null;
+        _pythonRuntimes = _parsePythonRuntimes(runtimeRaw);
+        _pythonDefaultVersion = _parsePythonDefaultVersion(runtimeRaw);
         _loading = false;
       });
     } catch (_) {
       setState(() => _loading = false);
     }
+  }
+
+  List<PythonRuntimeInfo> _parsePythonRuntimes(dynamic raw) {
+    final map = raw is Map<String, dynamic>
+        ? raw
+        : raw is Map
+        ? Map<String, dynamic>.from(raw)
+        : <String, dynamic>{};
+    final data = map['data'];
+    if (data is! List) {
+      return const [];
+    }
+    return data
+        .whereType<Map>()
+        .map((item) => PythonRuntimeInfo.fromJson(Map<String, dynamic>.from(item)))
+        .where((item) => item.version.trim().isNotEmpty)
+        .toList();
+  }
+
+  String _parsePythonDefaultVersion(dynamic raw) {
+    if (raw is Map && raw['default_version'] != null) {
+      return raw['default_version'].toString();
+    }
+    return '';
   }
 
   String _getConfigValue(
@@ -602,6 +649,76 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
                                         '',
                                     isLight,
                                   ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _SectionTitle('部署与运行时'),
+                            _Card(
+                              isLight: isLight,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _KVRow(
+                                    '运行模式',
+                                    _panelSettings?['panel_runtime_mode']
+                                            ?.toString() ??
+                                        '-',
+                                    isLight,
+                                  ),
+                                  const Divider(height: 16),
+                                  _KVRow(
+                                    '服务管理',
+                                    _panelSettings?['panel_service_manager']
+                                            ?.toString() ??
+                                        '-',
+                                    isLight,
+                                  ),
+                                  const Divider(height: 16),
+                                  _KVRow(
+                                    '服务名称',
+                                    _panelSettings?['panel_service_name']
+                                            ?.toString() ??
+                                        '-',
+                                    isLight,
+                                  ),
+                                  if (_pythonRuntimes.isNotEmpty) ...[
+                                    const Divider(height: 16),
+                                    Text(
+                                      'Python 运行时',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: isLight
+                                            ? AppColors.slate500
+                                            : AppColors.slate400,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: _pythonRuntimes.map((runtime) {
+                                        final isDefault = runtime.version ==
+                                                _pythonDefaultVersion ||
+                                            runtime.isDefault;
+                                        return Chip(
+                                          label: Text(
+                                            '${runtime.label}${isDefault ? '（默认）' : ''}',
+                                          ),
+                                          avatar: Icon(
+                                            runtime.available
+                                                ? Icons.check_circle_outline
+                                                : Icons.error_outline,
+                                            size: 16,
+                                            color: runtime.available
+                                                ? AppColors.primary
+                                                : AppColors.red500,
+                                          ),
+                                          visualDensity: VisualDensity.compact,
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
