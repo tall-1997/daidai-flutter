@@ -60,6 +60,42 @@ class _TaskNotificationChannel {
   }
 }
 
+class _CronTemplate {
+  final String name;
+  final String expression;
+  final String description;
+
+  const _CronTemplate({
+    required this.name,
+    required this.expression,
+    this.description = '',
+  });
+
+  factory _CronTemplate.fromJson(Map<String, dynamic> json) {
+    final expression = (json['expression'] ??
+            json['cron_expression'] ??
+            json['cron'] ??
+            json['value'] ??
+            '')
+        .toString()
+        .trim();
+    final name = (json['name'] ?? json['label'] ?? json['title'] ?? expression)
+        .toString()
+        .trim();
+    return _CronTemplate(
+      name: name.isEmpty ? expression : name,
+      expression: expression,
+      description: json['description']?.toString().trim() ?? '',
+    );
+  }
+}
+
+const _fallbackCronTemplates = [
+  _CronTemplate(name: '每小时', expression: '0 0 * * * *'),
+  _CronTemplate(name: '每天0点', expression: '0 0 0 * * *'),
+  _CronTemplate(name: '每天9点', expression: '0 0 9 * * *'),
+];
+
 class _TaskFormPageState extends ConsumerState<TaskFormPage> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameC;
@@ -78,6 +114,8 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
   bool _saving = false;
   bool _loadingChannels = false;
   bool _loadingPythonRuntimes = false;
+  bool _loadingCronTemplates = false;
+  bool _parsingCron = false;
   String _taskType = 'cron';
   bool _notifyOnFailure = true;
   bool _notifyOnSuccess = false;
@@ -89,6 +127,8 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
   final List<String> _labels = [];
   List<_TaskNotificationChannel> _notificationChannels = const [];
   List<PythonRuntimeInfo> _pythonRuntimes = const [];
+  List<_CronTemplate> _cronTemplates = _fallbackCronTemplates;
+  String? _cronPreview;
   bool _showHooks = false;
   List<String> _knownGroups = const [];
 
@@ -141,6 +181,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
         _loadNotificationChannels(),
         _loadKnownGroups(),
         _loadPythonRuntimes(),
+        _loadCronTemplates(),
       ]);
     });
   }
@@ -273,6 +314,102 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
         setState(() => _loadingPythonRuntimes = false);
       }
     }
+  }
+
+  Future<void> _loadCronTemplates() async {
+    setState(() => _loadingCronTemplates = true);
+    try {
+      final response = await DioClient.instance.dio.get(
+        ApiEndpoints.cronTemplates,
+      );
+      final data = extractData(response.data);
+      final templates = data is List
+          ? data
+                .whereType<Map>()
+                .map(
+                  (item) => _CronTemplate.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ),
+                )
+                .where((item) => item.expression.isNotEmpty)
+                .toList()
+          : <_CronTemplate>[];
+      if (!mounted) return;
+      setState(() {
+        _cronTemplates = templates.isEmpty ? _fallbackCronTemplates : templates;
+        _loadingCronTemplates = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _cronTemplates = _fallbackCronTemplates;
+          _loadingCronTemplates = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _parseCronExpression() async {
+    final expression = _cronC.text.trim();
+    if (expression.isEmpty) {
+      setState(() => _cronPreview = '请输入 Cron 表达式后再解析');
+      return;
+    }
+    setState(() {
+      _parsingCron = true;
+      _cronPreview = null;
+    });
+    try {
+      final response = await DioClient.instance.dio.post(
+        ApiEndpoints.cronParse,
+        data: {'expression': expression},
+      );
+      final data = extractData(response.data);
+      if (!mounted) return;
+      setState(() {
+        _cronPreview = _formatCronParseResult(data);
+        _parsingCron = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _cronPreview = extractErrorMessage(error, 'Cron 表达式解析失败');
+        _parsingCron = false;
+      });
+    }
+  }
+
+  String _formatCronParseResult(dynamic data) {
+    if (data is String && data.trim().isNotEmpty) {
+      return data.trim();
+    }
+    if (data is List) {
+      final values = data.take(5).map((item) => item.toString()).toList();
+      return values.isEmpty ? '表达式有效' : '接下来执行：${values.join('、')}';
+    }
+    if (data is Map) {
+      final map = Map<String, dynamic>.from(data);
+      final lines = <String>[];
+      final description = map['description']?.toString().trim();
+      if (description != null && description.isNotEmpty) {
+        lines.add(description);
+      }
+      final valid = map['valid'];
+      if (valid is bool) {
+        lines.add(valid ? '表达式有效' : '表达式无效');
+      }
+      final next = map['next_runs'] ??
+          map['next_times'] ??
+          map['next'] ??
+          map['next_run'];
+      if (next is List && next.isNotEmpty) {
+        lines.add('接下来执行：${next.take(5).join('、')}');
+      } else if (next != null && next.toString().trim().isNotEmpty) {
+        lines.add('下次执行：$next');
+      }
+      return lines.isEmpty ? '表达式有效' : lines.join('\n');
+    }
+    return '表达式有效';
   }
 
   void _addLabel() {
@@ -524,6 +661,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                     controller: _cronC,
                     maxLines: null,
                     minLines: 1,
+                    onChanged: (_) => setState(() => _cronPreview = null),
                     decoration: const InputDecoration(
                       labelText: 'Cron 表达式',
                       hintText: '0 0 * * *',
@@ -538,24 +676,56 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final p in [
-                        ('每小时', '0 0 * * * *'),
-                        ('每天0点', '0 0 0 * * *'),
-                        ('每天9点', '0 0 9 * * *'),
-                      ])
+                      for (final template in _cronTemplates)
                         ActionChip(
                           label: Text(
-                            p.$1,
+                            template.name,
                             style: const TextStyle(fontSize: 12),
                           ),
                           onPressed: () {
-                            final cur = _cronC.text.trim();
-                            _cronC.text = cur.isEmpty ? p.$2 : '$cur\n${p.$2}';
+                            _cronC.text = template.expression;
+                            setState(() => _cronPreview = null);
                           },
                           visualDensity: VisualDensity.compact,
                         ),
+                      ActionChip(
+                        avatar: _parsingCron
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.manage_search, size: 16),
+                        label: Text(
+                          _loadingCronTemplates ? '模板加载中' : '解析预览',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        onPressed: _parsingCron ? null : _parseCronExpression,
+                        visualDensity: VisualDensity.compact,
+                      ),
                     ],
                   ),
+                  if (_cronPreview != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isLight
+                            ? AppColors.slate50
+                            : AppColors.slate900,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: Text(
+                        _cronPreview!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
                 if (_labels.isNotEmpty || true) ...[
                   const SizedBox(height: 12),
