@@ -903,8 +903,14 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                           final raw = getFieldController(
                             '__raw_json__',
                           ).text.trim();
-                          configMap =
-                              _parseConfig(raw.isEmpty ? '{}' : raw) ?? {};
+                          final parsed = _parseConfig(raw.isEmpty ? '{}' : raw);
+                          if (parsed == null) {
+                            messenger.showSnackBar(
+                              const SnackBar(content: Text('配置 JSON 格式错误')),
+                            );
+                            return;
+                          }
+                          configMap = parsed;
                         }
 
                         final payload = {
