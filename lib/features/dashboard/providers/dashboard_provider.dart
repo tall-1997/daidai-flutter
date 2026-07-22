@@ -82,25 +82,33 @@ class DashboardNotifier extends StateNotifier<DashboardData> {
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = DioClient.instance.dio;
-      final results = await Future.wait([
+      final coreResults = await Future.wait([
         dio.get(ApiEndpoints.systemInfo),
         dio.get(ApiEndpoints.dashboard),
-        dio.get(ApiEndpoints.panelSettings),
-        dio.get(ApiEndpoints.systemVersion),
       ]);
-      final sysData = extractData(results[0].data);
-      final dashData = extractData(results[1].data);
-      final panelData = extractData(results[2].data);
-      final versionData = extractData(results[3].data);
+      final sysData = extractData(coreResults[0].data);
+      final dashData = extractData(coreResults[1].data);
       final sysMap = sysData is Map<String, dynamic>
           ? Map<String, dynamic>.from(sysData)
           : <String, dynamic>{};
+
+      dynamic panelData;
+      try {
+        final panelResp = await dio.get(ApiEndpoints.panelSettings);
+        panelData = extractData(panelResp.data);
+      } catch (_) {}
       if (panelData is Map) {
         final title = panelData['panel_title']?.toString() ?? '';
         if (title.isNotEmpty) {
           sysMap['panel_title'] = title;
         }
       }
+
+      dynamic versionData;
+      try {
+        final versionResp = await dio.get(ApiEndpoints.systemVersion);
+        versionData = extractData(versionResp.data);
+      } catch (_) {}
       if (versionData is Map) {
         final version = versionData['version']?.toString() ?? '';
         if (version.isNotEmpty) {
