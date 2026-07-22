@@ -96,7 +96,7 @@ Color glassCardColor({
 }) {
   return isLight
       ? (lightColor ?? Colors.white.withAlpha(160))
-      : (darkColor ?? AppColors.slate800.withAlpha(140));
+      : (darkColor ?? AppColors.slate900.withAlpha(170));
 }
 
 Color glassFillColor({
@@ -104,5 +104,5 @@ Color glassFillColor({
 }) {
   return isLight
       ? Colors.white.withAlpha(120)
-      : AppColors.slate800.withAlpha(100);
+      : AppColors.slate900.withAlpha(145);
 }

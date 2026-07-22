@@ -1077,6 +1077,8 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                         );
                         final duration =
                             (log['duration'] as num?)?.toDouble() ?? 0;
+                        final logIsLight =
+                            Theme.of(ctx).brightness == Brightness.light;
                         return Container(
                           margin: const EdgeInsets.only(bottom: 6),
                           padding: const EdgeInsets.symmetric(
@@ -1084,13 +1086,10 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                             vertical: 10,
                           ),
                           decoration: BoxDecoration(
-                            color: Theme.of(ctx).brightness == Brightness.light
-                                ? Colors.white
-                                : AppColors.slate900,
+                            color: glassCardColor(isLight: logIsLight),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color:
-                                  Theme.of(ctx).brightness == Brightness.light
+                              color: logIsLight
                                   ? AppColors.slate200
                                   : AppColors.slate800,
                             ),

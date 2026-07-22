@@ -978,9 +978,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                             color: AppColors.slate400,
                           ),
                           filled: true,
-                          fillColor: isLight
-                              ? Colors.white
-                              : AppColors.slate900,
+                          fillColor: glassFillColor(isLight: isLight),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
@@ -1403,9 +1401,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                               vertical: 14,
                             ),
                             decoration: BoxDecoration(
-                              color: isLight
-                                  ? Colors.white
-                                  : AppColors.slate900,
+                              color: glassCardColor(isLight: isLight),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
                                 color: isLight

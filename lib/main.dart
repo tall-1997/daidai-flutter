@@ -111,10 +111,10 @@ void main() async {
             lightIntensity: 0.5,
             ambientStrength: 0.15,
           ),
-          quality: GlassQuality.premium,
+          quality: GlassQuality.standard,
         ),
       ),
-      adaptiveQuality: true,
+      adaptiveQuality: false,
       child: GlassTheme(
         data: GlassThemeData(
           light: GlassThemeVariant(
@@ -135,7 +135,7 @@ void main() async {
               lightIntensity: 0.5,
               ambientStrength: 0.15,
             ),
-            quality: GlassQuality.premium,
+            quality: GlassQuality.standard,
           ),
         ),
         child: UncontrolledProviderScope(
