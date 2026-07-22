@@ -2440,7 +2440,6 @@ class _TaskPrimaryActionButton extends StatelessWidget {
               ),
             ],
           ),
-      ),
     );
   }
 }
