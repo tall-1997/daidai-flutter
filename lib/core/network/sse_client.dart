@@ -118,7 +118,8 @@ class SseClient {
               final lines = buffer.split('\n');
               buffer = lines.removeLast(); // 保留不完整的行
 
-              for (final line in lines) {
+              for (final rawLine in lines) {
+                final line = _normalizeSseLine(rawLine);
                 if (line.startsWith('event: ')) {
                   currentEvent = line.substring(7).trim();
                 } else if (line.startsWith('data: ')) {
@@ -130,10 +131,11 @@ class SseClient {
             },
             onDone: () {
               if (buffer.isNotEmpty) {
-                if (buffer.startsWith('data: ')) {
-                  dataLines.add(buffer.substring(6));
-                } else if (buffer.startsWith('event: ')) {
-                  currentEvent = buffer.substring(7).trim();
+                final line = _normalizeSseLine(buffer);
+                if (line.startsWith('data: ')) {
+                  dataLines.add(line.substring(6));
+                } else if (line.startsWith('event: ')) {
+                  currentEvent = line.substring(7).trim();
                 }
                 buffer = '';
               }
@@ -155,6 +157,10 @@ class SseClient {
     _subscription = null;
     _client?.close();
     _client = null;
+  }
+
+  String _normalizeSseLine(String line) {
+    return line.endsWith('\r') ? line.substring(0, line.length - 1) : line;
   }
 
   Future<bool> _refreshAccessToken() async {
