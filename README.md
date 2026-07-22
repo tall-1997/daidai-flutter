@@ -4,11 +4,20 @@
 
 ## 版本
 
-- App 版本：`v0.1.8`
+- App 版本：`v0.1.9`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.9
+
+- 任务：新增任务导入/导出入口，支持保存任务导出文件和从 JSON 文件导入任务。
+- 环境变量：新增环境变量导入/导出入口，支持导出全部变量和从 JSON 文件导入变量。
+- 登录：本地地址、localhost、内网 IP 默认使用 HTTP 协议，公网地址继续默认使用 HTTPS。
+- 更新：下载更新包前校验 Release asset 的文件大小和 SHA256 digest，避免复用旧包或损坏包。
+- 仪表盘：核心概览数据与可选接口分离加载，面板设置或版本接口异常时仍可展示仪表盘。
+- 文档：新增上游功能与问题候选清单，便于按 P0/P1/P2 继续排期。
 
 ### v0.1.8
 
@@ -136,8 +145,8 @@ Material 3 主题 + Liquid Glass 液态玻璃风格，全局对齐 iOS26 ultraTh
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.1.8-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.8) |
-| iOS | [daidai-flutter-v0.1.8-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.8) |
+| Android | [daidai-flutter-v0.1.9-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.9) |
+| iOS | [daidai-flutter-v0.1.9-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.9) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 
