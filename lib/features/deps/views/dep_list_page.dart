@@ -964,7 +964,7 @@ class _DepListPageState extends ConsumerState<DepListPage> {
                 if (isNarrow) ...[
                   DropdownButtonFormField<String>(
                     key: ValueKey(selectedVersion),
-                    initialValue: selectedVersion,
+                    value: selectedVersion,
                     decoration: const InputDecoration(
                       labelText: 'Python 版本',
                       isDense: true,
@@ -1000,7 +1000,7 @@ class _DepListPageState extends ConsumerState<DepListPage> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           key: ValueKey(selectedVersion),
-                          initialValue: selectedVersion,
+                          value: selectedVersion,
                           decoration: const InputDecoration(
                             labelText: 'Python 版本',
                             isDense: true,

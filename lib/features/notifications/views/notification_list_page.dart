@@ -812,7 +812,7 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      initialValue: selectedType,
+                      value: selectedType,
                       decoration: const InputDecoration(labelText: '渠道类型'),
                       items: availableTypes
                           .map(
