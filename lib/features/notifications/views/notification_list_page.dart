@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
@@ -1008,17 +1009,18 @@ class _ChannelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: glassCardColor(isLight: isLight),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isLight ? AppColors.slate200 : AppColors.slate800,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: GlassCard(
+        useOwnLayer: true,
+        quality: GlassQuality.standard,
+        settings: const LiquidGlassSettings(
+          blur: 8,
+          thickness: 24,
+          specularSharpness: GlassSpecularSharpness.soft,
         ),
-      ),
-      child: Row(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
         children: [
           Container(
             width: 36,
@@ -1101,6 +1103,7 @@ class _ChannelCard extends StatelessWidget {
             ),
           ),
         ],
+        ),
       ),
     );
   }
