@@ -273,17 +273,9 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
                   : ListView(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
                       children: [
-                        Container(
+                        AppCard(
+                          stableForScrolling: true,
                           padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: glassCardColor(isLight: isLight),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: isLight
-                                  ? AppColors.slate200
-                                  : AppColors.slate800,
-                            ),
-                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -368,7 +360,6 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
                           subtitle: lockState.hasPassword
                               ? '已设置应用锁密码，可作为生物识别失败时的后备解锁方式。'
                               : '设置一个仅用于本地 App 的二次验证密码。',
-                          isLight: isLight,
                           trailing: Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -399,7 +390,6 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
                           subtitle: lockState.hasPattern
                               ? '已设置图案，解锁时按顺序点击已保存的点位即可通过验证。'
                               : '设置一个 3x3 图案点位序列，适合快速本地解锁。',
-                          isLight: isLight,
                           trailing: Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -428,7 +418,6 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
                           subtitle: lockState.biometricAvailable
                               ? '调用设备系统级${lockState.biometricLabel}能力进行验证。'
                               : '当前设备未检测到可用的指纹或人脸能力。',
-                          isLight: isLight,
                           trailing: Switch.adaptive(
                             value:
                                 lockState.config.biometricEnabled &&
@@ -467,27 +456,19 @@ class _MethodCard extends ConsumerWidget {
     required this.title,
     required this.subtitle,
     required this.trailing,
-    required this.isLight,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final Widget trailing;
-  final bool isLight;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     
-    return Container(
+    return AppCard(
+      stableForScrolling: true,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: glassCardColor(isLight: isLight),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isLight ? AppColors.slate200 : AppColors.slate800,
-        ),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -1691,20 +1691,14 @@ class _FileTreeItemState extends ConsumerState<_FileTreeItem> {
               widget.onTap(file.path);
             }
           },
-          child: Container(
+          child: AppCard(
+            stableForScrolling: true,
             margin: const EdgeInsets.only(bottom: 2),
             padding: EdgeInsets.only(
               left: 12 + indent,
               right: 8,
               top: 10,
               bottom: 10,
-            ),
-            decoration: BoxDecoration(
-              color: glassCardColor(isLight: widget.isLight),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: widget.isLight ? AppColors.slate100 : AppColors.slate800,
-              ),
             ),
             child: Row(
               children: [
@@ -2213,6 +2207,7 @@ class _ScriptViewPageState extends ConsumerState<ScriptViewPage> {
         : AppColors.slate900;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(widget.path.split('/').last),
         actions: [

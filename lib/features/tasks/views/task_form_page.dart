@@ -551,19 +551,11 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
     final isNarrow = MediaQuery.of(context).size.width < 420;
-    final cardColor = glassCardColor(isLight: isLight);
-    final borderColor = isLight ? AppColors.glassCardBorder : AppColors.slate800;
-
     Widget section(String title, List<Widget> children) {
-      return Container(
-        width: double.infinity,
+      return AppCard(
+        stableForScrolling: true,
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: borderColor),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -581,6 +573,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
     }
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(isEditing ? '编辑任务' : '新建任务'),
         actions: [

@@ -230,7 +230,7 @@ class AppTheme {
         backgroundColor: isLight
             ? AppColors.lightSurfaceMuted
             : AppColors.darkSurfaceMuted,
-        selectedColor: AppColors.primary.withAlpha(isLight ? 24 : 38),
+        selectedColor: cs.primaryContainer,
         disabledColor: isLight ? AppColors.slate100 : AppColors.slate800,
         side: BorderSide(color: borderColor),
         labelStyle: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),

@@ -925,14 +925,9 @@ class _BackupPageState extends ConsumerState<BackupPage> {
 
   Widget _buildActionCard(bool isLight) {
     final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: glassCardColor(isLight: isLight),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isLight ? AppColors.slate200 : AppColors.slate800,
-        ),
-      ),
+    return AppCard(
+      stableForScrolling: true,
+      padding: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -1034,14 +1029,9 @@ class _BackupPageState extends ConsumerState<BackupPage> {
     final color = _restoreStatusColor(isLight, progress);
     final selectionLabels = progress.selection?.labels() ?? const <String>[];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: glassCardColor(isLight: isLight),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isLight ? AppColors.slate200 : AppColors.slate800,
-        ),
-      ),
+    return AppCard(
+      stableForScrolling: true,
+      padding: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -1222,14 +1212,9 @@ class _BackupPageState extends ConsumerState<BackupPage> {
     final downloading = _downloading.contains(record.filename);
     final deleting = _deleting.contains(record.filename);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: glassCardColor(isLight: isLight),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isLight ? AppColors.slate200 : AppColors.slate800,
-        ),
-      ),
+    return AppCard(
+      stableForScrolling: true,
+      padding: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1348,6 +1333,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
     final isLight = theme.brightness == Brightness.light;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Padding(
         padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 12),
         child: Column(

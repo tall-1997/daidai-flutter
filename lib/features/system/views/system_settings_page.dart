@@ -1099,15 +1099,9 @@ class _Card extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     
-    return Container(
+    return AppCard(
+      stableForScrolling: true,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: glassCardColor(isLight: isLight),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isLight ? AppColors.slate200 : AppColors.slate800,
-        ),
-      ),
       child: child,
     );
   }

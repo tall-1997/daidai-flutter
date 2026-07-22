@@ -209,15 +209,9 @@ class _PanelSettingsPageState extends ConsumerState<PanelSettingsPage> {
     String? hint,
     required bool isLight,
   }) {
-    return Container(
+    return AppCard(
+      stableForScrolling: true,
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: glassCardColor(isLight: isLight),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isLight ? AppColors.slate200 : AppColors.slate800,
-        ),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -235,6 +229,7 @@ class _PanelSettingsPageState extends ConsumerState<PanelSettingsPage> {
             decoration: InputDecoration(
               hintText: hint,
               isDense: true,
+              filled: false,
               border: InputBorder.none,
               contentPadding: EdgeInsets.zero,
             ),

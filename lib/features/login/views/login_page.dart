@@ -757,6 +757,7 @@ class _CompactCheck extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
     final color = enabled
         ? Theme.of(context).colorScheme.onSurface
         : Theme.of(context).disabledColor;
@@ -777,7 +778,10 @@ class _CompactCheck extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(4),
               ),
-              side: BorderSide(color: AppColors.slate300, width: 1.5),
+              side: BorderSide(
+                color: isLight ? AppColors.slate300 : AppColors.slate600,
+                width: 1.5,
+              ),
             ),
           ),
           const SizedBox(width: 8),

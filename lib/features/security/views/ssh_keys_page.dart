@@ -333,22 +333,12 @@ class _SshKeysPageState extends ConsumerState<SshKeysPage> {
                           final createdAt = DateTime.tryParse(
                             key['created_at']?.toString() ?? '',
                           );
-                          return Container(
+                          return AppCard(
+                            stableForScrolling: true,
                             margin: const EdgeInsets.only(bottom: 8),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 14,
                               vertical: 12,
-                            ),
-                            decoration: BoxDecoration(
-                              color: glassCardColor(
-                                isLight: isLight,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isLight
-                                    ? AppColors.slate200
-                                    : AppColors.slate800,
-                              ),
                             ),
                             child: Row(
                               children: [

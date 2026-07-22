@@ -1152,7 +1152,7 @@ class _SubCard extends ConsumerWidget {
       return isLight ? AppColors.blue600 : AppColors.blue500;
     }
     if (sub.enabled) {
-      return isLight ? const Color(0xFF047857) : AppColors.primary;
+      return isLight ? AppColors.primaryDark : AppColors.primary;
     }
     return AppColors.slate500;
   }
@@ -1160,19 +1160,12 @@ class _SubCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     
-    return GestureDetector(
+    return AppCard(
       onTap: onEdit,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: glassCardColor(isLight: isLight),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isLight ? AppColors.slate200 : AppColors.slate800,
-          ),
-        ),
-        child: Column(
+      stableForScrolling: true,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Column(
           children: [
             // Top row: name + status
             Row(
@@ -1299,7 +1292,6 @@ class _SubCard extends ConsumerWidget {
               ),
             ),
           ],
-        ),
       ),
     );
   }
@@ -1479,6 +1471,7 @@ class _SubscriptionLogsPageState extends ConsumerState<SubscriptionLogsPage> {
         : '拉取日志';
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(title: Text(title)),
       body: Column(
         children: [

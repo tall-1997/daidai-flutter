@@ -511,16 +511,10 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
     final scopes = app['scopes']?.toString() ?? '';
     final rateLimit = (app['rate_limit'] as num?)?.toInt() ?? 0;
 
-    return Container(
+    return AppCard(
+      stableForScrolling: true,
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: glassCardColor(isLight: isLight),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isLight ? AppColors.slate200 : AppColors.slate800,
-        ),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1189,7 +1183,7 @@ class _CopyableField extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.slate100,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
