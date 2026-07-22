@@ -655,25 +655,10 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                         ),
                       ),
                     ],
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withAlpha(80),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        size: 20,
-                        color: Colors.white,
-                      ),
+                    child: const AppGlassIconButton(
+                      icon: Icons.add,
+                      tooltip: '新建或上传脚本',
+                      onTap: null,
                     ),
                   ),
                 ],
@@ -1090,7 +1075,7 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.red500),
+            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
             child: const Text('删除'),
           ),
         ],
@@ -2418,7 +2403,7 @@ class _ScriptVersionSheetState extends ConsumerState<_ScriptVersionSheet> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.amber500),
+            style: FilledButton.styleFrom(foregroundColor: AppColors.amber500),
             child: const Text('回滚'),
           ),
         ],
@@ -2808,7 +2793,7 @@ class _ScriptDebugRunSheetState extends State<_ScriptDebugRunSheet> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.red500),
+            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
             child: const Text('清除'),
           ),
         ],

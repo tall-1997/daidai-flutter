@@ -85,3 +85,14 @@ flutter build ios --release --no-codesign
 ```
 
 正常情况下，`GlassCard(` 搜索结果为空；`liquid_glass_widgets` 仅用于应用根主题、页面级玻璃 Scaffold 和底部导航。
+
+## 统一控件视觉
+
+`v0.1.30` 起，按钮、搜索框、Chip、选项卡片和内容卡片统一采用底部导航栏的视觉语言：半透明表面、蓝灰深色基底、白色浅色高光、低对比描边和 Emerald 状态光晕。
+
+- 标准 Material 控件由 `AppTheme` 统一配置。
+- 自定义控件使用 `appGlassDecoration`。
+- 页头图标操作使用 `AppGlassIconButton`。
+- 危险操作使用红色前景和玻璃背景。
+- 主要操作使用 Emerald 前景和玻璃背景。
+- 真实 `BackdropFilter` 继续限定在页面级背景和固定覆盖层。

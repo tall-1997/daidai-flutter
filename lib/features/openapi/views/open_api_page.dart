@@ -142,28 +142,10 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                       ),
                     ),
                   ),
-                  GestureDetector(
+                  AppGlassIconButton(
+                    icon: Icons.add,
+                    tooltip: '新建 Open API 应用',
                     onTap: _showCreateDialog,
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withAlpha(80),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        size: 20,
-                        color: Colors.white,
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -759,7 +741,7 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                                     child: FilledButton(
                                       onPressed: () => Navigator.pop(d, true),
                                       style: FilledButton.styleFrom(
-                                        backgroundColor: AppColors.red500,
+                                        foregroundColor: AppColors.red500,
                                       ),
                                       child: const Text('删除'),
                                     ),

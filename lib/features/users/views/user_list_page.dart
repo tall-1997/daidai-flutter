@@ -178,28 +178,10 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                       ),
                     ),
                   ),
-                  GestureDetector(
+                  AppGlassIconButton(
+                    icon: Icons.add,
+                    tooltip: '新建用户',
                     onTap: () => _showCreateDialog(),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withAlpha(80),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        size: 20,
-                        color: Colors.white,
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -364,13 +346,14 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                   decoration: const InputDecoration(labelText: '密码'),
                 ),
                 const SizedBox(height: 12),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    const Text('角色  ', style: TextStyle(fontSize: 13)),
+                    const Text('角色', style: TextStyle(fontSize: 13)),
                     ...['admin', 'operator', 'viewer'].map(
-                      (r) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
+                      (r) => ChoiceChip(
                           label: Text(
                             r == 'admin'
                                 ? '管理员'
@@ -382,7 +365,6 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                           selected: role == r,
                           onSelected: (_) => setSheetState(() => role = r),
                           visualDensity: VisualDensity.compact,
-                        ),
                       ),
                     ),
                   ],
@@ -534,7 +516,7 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                   child: FilledButton(
                     onPressed: () => Navigator.pop(dialogCtx, true),
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.red500,
+                      foregroundColor: AppColors.red500,
                     ),
                     child: const Text('删除'),
                   ),

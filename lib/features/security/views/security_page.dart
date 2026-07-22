@@ -177,7 +177,7 @@ class _LoginLogsTabState extends ConsumerState<_LoginLogsTab>
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogCtx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.red500),
+            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
             child: const Text('清理'),
           ),
         ],
@@ -411,7 +411,7 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogCtx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.red500),
+            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
             child: const Text('撤销'),
           ),
         ],
@@ -452,7 +452,7 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogCtx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.red500),
+            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
             child: const Text('撤销'),
           ),
         ],
@@ -697,7 +697,7 @@ class _IpWhitelistTabState extends ConsumerState<_IpWhitelistTab>
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogCtx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.red500),
+            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
             child: const Text('删除'),
           ),
         ],
@@ -1171,7 +1171,7 @@ class _TwoFaTabState extends ConsumerState<_TwoFaTab>
           FilledButton(
             onPressed: () =>
                 Navigator.pop(dialogCtx, codeController.text.trim()),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.red500),
+            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
             child: const Text('禁用'),
           ),
         ],

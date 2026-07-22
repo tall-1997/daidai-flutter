@@ -701,7 +701,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
               }
               Navigator.pop(dialogContext, passwordController.text.trim());
             },
-            style: FilledButton.styleFrom(backgroundColor: AppColors.red500),
+            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
             child: const Text('确认恢复'),
           ),
         ],
@@ -722,7 +722,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.red500),
+            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
             child: const Text('删除'),
           ),
         ],

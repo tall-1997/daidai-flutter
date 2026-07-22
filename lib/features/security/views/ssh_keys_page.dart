@@ -58,7 +58,7 @@ class _SshKeysPageState extends ConsumerState<SshKeysPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.red500),
+            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
             child: const Text('删除'),
           ),
         ],

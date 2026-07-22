@@ -107,22 +107,10 @@ class _ThemeModeSelector extends ConsumerWidget {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? (isLight
-                        ? AppColors.primary.withAlpha(24)
-                        : AppColors.primary.withAlpha(40))
-                    : (isLight
-                        ? AppColors.lightSurfaceMuted
-                        : AppColors.darkSurfaceMuted),
-                border: Border.all(
-                  color: isSelected
-                      ? AppColors.primary.withAlpha(150)
-                      : (isLight
-                          ? AppColors.slate200
-                          : AppColors.darkBorder),
-                ),
-                borderRadius: BorderRadius.circular(12),
+              decoration: appGlassDecoration(
+                isLight: isLight,
+                borderRadius: 12,
+                selected: isSelected,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,

@@ -303,7 +303,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   child: FilledButton(
                     onPressed: () => Navigator.pop(dialogContext, true),
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.red500,
+                      foregroundColor: AppColors.red500,
                     ),
                     child: const Text('删除'),
                   ),
@@ -818,28 +818,10 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                       ],
                       if (!_selectionMode && !_taskSortMode) ...[
                         const SizedBox(width: 8),
-                        GestureDetector(
+                        AppGlassIconButton(
+                          icon: Icons.add,
+                          tooltip: '新建任务',
                           onTap: () => context.push('/tasks/new'),
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primary.withAlpha(80),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.add,
-                              size: 20,
-                              color: Colors.white,
-                            ),
-                          ),
                         ),
                       ],
                     ],
@@ -850,9 +832,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: TextField(
+              child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
                   hintText: '搜索任务名称或命令...',
@@ -861,28 +841,6 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                     size: 18,
                     color: AppColors.slate400,
                   ),
-                  filled: true,
-                  fillColor: glassFillColor(isLight: isLight),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: isLight ? AppColors.slate200 : AppColors.slate800,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: isLight ? AppColors.slate200 : AppColors.slate800,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.primary,
-                      width: 1.5,
-                    ),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   isDense: true,
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
@@ -902,7 +860,6 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   style: const TextStyle(fontSize: 14),
                   onChanged: _onSearchChanged,
                 ),
-              ),
             ),
             const SizedBox(height: 12),
             SizedBox(
@@ -1850,7 +1807,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                     child: FilledButton(
                       onPressed: () => Navigator.pop(dialogContext, true),
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.red500,
+                        foregroundColor: AppColors.red500,
                       ),
                       child: const Text('删除'),
                     ),
@@ -2462,12 +2419,19 @@ class _TaskPrimaryActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
     return Material(
-      color: color.withAlpha(isLight ? 22 : 34),
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Padding(
+      child: Ink(
+        decoration: appGlassDecoration(
+          isLight: isLight,
+          borderRadius: 18,
+          accentColor: color,
+          selected: true,
+        ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -2483,6 +2447,7 @@ class _TaskPrimaryActionButton extends StatelessWidget {
                 ),
               ),
             ],
+          ),
           ),
         ),
       ),
@@ -2509,12 +2474,19 @@ class _TaskSwipeActionButton extends StatelessWidget {
     return SizedBox(
       width: _TaskCardState._actionWidth,
       child: Material(
-        color: color.withAlpha(isLight ? 22 : 34),
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          child: Column(
+        child: Ink(
+          decoration: appGlassDecoration(
+            isLight: isLight,
+            borderRadius: 8,
+            accentColor: color,
+            selected: true,
+          ),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(8),
+            child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 15, color: color),
@@ -2530,6 +2502,7 @@ class _TaskSwipeActionButton extends StatelessWidget {
                 ),
               ),
             ],
+            ),
           ),
         ),
       ),
@@ -2967,12 +2940,9 @@ class _TaskHeaderChipButton extends ConsumerWidget {
           horizontal: compact ? 8 : 12,
           vertical: 7,
         ),
-        decoration: BoxDecoration(
-          color: glassCardColor(isLight: isLight),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: isLight ? AppColors.slate200 : AppColors.darkBorder,
-          ),
+        decoration: appGlassDecoration(
+          isLight: isLight,
+          borderRadius: 16,
         ),
         child: Row(
           children: [
@@ -3014,22 +2984,17 @@ class _TaskBatchActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = enabled
-        ? (isLight ? color.withAlpha(18) : color.withAlpha(24))
-        : (isLight ? AppColors.slate50 : AppColors.slate800);
-    final borderColor = enabled
-        ? color.withAlpha(isLight ? 60 : 90)
-        : (isLight ? AppColors.slate200 : AppColors.slate700);
     final foregroundColor = enabled ? color : AppColors.slate400;
 
     return GestureDetector(
       onTap: enabled ? onTap : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: borderColor),
+        decoration: appGlassDecoration(
+          isLight: isLight,
+          borderRadius: 12,
+          accentColor: color,
+          selected: enabled,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

@@ -570,7 +570,7 @@ class _DepListPageState extends ConsumerState<DepListPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogCtx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.red500),
+            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
             child: const Text('批量卸载'),
           ),
         ],
@@ -612,7 +612,7 @@ class _DepListPageState extends ConsumerState<DepListPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogCtx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.red500),
+            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
             child: Text(force ? '强制卸载' : '卸载'),
           ),
         ],
@@ -1134,28 +1134,10 @@ class _DepListPageState extends ConsumerState<DepListPage> {
                           )
                         : const Icon(Icons.settings_suggest_outlined),
                   ),
-                  GestureDetector(
+                  AppGlassIconButton(
+                    icon: Icons.add,
+                    tooltip: '安装依赖',
                     onTap: _handleCreate,
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withAlpha(80),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        size: 20,
-                        color: Colors.white,
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -1694,9 +1676,6 @@ class _StatusFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeColor = color ?? AppColors.primary;
-    final bg = selected
-        ? activeColor.withAlpha(20)
-        : (isLight ? AppColors.slate50 : AppColors.slate900);
     final fg = selected
         ? activeColor
         : (isLight ? AppColors.slate600 : AppColors.slate400);
@@ -1705,14 +1684,11 @@ class _StatusFilterChip extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected
-                ? activeColor.withAlpha(60)
-                : (isLight ? AppColors.slate200 : AppColors.slate800),
-          ),
+        decoration: appGlassDecoration(
+          isLight: isLight,
+          borderRadius: 16,
+          accentColor: activeColor,
+          selected: selected,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

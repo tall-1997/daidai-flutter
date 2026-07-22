@@ -202,47 +202,19 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                       ),
                     ),
                   ),
-                  GestureDetector(
-                    onTap: () => _showSendDialog(state.items),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: isLight
-                            ? AppColors.slate100
-                            : AppColors.slate800,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.send_outlined,
-                        size: 18,
-                        color: AppColors.primary,
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: AppGlassIconButton(
+                      icon: Icons.send_outlined,
+                      iconSize: 18,
+                      tooltip: '发送通知',
+                      onTap: () => _showSendDialog(state.items),
                     ),
                   ),
-                  GestureDetector(
+                  AppGlassIconButton(
+                    icon: Icons.add,
+                    tooltip: '新建通知渠道',
                     onTap: () => _showChannelDialog(),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withAlpha(80),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        size: 20,
-                        color: Colors.white,
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -491,7 +463,7 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                   child: FilledButton(
                     onPressed: () => Navigator.pop(dialogContext, true),
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.red500,
+                      foregroundColor: AppColors.red500,
                     ),
                     child: const Text('删除'),
                   ),

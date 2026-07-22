@@ -414,7 +414,7 @@ class _MorePageState extends ConsumerState<MorePage> {
                   child: FilledButton(
                     onPressed: () => Navigator.pop(dialogCtx, true),
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.red500,
+                      foregroundColor: AppColors.red500,
                     ),
                     child: const Text('退出'),
                   ),

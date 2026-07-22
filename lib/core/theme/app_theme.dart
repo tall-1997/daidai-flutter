@@ -33,6 +33,10 @@ class AppColors {
   static const darkSurfaceMuted = Color(0xCC111C2D);
   static const lightBorder = Color(0x99FFFFFF);
   static const darkBorder = Color(0x6636475C);
+  static const lightControl = Color(0xD9FFFFFF);
+  static const darkControl = Color(0xD11A2638);
+  static const lightControlPressed = Color(0xF2FFFFFF);
+  static const darkControlPressed = Color(0xE6334459);
   static const miuixRed = Color(0xFFE5534B);
   static const miuixGreen = Color(0xFF30A14E);
   static const miuixBlue = Color(0xFF3B82F6);
@@ -103,6 +107,36 @@ class AppTheme {
     final cardColor = isLight ? AppColors.lightSurface : AppColors.darkSurface;
     final borderColor = isLight ? AppColors.slate200 : AppColors.darkBorder;
     final scaffoldBg = isLight ? AppColors.lightPage : AppColors.darkPage;
+    final controlColor = isLight
+        ? AppColors.lightControl
+        : AppColors.darkControl;
+    final pressedControlColor = isLight
+        ? AppColors.lightControlPressed
+        : AppColors.darkControlPressed;
+
+    Color resolveControlColor(Set<WidgetState> states) {
+      if (states.contains(WidgetState.disabled)) {
+        return controlColor.withAlpha(isLight ? 120 : 105);
+      }
+      if (states.contains(WidgetState.pressed) ||
+          states.contains(WidgetState.hovered) ||
+          states.contains(WidgetState.focused)) {
+        return pressedControlColor;
+      }
+      return controlColor;
+    }
+
+    BorderSide resolveControlSide(Set<WidgetState> states) {
+      final selected = states.contains(WidgetState.selected) ||
+          states.contains(WidgetState.pressed) ||
+          states.contains(WidgetState.focused);
+      return BorderSide(
+        color: selected
+            ? AppColors.primary.withAlpha(isLight ? 120 : 150)
+            : borderColor,
+        width: selected ? 1.2 : 1,
+      );
+    }
 
     return ThemeData(
       useMaterial3: true,
@@ -144,7 +178,7 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         filled: true,
-        fillColor: cardColor,
+        fillColor: controlColor,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
@@ -160,24 +194,78 @@ class AppTheme {
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          minimumSize: const Size(0, 48),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith(resolveControlColor),
+          foregroundColor: const WidgetStatePropertyAll(AppColors.primary),
+          overlayColor: WidgetStatePropertyAll(
+            AppColors.primary.withAlpha(isLight ? 18 : 28),
           ),
-          elevation: 0,
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          minimumSize: const WidgetStatePropertyAll(Size(0, 48)),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          ),
+          side: WidgetStateProperty.resolveWith(resolveControlSide),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+          elevation: const WidgetStatePropertyAll(0),
+          textStyle: const WidgetStatePropertyAll(
+            TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size(0, 44),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith(resolveControlColor),
+          foregroundColor: WidgetStatePropertyAll(cs.onSurface),
+          overlayColor: WidgetStatePropertyAll(
+            AppColors.primary.withAlpha(isLight ? 16 : 24),
           ),
-          side: BorderSide(color: borderColor),
+          minimumSize: const WidgetStatePropertyAll(Size(0, 48)),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          side: WidgetStateProperty.resolveWith(resolveControlSide),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+          elevation: const WidgetStatePropertyAll(0),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed) ||
+                states.contains(WidgetState.hovered)) {
+              return pressedControlColor;
+            }
+            return controlColor.withAlpha(isLight ? 120 : 105);
+          }),
+          foregroundColor: WidgetStatePropertyAll(cs.primary),
+          overlayColor: WidgetStatePropertyAll(
+            AppColors.primary.withAlpha(isLight ? 16 : 24),
+          ),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          ),
+          side: WidgetStatePropertyAll(
+            BorderSide(color: borderColor, width: 0.8),
+          ),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith(resolveControlColor),
+          foregroundColor: WidgetStatePropertyAll(cs.onSurfaceVariant),
+          overlayColor: WidgetStatePropertyAll(
+            AppColors.primary.withAlpha(isLight ? 18 : 28),
+          ),
+          minimumSize: const WidgetStatePropertyAll(Size(44, 44)),
+          side: WidgetStateProperty.resolveWith(resolveControlSide),
+          shape: const WidgetStatePropertyAll(CircleBorder()),
         ),
       ),
       switchTheme: SwitchThemeData(
@@ -227,10 +315,8 @@ class AppTheme {
         space: 0,
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: isLight
-            ? AppColors.lightSurfaceMuted
-            : AppColors.darkSurfaceMuted,
-        selectedColor: cs.primaryContainer,
+        backgroundColor: controlColor,
+        selectedColor: pressedControlColor,
         disabledColor: isLight ? AppColors.slate100 : AppColors.slate800,
         side: BorderSide(color: borderColor),
         labelStyle: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
@@ -240,7 +326,20 @@ class AppTheme {
           fontWeight: FontWeight.w600,
         ),
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+        labelPadding: const EdgeInsets.symmetric(horizontal: 7),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: AppColors.primary,
+        unselectedLabelColor: cs.onSurfaceVariant,
+        indicatorColor: AppColors.primary,
+        dividerColor: Colors.transparent,
+        overlayColor: WidgetStatePropertyAll(
+          AppColors.primary.withAlpha(isLight ? 14 : 24),
+        ),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
       ),
       listTileTheme: ListTileThemeData(
         shape: RoundedRectangleBorder(

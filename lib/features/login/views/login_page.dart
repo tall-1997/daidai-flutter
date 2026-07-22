@@ -6,6 +6,7 @@ import '../../../core/auth/auth_service.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/app_card.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../dashboard/providers/dashboard_provider.dart';
 import '../widgets/geetest_captcha_dialog.dart';
@@ -597,7 +598,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         child: FilledButton(
                           onPressed: _loading ? null : _submit,
                           style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.primary,
+                            foregroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -720,23 +721,21 @@ class _IconInput extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final borderColor = isLight ? AppColors.glassCardBorder : AppColors.slate800;
-
-    return Container(
-      height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: isLight ? Colors.white : AppColors.slate900,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: AppColors.slate400),
-          const SizedBox(width: 12),
-          Expanded(child: child),
-          if (suffix != null) ...[const SizedBox(width: 8), suffix!],
-        ],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        height: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: appGlassDecoration(isLight: isLight, borderRadius: 14),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: AppColors.slate400),
+            const SizedBox(width: 12),
+            Expanded(child: child),
+            if (suffix != null) ...[const SizedBox(width: 8), suffix!],
+          ],
+        ),
       ),
     );
   }

@@ -552,7 +552,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                   child: FilledButton(
                     onPressed: () => Navigator.of(dialogCtx).pop(true),
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.red500,
+                      foregroundColor: AppColors.red500,
                     ),
                     child: const Text('删除'),
                   ),
@@ -592,7 +592,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                   child: FilledButton(
                     onPressed: () => Navigator.of(dialogCtx).pop(true),
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.red500,
+                      foregroundColor: AppColors.red500,
                     ),
                     child: const Text('删除'),
                   ),
@@ -932,28 +932,10 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                       ],
                       if (!_selectionMode && !_sortMode) ...[
                         const SizedBox(width: 8),
-                        GestureDetector(
+                        AppGlassIconButton(
+                          icon: Icons.add,
+                          tooltip: '新建变量',
                           onTap: () => _showCreateDialog(),
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primary.withAlpha(80),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.add,
-                              size: 20,
-                              color: Colors.white,
-                            ),
-                          ),
                         ),
                       ],
                     ],
@@ -977,34 +959,6 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                             Icons.search,
                             size: 18,
                             color: AppColors.slate400,
-                          ),
-                          filled: true,
-                          fillColor: glassFillColor(isLight: isLight),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: isLight
-                                  ? AppColors.slate200
-                                  : AppColors.slate800,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: isLight
-                                  ? AppColors.slate200
-                                  : AppColors.slate800,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: AppColors.primary,
-                              width: 1.5,
-                            ),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 14,
                           ),
                           isDense: true,
                           suffixIcon: _searchController.text.isNotEmpty
@@ -2015,12 +1969,9 @@ class _HeaderChipButton extends ConsumerWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: glassCardColor(isLight: isLight),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: isLight ? AppColors.slate200 : AppColors.slate800,
-          ),
+        decoration: appGlassDecoration(
+          isLight: isLight,
+          borderRadius: 16,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -2061,22 +2012,17 @@ class _BatchActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = enabled
-        ? (isLight ? color.withAlpha(18) : color.withAlpha(24))
-        : (isLight ? AppColors.slate50 : AppColors.slate800);
-    final borderColor = enabled
-        ? color.withAlpha(isLight ? 60 : 90)
-        : (isLight ? AppColors.slate200 : AppColors.slate700);
     final foregroundColor = enabled ? color : AppColors.slate400;
 
     return GestureDetector(
       onTap: enabled ? onTap : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: borderColor),
+        decoration: appGlassDecoration(
+          isLight: isLight,
+          borderRadius: 12,
+          accentColor: color,
+          selected: enabled,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -2255,15 +2201,21 @@ class _MiniBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: isLight ? AppColors.slate50 : AppColors.slate800,
-          borderRadius: BorderRadius.circular(8),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Material(
+        color: Colors.transparent,
+        child: Ink(
+          decoration: appGlassDecoration(isLight: isLight, borderRadius: 8),
+          child: InkWell(
+            onTap: onTap,
+            child: SizedBox(
+              width: 30,
+              height: 30,
+              child: Icon(icon, size: 14, color: AppColors.slate400),
+            ),
+          ),
         ),
-        child: Icon(icon, size: 14, color: AppColors.slate400),
       ),
     );
   }

@@ -304,7 +304,7 @@ class _LogListPageState extends ConsumerState<LogListPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.red500),
+            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
             child: const Text('删除'),
           ),
         ],
@@ -365,7 +365,7 @@ class _LogListPageState extends ConsumerState<LogListPage> {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              style: FilledButton.styleFrom(backgroundColor: AppColors.red500),
+              style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
               child: const Text('清理'),
             ),
           ],
@@ -407,7 +407,7 @@ class _LogListPageState extends ConsumerState<LogListPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogCtx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.red500),
+            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
             child: const Text('删除'),
           ),
         ],
@@ -513,28 +513,6 @@ class _LogListPageState extends ConsumerState<LogListPage> {
                     size: 18,
                     color: AppColors.slate400,
                   ),
-                  filled: true,
-                  fillColor: glassFillColor(isLight: isLight),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: isLight ? AppColors.slate200 : AppColors.slate800,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: isLight ? AppColors.slate200 : AppColors.slate800,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.primary,
-                      width: 1.5,
-                    ),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   isDense: true,
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
@@ -847,16 +825,11 @@ class _StatusFilterChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: selected
-                ? selectedColor.withAlpha(16)
-                : (isLight ? AppColors.slate50 : AppColors.slate950),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: selected
-                  ? selectedColor.withAlpha(70)
-                  : (isLight ? AppColors.slate200 : AppColors.slate800),
-            ),
+          decoration: appGlassDecoration(
+            isLight: isLight,
+            borderRadius: 18,
+            accentColor: selectedColor,
+            selected: selected,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

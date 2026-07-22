@@ -451,7 +451,7 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
                   child: FilledButton(
                     onPressed: () => Navigator.pop(dialogCtx, true),
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.red500,
+                      foregroundColor: AppColors.red500,
                     ),
                     child: const Text('重启'),
                   ),

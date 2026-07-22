@@ -185,28 +185,10 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                       ),
                     ),
                   ),
-                  GestureDetector(
+                  AppGlassIconButton(
+                    icon: Icons.add,
+                    tooltip: '新建订阅',
                     onTap: () => _showCreateDialog(),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withAlpha(80),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        size: 20,
-                        color: Colors.white,
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -227,32 +209,6 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                       size: 18,
                       color: AppColors.slate400,
                     ),
-                    filled: true,
-                    fillColor: glassCardColor(isLight: isLight),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: isLight
-                            ? AppColors.slate200
-                            : AppColors.slate800,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: isLight
-                            ? AppColors.slate200
-                            : AppColors.slate800,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: AppColors.primary,
-                        width: 1.5,
-                      ),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     isDense: true,
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
@@ -423,7 +379,7 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                   child: FilledButton(
                     onPressed: () => Navigator.pop(dialogContext, true),
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.red500,
+                      foregroundColor: AppColors.red500,
                     ),
                     child: const Text('删除'),
                   ),
@@ -525,19 +481,17 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            Row(
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                const Text(
-                                  '类型  ',
-                                  style: TextStyle(fontSize: 13),
-                                ),
+                                const Text('类型', style: TextStyle(fontSize: 13)),
                                 ...['git-repo', 'single-file'].map((t) {
                                   final label = t == 'git-repo'
                                       ? 'Git 仓库'
                                       : '单文件';
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: ChoiceChip(
+                                  return ChoiceChip(
                                       label: Text(
                                         label,
                                         style: const TextStyle(fontSize: 12),
@@ -546,7 +500,6 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                                       onSelected: (_) =>
                                           setSheetState(() => selectedType = t),
                                       visualDensity: VisualDensity.compact,
-                                    ),
                                   );
                                 }),
                               ],
