@@ -4,11 +4,17 @@
 
 ## 版本
 
-- App 版本：`v0.1.7`
+- App 版本：`v0.1.8`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.8
+
+- 更新检测：修复安装同版本修复包后仍反复提示更新的问题，去除同版本 `published_at` 时间回退判定
+- 更新检测：保留版本号和 build number 比较，安装当前 Release 后会正确显示已是最新版本
+- 发布：重新生成 Android APK 和 iOS IPA 安装包，Release 与仓库说明同步更新
 
 ### v0.1.7
 
@@ -130,8 +136,8 @@ Material 3 主题 + Liquid Glass 液态玻璃风格，全局对齐 iOS26 ultraTh
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.1.7-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.7) |
-| iOS | [daidai-flutter-v0.1.7-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.7) |
+| Android | [daidai-flutter-v0.1.8-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.8) |
+| iOS | [daidai-flutter-v0.1.8-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.8) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 
