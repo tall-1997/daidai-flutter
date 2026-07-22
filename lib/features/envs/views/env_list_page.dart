@@ -262,8 +262,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
   bool _selectionMode = false;
   bool _sortMode = false;
   bool _transferBusy = false;
-  int? _lastMovedSourceId;
-  int? _lastMovedTargetId;
+  final List<({int sourceId, int? targetId})> _pendingSortMoves = [];
 
   Widget _buildGroupAutocomplete({
     required TextEditingController controller,
@@ -898,12 +897,12 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                           onTap: () async {
                             if (_sortMode) {
                               try {
-                                if (_lastMovedSourceId != null) {
+                                for (final move in _pendingSortMoves) {
                                   await ref
                                       .read(envListProvider.notifier)
                                       .sortEnvs(
-                                        _lastMovedSourceId!,
-                                        _lastMovedTargetId,
+                                        move.sourceId,
+                                        move.targetId,
                                       );
                                 }
                                 if (mounted) {
@@ -925,10 +924,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                             }
                             setState(() {
                               _sortMode = !_sortMode;
-                              if (!_sortMode) {
-                                _lastMovedSourceId = null;
-                                _lastMovedTargetId = null;
-                              }
+                              _pendingSortMoves.clear();
                             });
                           },
                         ),
@@ -1392,8 +1388,9 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                               .read(envListProvider.notifier)
                               .reorderLocal(oldIndex, newIndex);
                           setState(() {
-                            _lastMovedSourceId = sourceEnv.id;
-                            _lastMovedTargetId = targetId;
+                            _pendingSortMoves.add(
+                              (sourceId: sourceEnv.id, targetId: targetId),
+                            );
                           });
                         },
                         itemBuilder: (_, i) {
