@@ -73,6 +73,7 @@ class SseClient {
           );
           return;
         }
+        _disposeConnection();
         onError?.call('认证失败，请重新登录');
         return;
       }
