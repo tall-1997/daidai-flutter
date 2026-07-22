@@ -4,11 +4,16 @@
 
 ## 版本
 
-- App 版本：`v0.1.15`
+- App 版本：`v0.1.16`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.16
+
+- 清理：删除未使用的 `AuthService.changePassword()` 方法。
+- 清理：删除未使用的 `ApiEndpoints.password` 常量。
 
 ### v0.1.15
 
@@ -187,8 +192,8 @@ Material 3 主题 + Liquid Glass 液态玻璃风格，全局对齐 iOS26 ultraTh
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.1.15-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.15) |
-| iOS | [daidai-flutter-v0.1.15-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.15) |
+| Android | [daidai-flutter-v0.1.16-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.16) |
+| iOS | [daidai-flutter-v0.1.16-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.16) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 
