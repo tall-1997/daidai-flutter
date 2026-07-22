@@ -2070,7 +2070,9 @@ class _TaskCardState extends State<_TaskCard> {
                       color: AppColors.red500,
                       onTap: () => _runSwipeAction(widget.onDelete),
                     ),
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -2122,22 +2124,29 @@ class _TaskCardState extends State<_TaskCard> {
                     : const Duration(milliseconds: 160),
                 curve: Curves.easeOutCubic,
                 transform: Matrix4.translationValues(_dragOffset, 0, 0),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: glassCardColor(isLight: widget.isLight),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: widget.selected
-                        ? AppColors.primary
-                        : (hasFailure
-                              ? AppColors.red500.withAlpha(60)
-                              : borderColor),
-                    width: widget.selected ? 1.4 : 1,
+                child: GlassCard(
+                  useOwnLayer: true,
+                  settings: const LiquidGlassSettings(
+                    blur: 8,
+                    thickness: 24,
+                    specularSharpness: GlassSpecularSharpness.soft,
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  padding: const EdgeInsets.all(14),
+                  child: Container(
+                    decoration: widget.selected || hasFailure
+                        ? BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: widget.selected
+                                  ? AppColors.primary
+                                  : AppColors.red500.withAlpha(60),
+                              width: widget.selected ? 1.4 : 1,
+                            ),
+                          )
+                        : null,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                     Row(
                       children: [
                         if (widget.selectionMode) ...[
