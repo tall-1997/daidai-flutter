@@ -4,11 +4,17 @@
 
 ## 版本
 
-- App 版本：`v0.1.16`
+- App 版本：`v0.1.17`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.17
+
+- 主题：修复深色模式下主页面及一级页面卡片底色偏浅、对比不足的问题。
+- 玻璃效果：固定滚动列表玻璃质量为 standard，关闭自适应质量自动降级，避免快速滑动时卡片看起来失去液态玻璃效果。
+- 列表：任务列表和环境变量列表改用真实 GlassCard 渲染，替换伪玻璃 Container 背景。
 
 ### v0.1.16
 
@@ -192,8 +198,8 @@ Material 3 主题 + Liquid Glass 液态玻璃风格，全局对齐 iOS26 ultraTh
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.1.16-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.16) |
-| iOS | [daidai-flutter-v0.1.16-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.16) |
+| Android | [daidai-flutter-v0.1.17-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.17) |
+| iOS | [daidai-flutter-v0.1.17-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.17) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 
