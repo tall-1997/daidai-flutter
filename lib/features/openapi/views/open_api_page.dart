@@ -27,6 +27,29 @@ const _apiScopeOptions = [
   _ApiScopeOption('system', '系统信息', '读取系统信息和状态数据'),
 ];
 
+Future<List<Map<String, dynamic>>> _loadAllOpenApiLogs(int appId) async {
+  const pageSize = 100;
+  final allItems = <Map<String, dynamic>>[];
+  var page = 1;
+  var total = 0;
+  do {
+    final resp = await DioClient.instance.dio.get(
+      ApiEndpoints.openApiAppLogs(appId),
+      queryParameters: {'page': page, 'page_size': pageSize},
+    );
+    final paginated = extractPaginated(resp.data);
+    if (page == 1) {
+      total = paginated.total;
+    }
+    if (paginated.items.isEmpty) {
+      break;
+    }
+    allItems.addAll(paginated.items);
+    page++;
+  } while (allItems.length < total);
+  return allItems;
+}
+
 class OpenApiPage extends ConsumerStatefulWidget {
   const OpenApiPage({super.key});
 
@@ -992,12 +1015,7 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
   void _showLogsDialog(int appId, String appName) async {
     List<Map<String, dynamic>> logs = [];
     try {
-      final resp = await DioClient.instance.dio.get(
-        ApiEndpoints.openApiAppLogs(appId),
-        queryParameters: {'page': 1, 'page_size': 50},
-      );
-      final paginated = extractPaginated(resp.data);
-      logs = paginated.items;
+      logs = await _loadAllOpenApiLogs(appId);
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1208,13 +1226,9 @@ class _OpenApiLogsPageState extends ConsumerState<OpenApiLogsPage> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final resp = await DioClient.instance.dio.get(
-        ApiEndpoints.openApiAppLogs(widget.appId),
-        queryParameters: {'page': 1, 'page_size': 100},
-      );
-      final paginated = extractPaginated(resp.data);
+      final logs = await _loadAllOpenApiLogs(widget.appId);
       setState(() {
-        _logs = paginated.items;
+        _logs = logs;
         _loading = false;
       });
     } catch (_) {
