@@ -33,6 +33,7 @@ class EnvListState {
   final List<String> groups;
   final List<String> selectedGroups;
   final String keyword;
+  final String? error;
 
   const EnvListState({
     this.envs = const [],
@@ -41,6 +42,7 @@ class EnvListState {
     this.groups = const [],
     this.selectedGroups = const [],
     this.keyword = '',
+    this.error,
   });
 
   EnvListState copyWith({
@@ -50,6 +52,7 @@ class EnvListState {
     List<String>? groups,
     Object? selectedGroups = _selectedGroupUnset,
     String? keyword,
+    String? error,
   }) {
     return EnvListState(
       envs: envs ?? this.envs,
@@ -60,6 +63,7 @@ class EnvListState {
           ? this.selectedGroups
           : selectedGroups as List<String>,
       keyword: keyword ?? this.keyword,
+      error: error,
     );
   }
 }
@@ -68,7 +72,7 @@ class EnvListNotifier extends StateNotifier<EnvListState> {
   EnvListNotifier() : super(const EnvListState());
 
   Future<void> load() async {
-    state = state.copyWith(loading: true);
+    state = state.copyWith(loading: true, error: null);
     try {
       final dio = DioClient.instance.dio;
       // The panel backend caps page_size at 100. Requesting a larger value
@@ -122,8 +126,11 @@ class EnvListNotifier extends StateNotifier<EnvListState> {
         loading: false,
         groups: groups,
       );
-    } catch (_) {
-      state = state.copyWith(loading: false);
+    } catch (error) {
+      state = state.copyWith(
+        loading: false,
+        error: extractErrorMessage(error, '加载环境变量失败'),
+      );
     }
   }
 
@@ -1304,6 +1311,35 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                           Center(
                             child: CircularProgressIndicator(
                               color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      )
+                    : state.error != null && state.envs.isEmpty
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        children: [
+                          const SizedBox(height: 100),
+                          const Icon(
+                            Icons.error_outline,
+                            size: 56,
+                            color: AppColors.red500,
+                          ),
+                          const SizedBox(height: 12),
+                          Center(
+                            child: Text(
+                              state.error!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: AppColors.red500),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Center(
+                            child: OutlinedButton.icon(
+                              onPressed: _refresh,
+                              icon: const Icon(Icons.refresh, size: 16),
+                              label: const Text('重试'),
                             ),
                           ),
                         ],
