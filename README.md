@@ -4,11 +4,19 @@
 
 ## 版本
 
-- App 版本：`v0.1.12`
+- App 版本：`v0.1.13`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.13
+
+- 日志流：SSE 认证刷新失败时主动释放连接资源，避免认证失效后残留连接。
+- 更新：安装包下载改为临时文件校验成功后再替换正式缓存，弱网失败时不破坏旧缓存。
+- 通知：iOS 启动初始化阶段不再主动申请通知权限，仅在用户点击请求权限时弹窗。
+- Open API：调用日志分页加载增加最大页数与重复页保护，避免异常 total 导致连续请求。
+- 环境变量：排序模式会保存所有拖拽步骤，避免连续拖动后只提交最后一次移动。
 
 ### v0.1.12
 
@@ -169,8 +177,8 @@ Material 3 主题 + Liquid Glass 液态玻璃风格，全局对齐 iOS26 ultraTh
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.1.12-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.12) |
-| iOS | [daidai-flutter-v0.1.12-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.12) |
+| Android | [daidai-flutter-v0.1.13-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.13) |
+| iOS | [daidai-flutter-v0.1.13-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.13) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 
