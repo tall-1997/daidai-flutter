@@ -27,12 +27,14 @@ final subscriptionListProvider =
 class SubscriptionListState {
   final List<Subscription> items;
   final bool loading;
+  final int total;
   final String keyword;
   final String? error;
 
   const SubscriptionListState({
     this.items = const [],
     this.loading = false,
+    this.total = 0,
     this.keyword = '',
     this.error,
   });
@@ -40,12 +42,14 @@ class SubscriptionListState {
   SubscriptionListState copyWith({
     List<Subscription>? items,
     bool? loading,
+    int? total,
     String? keyword,
     String? error,
   }) {
     return SubscriptionListState(
       items: items ?? this.items,
       loading: loading ?? this.loading,
+      total: total ?? this.total,
       keyword: keyword ?? this.keyword,
       error: error,
     );
@@ -55,13 +59,15 @@ class SubscriptionListState {
 class SubscriptionListNotifier extends StateNotifier<SubscriptionListState> {
   SubscriptionListNotifier() : super(const SubscriptionListState());
   int _loadRequestId = 0;
+  int _page = 1;
 
-  Future<void> load() async {
+  Future<void> load({bool refresh = true}) async {
     final requestId = ++_loadRequestId;
+    if (refresh) _page = 1;
     state = state.copyWith(loading: true);
     try {
       final dio = DioClient.instance.dio;
-      final params = <String, dynamic>{'page': 1, 'page_size': 200};
+      final params = <String, dynamic>{'page': _page, 'page_size': 100};
       if (state.keyword.isNotEmpty) params['keyword'] = state.keyword;
       final resp = await dio.get(
         ApiEndpoints.subscriptions,
@@ -72,11 +78,22 @@ class SubscriptionListNotifier extends StateNotifier<SubscriptionListState> {
           .map((e) => Subscription.fromJson(e))
           .toList();
       if (requestId != _loadRequestId) return;
-      state = state.copyWith(items: items, loading: false, error: null);
+      state = state.copyWith(
+        items: refresh ? items : [...state.items, ...items],
+        total: paginated.total,
+        loading: false,
+        error: null,
+      );
     } catch (_) {
       if (requestId != _loadRequestId) return;
       state = state.copyWith(loading: false, error: '加载订阅失败');
     }
+  }
+
+  Future<void> loadMore() async {
+    if (state.loading || state.items.length >= state.total) return;
+    _page++;
+    await load(refresh: false);
   }
 
   void setKeyword(String keyword) {
@@ -247,7 +264,14 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
 
             // List
             Expanded(
-              child: RefreshIndicator(
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (notification.metrics.extentAfter < 240) {
+                    ref.read(subscriptionListProvider.notifier).loadMore();
+                  }
+                  return false;
+                },
+                child: RefreshIndicator(
                 color: AppColors.primary,
                 onRefresh: () =>
                     ref.read(subscriptionListProvider.notifier).load(),
@@ -284,8 +308,20 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                        itemCount: state.items.length,
+                        itemCount:
+                            state.items.length +
+                            (state.items.length < state.total ? 1 : 0),
                         itemBuilder: (_, i) {
+                          if (i == state.items.length) {
+                            return const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            );
+                          }
                           final sub = state.items[i];
                           return _SubCard(
                             sub: sub,
@@ -301,6 +337,7 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                           );
                         },
                       ),
+                ),
               ),
             ),
           ],
