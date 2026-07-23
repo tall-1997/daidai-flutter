@@ -1317,17 +1317,12 @@ class _ActionBtn extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     
-    return GestureDetector(
+    return AppLiquidGlassSurface(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: glassCardColor(isLight: isLight),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isLight ? AppColors.slate200 : AppColors.slate800,
-          ),
-        ),
+      borderRadius: 12,
+      performanceMode: true,
+      accentColor: danger ? AppColors.red500 : AppColors.primary,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
             Icon(
@@ -1365,7 +1360,6 @@ class _ActionBtn extends ConsumerWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }

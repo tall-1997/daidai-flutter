@@ -2480,24 +2480,11 @@ class _ScriptVersionSheetState extends ConsumerState<_ScriptVersionSheet> {
                           final message = version.message.trim().isEmpty
                               ? 'v${version.version}'
                               : version.message;
-                          return Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color:
-                                  Theme.of(context).brightness ==
-                                      Brightness.light
-                                  ? Colors.white
-                                  : AppColors.slate900,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color:
-                                    Theme.of(context).brightness ==
-                                        Brightness.light
-                                    ? AppColors.slate200
-                                    : AppColors.slate800,
-                              ),
-                            ),
-                            child: Column(
+                           return AppCard(
+                             stableForScrolling: true,
+                             borderRadius: 14,
+                             padding: const EdgeInsets.all(14),
+                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(

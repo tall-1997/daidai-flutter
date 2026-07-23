@@ -639,9 +639,12 @@ class _SettingsItem extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: AppCard(
+      child: AppLiquidGlassSurface(
+        onTap: onTap,
+        borderRadius: 16,
+        performanceMode: true,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: GestureDetector(onTap: onTap, child: rowContent),
+        child: rowContent,
       ),
     );
   }

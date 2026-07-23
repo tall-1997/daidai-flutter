@@ -1458,20 +1458,13 @@ class _SubscriptionLogsPageState extends ConsumerState<SubscriptionLogsPage> {
                         );
                         final preview = _subscriptionLogPreview(log);
 
-                        return GestureDetector(
-                          onTap: () => _showLogDetail(log),
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 10),
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: AppLiquidGlassSurface(
+                            onTap: () => _showLogDetail(log),
+                            borderRadius: 14,
+                            performanceMode: true,
                             padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: glassCardColor(isLight: isLight),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: isLight
-                                    ? AppColors.slate200
-                                    : AppColors.slate800,
-                              ),
-                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
