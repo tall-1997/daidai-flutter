@@ -2,13 +2,29 @@
 
 呆呆面板 Flutter 是面向 Android 和 iOS 的移动端客户端，用于连接[呆呆面板](https://github.com/linzixuanzz/daidai-panel)服务并在手机端管理定时任务、脚本、环境变量、依赖、安全设置和开放 API。项目基于 [Dumb-Panel-APP](https://github.com/linzixuanzz/Dumb-Panel-APP) 演进而来，采用 Riverpod 状态管理和 GoRouter 路由，界面风格为液态玻璃 (Liquid Glass)。
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B.svg?logo=flutter)](https://flutter.dev)
+[![Latest Release](https://img.shields.io/github/v/release/tall-1997/daidai-flutter)](https://github.com/tall-1997/daidai-flutter/releases/latest)
+[![Build Android & iOS](https://github.com/tall-1997/daidai-flutter/actions/workflows/build.yml/badge.svg)](https://github.com/tall-1997/daidai-flutter/actions/workflows/build.yml)
+
+本仓库遵循开放协作原则，欢迎提交 Issue、讨论和 Pull Request。项目保留上游作者署名，并在 [第三方开源声明](docs/THIRD_PARTY_NOTICES.md) 中列出主要依赖及许可证信息。
+
 ## 版本
 
-- App 版本：`v0.1.22`
+- App 版本：`v0.1.38`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.38
+
+- 完成全应用 `liquid_glass_easy 3.3.1` 原生控件、交互动作和弹层迁移。
+- 任务主卡、侧滑操作条、应用锁面板和高价值对话框统一为真实 Liquid Glass Lens。
+- 全仓业务提示统一使用玻璃浮动通知，完整卡片和可点击表面统一使用共享 Lens 组件。
+- Android/iOS Release 构建与 Shader 资产验证通过。
+
+完整历史更新见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 
 ### v0.1.22
 
@@ -169,7 +185,7 @@ UI (Views) -> Riverpod Providers -> AuthService / DioClient -> REST API
 
 ### 主题系统
 
-Material 3 主题 + Liquid Glass 液态玻璃风格，全局对齐 iOS26 ultraThickMaterial 材质（`GlassThemeData` 双模式配置），支持浅色/深色模式切换、自定义背景图片和模糊强度调节。
+Material 3 主题 + `liquid_glass_easy 3.3.1` 实时折射液态玻璃风格。主界面使用 `LiquidGlassScaffold` 和 `LiquidGlassBottomNavBar`，内容组件使用 `LiquidGlassLens`，支持 Impeller/Skia、浅色/深色模式、自定义背景图片和模糊强度调节。
 
 ## 核心功能
 
@@ -222,8 +238,8 @@ Material 3 主题 + Liquid Glass 液态玻璃风格，全局对齐 iOS26 ultraTh
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.1.22-android.apk](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.22) |
-| iOS | [daidai-flutter-v0.1.22-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/tag/v0.1.22) |
+| Android | [daidai-flutter-v0.1.38-android.apk](https://github.com/tall-1997/daidai-flutter/releases/download/v0.1.38/daidai-flutter-v0.1.38-android.apk) |
+| iOS | [daidai-flutter-v0.1.38-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/download/v0.1.38/daidai-flutter-v0.1.38-ios.ipa) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 
@@ -256,19 +272,27 @@ flutter build ios --release --no-codesign
 
 ## 开源引用与致谢
 
-本项目基于以下开源项目：
+本项目是社区维护的开源客户端，基于以下项目和开源生态构建：
 
-- [Dumb-Panel-APP](https://github.com/linzixuanzz/Dumb-Panel-APP) (Apache 2.0) -- 原始 Flutter 客户端，提供核心功能模块和 UI 设计
+- [Dumb-Panel-APP](https://github.com/linzixuanzz/Dumb-Panel-APP) -- 原始 Flutter 客户端，提供核心功能模块和 UI 设计；上游仓库当前未检测到独立 LICENSE 文件，使用和分发前请核对上游声明
 - [daidai-panel](https://github.com/linzixuanzz/daidai-panel) (MIT) -- 呆呆面板后端服务，提供 API 接口和数据模型
 - [Flutter](https://flutter.dev) (BSD-3-Clause) -- Google 的跨平台 UI 框架
 - [Riverpod](https://riverpod.dev) -- Dart/Flutter 响应式状态管理库
 - [GoRouter](https://pub.dev/packages/go_router) -- Flutter 声明式路由库
 - [Dio](https://pub.dev/packages/dio) -- Dart HTTP 客户端
 - [fl_chart](https://pub.dev/packages/fl_chart) -- Flutter 图表库
-- [Liquid Glass Easy](https://pub.dev/packages/liquid_glass_easy) -- 实时折射液态玻璃 UI 组件库
+- [Liquid Glass Easy](https://github.com/AhmeedGamil/liquid_glass_easy) (MIT) -- 实时折射液态玻璃 UI 组件库
 - [flutter_secure_storage](https://pub.dev/packages/flutter_secure_storage) -- Flutter 安全存储
 - [local_auth](https://pub.dev/packages/local_auth) -- 本地生物认证
 - [webview_flutter](https://pub.dev/packages/webview_flutter) -- Flutter WebView
+
+完整依赖、来源与许可证清单见 [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md)。依赖库的商标、版权和许可证归各自权利人所有。
+
+## 参与贡献
+
+- 提交问题前请先搜索已有 Issue，并提供版本、平台、复现步骤和日志。
+- 代码贡献请参阅 [CONTRIBUTING.md](CONTRIBUTING.md)。
+- 安全问题请参阅 [SECURITY.md](SECURITY.md)，避免在公开 Issue 中披露敏感细节。
 
 ## 许可证
 
