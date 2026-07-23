@@ -156,14 +156,19 @@ jobs:
             fi
             
             cat > /tmp/release_notes.md << EOF
-          ## 呆呆面板 Flutter App ${{ steps.version.outputs.RELEASE_TAG }}
+          ## ${{ steps.version.outputs.RELEASE_TAG }} 中文更新说明
           
-          ### 更新内容
+          ### 本版变更
           $CHANGES
           
           ### 下载说明
-          - **Android**: 下载 APK 文件安装使用
-          - **iOS**: 下载 IPA 文件，通过 AltStore 或 Sideloadly 安装
+          - Android：下载本 Release 中的 APK 文件安装。
+          - iOS：下载本 Release 中的 IPA 文件，通过 AltStore、Sideloadly 等方式安装。
+
+          ### 开源引用
+          - 原始客户端：[Dumb-Panel-APP](https://github.com/linzixuanzz/Dumb-Panel-APP)
+          - 后端服务：[daidai-panel](https://github.com/linzixuanzz/daidai-panel)
+          - 当前依赖及许可证：[第三方开源声明](https://github.com/${{ github.repository }}/blob/main/docs/THIRD_PARTY_NOTICES.md)
           EOF
             echo "file=/tmp/release_notes.md" >> "$GITHUB_OUTPUT"
           fi
@@ -181,13 +186,7 @@ jobs:
           
           # 检查 release 是否已存在
           if gh release view "$RELEASE_TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            # 更新已存在的 release
-            gh release edit "$RELEASE_TAG" \
-              --repo "${{ github.repository }}" \
-              --title "v${{ steps.version.outputs.VERSION }}" \
-              --notes-file "$NOTES_FILE"
-            
-            # 上传文件
+            # 已存在的 Release 保留人工维护的说明，只更新构建产物。
             gh release upload "$RELEASE_TAG" \
               --repo "${{ github.repository }}" \
               release-files/* \
