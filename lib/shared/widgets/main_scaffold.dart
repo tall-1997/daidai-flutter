@@ -182,9 +182,9 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) => _handleBackPress(didPop),
       child: LiquidGlassScaffold(
-        pixelRatio: 0.8,
+        pixelRatio: 0.65,
         realTimeCapture: true,
-        useSync: true,
+        useSync: false,
         safeArea: true,
         body: LiquidGlassView(
           pixelRatio: 0.7,

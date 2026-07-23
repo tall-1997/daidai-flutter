@@ -46,9 +46,9 @@ class AppBackground extends ConsumerWidget {
         : ColoredBox(color: Theme.of(context).scaffoldBackgroundColor);
 
     return LiquidGlassView(
-      pixelRatio: 0.8,
-      realTimeCapture: true,
-      useSync: true,
+      pixelRatio: 0.7,
+      realTimeCapture: false,
+      useSync: false,
       backgroundWidget: background,
       child: Material(
         type: MaterialType.transparency,
