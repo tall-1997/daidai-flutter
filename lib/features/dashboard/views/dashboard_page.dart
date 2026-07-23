@@ -154,7 +154,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             _DashboardQuickActionData(
               icon: Icons.volunteer_activism_outlined,
               label: '赞助名单',
-              onTap: () => context.push('/sponsors'),
+              onTap: () => context.push('/sponsor'),
             ),
             _DashboardQuickActionData(
               icon: Icons.settings_outlined,

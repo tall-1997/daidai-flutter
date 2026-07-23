@@ -221,7 +221,7 @@ class _MorePageState extends ConsumerState<MorePage> {
             icon: Icons.volunteer_activism_outlined,
             title: '赞助名单',
             isLight: isLight,
-            onTap: () => context.push('/sponsors'),
+            onTap: () => context.push('/sponsor'),
           ),
           _SettingsItem(
             icon: Icons.system_update_outlined,
