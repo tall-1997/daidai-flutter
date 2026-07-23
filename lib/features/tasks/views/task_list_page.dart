@@ -1620,6 +1620,18 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     final enabledCount = group.tasks.where((task) => task.isEnabled).length;
     final runningCount = group.tasks.where((task) => task.isRunning).length;
     final isUngrouped = group.key.isEmpty;
+    final currentState = ref.read(taskProvider);
+    final canModifyGroup = currentState.keyword.trim().isEmpty &&
+        currentState.statusFilter == null &&
+        currentState.labelFilter == null;
+
+    void requireUnfiltered(VoidCallback action) {
+      if (!canModifyGroup) {
+        _showMessage('请先清除筛选后再修改任务分组');
+        return;
+      }
+      action();
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1692,21 +1704,27 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                     isUngrouped: isUngrouped,
                     onRename: isUngrouped
                         ? null
-                        : () => _renameGroup(group.key, group.tasks),
+                        : () => requireUnfiltered(
+                            () => _renameGroup(group.key, group.tasks),
+                          ),
                     onDelete: isUngrouped
                         ? null
-                        : () => _deleteGroup(group.key, group.tasks),
+                        : () => requireUnfiltered(
+                            () => _deleteGroup(group.key, group.tasks),
+                          ),
                     onAddTasks: () {
-                      final allTasks = ref.read(taskProvider).tasks;
-                      final ungrouped = allTasks
-                          .where((t) => (t.groupName ?? '').isEmpty)
-                          .toList();
-                      final targetGroup = isUngrouped ? null : group.key;
-                      if (targetGroup == null) {
-                        _showCreateGroupFromUngrouped(ungrouped);
-                      } else {
-                        _addTasksToGroup(targetGroup, ungrouped);
-                      }
+                      requireUnfiltered(() {
+                        final allTasks = ref.read(taskProvider).tasks;
+                        final ungrouped = allTasks
+                            .where((t) => (t.groupName ?? '').isEmpty)
+                            .toList();
+                        final targetGroup = isUngrouped ? null : group.key;
+                        if (targetGroup == null) {
+                          _showCreateGroupFromUngrouped(ungrouped);
+                        } else {
+                          _addTasksToGroup(targetGroup, ungrouped);
+                        }
+                      });
                     },
                   ),
                 ],
