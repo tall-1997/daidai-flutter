@@ -93,6 +93,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
       if (!isAuth && !isLoginRoute) return '/login';
       if (isAuth && isLoginRoute) return '/dashboard';
+      if (isAuth) {
+        final path = state.matchedLocation;
+        const adminRoutes = <String>{
+          '/deps','/users','/security','/ssh-keys','/system-settings',
+          '/panel-settings','/panel-log','/backup','/open-api','/health-check',
+        };
+        const operatorRoutes = <String>{'/scripts','/subscriptions'};
+        final user = authState.user;
+        if (adminRoutes.any((route) => path.startsWith(route)) &&
+            user?.hasMinRole('admin') != true) return '/more';
+        if (operatorRoutes.any((route) => path.startsWith(route)) &&
+            user?.hasMinRole('operator') != true) return '/more';
+      }
       return null;
     },
     routes: [
