@@ -30,10 +30,10 @@ class TokenRefreshCoordinator {
       response.data,
       'refresh_token',
     );
-    await SecureStorage.saveAccessToken(accessToken);
-    if (rotatedRefreshToken != null) {
-      await SecureStorage.saveRefreshToken(rotatedRefreshToken);
-    }
+    await SecureStorage.saveTokens(
+      accessToken: accessToken,
+      refreshToken: rotatedRefreshToken ?? refreshToken,
+    );
     return accessToken;
   }
 

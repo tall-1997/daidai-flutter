@@ -513,7 +513,7 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _load,
-      child: _loading && _logs.isEmpty
+      child: _loading && _sessions.isEmpty
           ? ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               children: const [
