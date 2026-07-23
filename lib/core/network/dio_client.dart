@@ -13,7 +13,8 @@ class DioClient {
   DioClient._() {
     dio = Dio(
       BaseOptions(
-        validateStatus: (status) => status != null && status < 500,
+        validateStatus: (status) =>
+            status != null && status >= 200 && status < 300,
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 30),
         sendTimeout: const Duration(seconds: 15),
@@ -57,7 +58,8 @@ class DioClient {
       baseUrl: _baseUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
-      validateStatus: (status) => status != null && status < 500,
+      validateStatus: (status) =>
+          status != null && status >= 200 && status < 300,
       headers: {'Accept': 'application/json', ...AppUserAgent.defaultHeaders},
     ),
   );
