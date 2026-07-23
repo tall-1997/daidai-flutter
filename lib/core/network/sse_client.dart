@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
 import 'app_user_agent.dart';
-import 'api_endpoints.dart';
 import '../network/dio_client.dart';
 import '../storage/secure_storage.dart';
+import '../auth/token_refresh_coordinator.dart';
 
 class SseEvent {
   final String? event;
@@ -165,22 +164,8 @@ class SseClient {
   }
 
   Future<bool> _refreshAccessToken() async {
-    final refreshToken = await SecureStorage.getRefreshToken();
-    if (refreshToken == null || refreshToken.isEmpty) {
-      await SecureStorage.clearAuthSession();
-      return false;
-    }
     try {
-      final response = await DioClient.instance.rawDio.post(
-        ApiEndpoints.refresh,
-        options: Options(headers: {'Authorization': 'Bearer $refreshToken'}),
-      );
-      final token = _extractAccessToken(response.data);
-      await SecureStorage.saveAccessToken(token);
-      final rotatedRefreshToken = _extractRefreshToken(response.data);
-      if (rotatedRefreshToken != null) {
-        await SecureStorage.saveRefreshToken(rotatedRefreshToken);
-      }
+      await TokenRefreshCoordinator.refresh();
       return true;
     } catch (_) {
       await SecureStorage.clearAuthSession();
@@ -188,38 +173,9 @@ class SseClient {
     }
   }
 
-  String _extractAccessToken(dynamic responseData) {
-    if (responseData is Map) {
-      final directToken = responseData['access_token']?.toString();
-      if (directToken != null && directToken.isNotEmpty) {
-        return directToken;
-      }
-      final nestedData = responseData['data'];
-      if (nestedData is Map) {
-        final nestedToken = nestedData['access_token']?.toString();
-        if (nestedToken != null && nestedToken.isNotEmpty) {
-          return nestedToken;
-        }
-      }
-    }
-    throw StateError('Missing access_token in refresh response');
-  }
-
   void close() {
     _closed = true;
     _disposeConnection();
   }
 
-  String? _extractRefreshToken(dynamic responseData) {
-    if (responseData is Map) {
-      final directToken = responseData['refresh_token']?.toString();
-      if (directToken != null && directToken.isNotEmpty) return directToken;
-      final nestedData = responseData['data'];
-      if (nestedData is Map) {
-        final nestedToken = nestedData['refresh_token']?.toString();
-        if (nestedToken != null && nestedToken.isNotEmpty) return nestedToken;
-      }
-    }
-    return null;
-  }
 }

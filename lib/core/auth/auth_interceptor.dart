@@ -1,39 +1,7 @@
 import 'package:dio/dio.dart';
-import '../network/api_endpoints.dart';
 import '../network/dio_client.dart';
 import '../storage/secure_storage.dart';
-
-String _extractAccessToken(dynamic responseData) {
-  if (responseData is Map) {
-    final directToken = responseData['access_token']?.toString();
-    if (directToken != null && directToken.isNotEmpty) {
-      return directToken;
-    }
-
-    final nestedData = responseData['data'];
-    if (nestedData is Map) {
-      final nestedToken = nestedData['access_token']?.toString();
-      if (nestedToken != null && nestedToken.isNotEmpty) {
-        return nestedToken;
-      }
-    }
-  }
-
-  throw StateError('Missing access_token in refresh response');
-}
-
-String? _extractRefreshToken(dynamic responseData) {
-  if (responseData is Map) {
-    final directToken = responseData['refresh_token']?.toString();
-    if (directToken != null && directToken.isNotEmpty) return directToken;
-    final nestedData = responseData['data'];
-    if (nestedData is Map) {
-      final nestedToken = nestedData['refresh_token']?.toString();
-      if (nestedToken != null && nestedToken.isNotEmpty) return nestedToken;
-    }
-  }
-  return null;
-}
+import 'token_refresh_coordinator.dart';
 
 class AuthInterceptor extends Interceptor {
   bool _isRefreshing = false;
@@ -79,18 +47,7 @@ class AuthInterceptor extends Interceptor {
     _isRefreshing = true;
 
     try {
-      final rawDio = DioClient.instance.rawDio;
-      final response = await rawDio.post(
-        ApiEndpoints.refresh,
-        options: Options(headers: {'Authorization': 'Bearer $refreshToken'}),
-      );
-
-      final newAccessToken = _extractAccessToken(response.data);
-      await SecureStorage.saveAccessToken(newAccessToken);
-      final newRefreshToken = _extractRefreshToken(response.data);
-      if (newRefreshToken != null) {
-        await SecureStorage.saveRefreshToken(newRefreshToken);
-      }
+      final newAccessToken = await TokenRefreshCoordinator.refresh();
 
       // 重发原始请求
       err.requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
