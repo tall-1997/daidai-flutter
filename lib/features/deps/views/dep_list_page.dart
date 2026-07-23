@@ -25,6 +25,7 @@ final depListProvider = StateNotifierProvider<DepListNotifier, DepListState>((
 class DepListState {
   final List<Dependency> items;
   final bool loading;
+  final int total;
   final String selectedType;
   final String selectedPythonVersion;
   final String pythonDefaultVersion;
@@ -34,6 +35,7 @@ class DepListState {
   const DepListState({
     this.items = const [],
     this.loading = false,
+    this.total = 0,
     this.selectedType = 'nodejs',
     this.selectedPythonVersion = '3.12',
     this.pythonDefaultVersion = '3.12',
@@ -44,6 +46,7 @@ class DepListState {
   DepListState copyWith({
     List<Dependency>? items,
     bool? loading,
+    int? total,
     String? selectedType,
     String? selectedPythonVersion,
     String? pythonDefaultVersion,
@@ -53,6 +56,7 @@ class DepListState {
     return DepListState(
       items: items ?? this.items,
       loading: loading ?? this.loading,
+      total: total ?? this.total,
       selectedType: selectedType ?? this.selectedType,
       selectedPythonVersion:
           selectedPythonVersion ?? this.selectedPythonVersion,
@@ -129,12 +133,19 @@ class DepMirrorConfig {
 class DepListNotifier extends StateNotifier<DepListState> {
   DepListNotifier() : super(const DepListState());
   int _loadRequestId = 0;
+  int _page = 1;
 
-  Future<List<Dependency>> fetchByType(
+  Future<({List<Dependency> items, int total})> fetchByType(
     String type, {
     String? pythonVersion,
+    int page = 1,
+    int pageSize = 100,
   }) async {
-    final params = <String, dynamic>{'page': 1, 'page_size': 200, 'type': type};
+    final params = <String, dynamic>{
+      'page': page,
+      'page_size': pageSize,
+      'type': type,
+    };
     if (type == 'python' && (pythonVersion ?? '').trim().isNotEmpty) {
       params['python_version'] = pythonVersion!.trim();
     }
@@ -143,11 +154,19 @@ class DepListNotifier extends StateNotifier<DepListState> {
       queryParameters: params,
     );
     final paginated = extractPaginated(resp.data);
-    return paginated.items.map(Dependency.fromJson).toList();
+    return (
+      items: paginated.items.map(Dependency.fromJson).toList(),
+      total: paginated.total,
+    );
   }
 
-  Future<void> load({String? type, String? pythonVersion}) async {
+  Future<void> load({
+    String? type,
+    String? pythonVersion,
+    bool refresh = true,
+  }) async {
     final requestId = ++_loadRequestId;
+    if (refresh) _page = 1;
     final nextType = type ?? state.selectedType;
     final nextPythonVersion = pythonVersion ?? state.selectedPythonVersion;
     state = state.copyWith(
@@ -156,16 +175,27 @@ class DepListNotifier extends StateNotifier<DepListState> {
       loading: true,
     );
     try {
-      final items = await fetchByType(
+      final result = await fetchByType(
         nextType,
         pythonVersion: nextType == 'python' ? nextPythonVersion : null,
+        page: _page,
       );
       if (requestId != _loadRequestId) return;
-      state = state.copyWith(items: items, loading: false);
+      state = state.copyWith(
+        items: refresh ? result.items : [...state.items, ...result.items],
+        total: result.total,
+        loading: false,
+      );
     } catch (_) {
       if (requestId != _loadRequestId) return;
       state = state.copyWith(loading: false);
     }
+  }
+
+  Future<void> loadMore() async {
+    if (state.loading || state.items.length >= state.total) return;
+    _page++;
+    await load(refresh: false);
   }
 
   Future<void> setType(String type) async {
@@ -358,9 +388,9 @@ class _DepListPageState extends ConsumerState<DepListPage> {
       }
       setState(() {
         _counts = {
-          'nodejs': results[0].length,
-          'python': results[1].length,
-          'linux': results[2].length,
+          'nodejs': results[0].total,
+          'python': results[1].total,
+          'linux': results[2].total,
         };
         _countLoading = false;
       });
@@ -1231,7 +1261,14 @@ class _DepListPageState extends ConsumerState<DepListPage> {
             ],
             const SizedBox(height: 10),
             Expanded(
-              child: RefreshIndicator(
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (notification.metrics.extentAfter < 240) {
+                    ref.read(depListProvider.notifier).loadMore();
+                  }
+                  return false;
+                },
+                child: RefreshIndicator(
                 color: AppColors.primary,
                 onRefresh: _loadPageData,
                 child: state.loading && state.items.isEmpty
@@ -1276,11 +1313,23 @@ class _DepListPageState extends ConsumerState<DepListPage> {
                             ],
                           );
                         }
-                        return ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                          itemCount: filtered.length,
-                          itemBuilder: (_, i) {
-                            final dep = filtered[i];
+                         return ListView.builder(
+                           padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                           itemCount:
+                               filtered.length +
+                               (state.items.length < state.total ? 1 : 0),
+                           itemBuilder: (_, i) {
+                             if (i == filtered.length) {
+                               return const Padding(
+                                 padding: EdgeInsets.all(16),
+                                 child: Center(
+                                   child: CircularProgressIndicator(
+                                     color: AppColors.primary,
+                                   ),
+                                 ),
+                               );
+                             }
+                             final dep = filtered[i];
                             return _DepCard(
                               dep: dep,
                               isLight: isLight,
@@ -1316,6 +1365,7 @@ class _DepListPageState extends ConsumerState<DepListPage> {
                           },
                         );
                       }(),
+                ),
               ),
             ),
           ],
