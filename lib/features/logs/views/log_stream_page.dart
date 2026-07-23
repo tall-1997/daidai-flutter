@@ -192,9 +192,9 @@ class _LogStreamPageState extends State<LogStreamPage> {
       _logBackgroundColor,
       appBrightness: theme.brightness,
     );
-    final chipBackground = logTheme.brightness == Brightness.dark
-        ? AppColors.slate800
-        : AppColors.slate100;
+    final chipBackground = logTheme.foreground.withAlpha(
+      logTheme.brightness == Brightness.dark ? 24 : 14,
+    );
 
     return Scaffold(
       backgroundColor: logTheme.background,
@@ -207,6 +207,8 @@ class _LogStreamPageState extends State<LogStreamPage> {
             padding: const EdgeInsets.only(right: 8),
             child: Chip(
               backgroundColor: chipBackground,
+              side: BorderSide(color: logTheme.foreground.withAlpha(32)),
+              surfaceTintColor: Colors.transparent,
               label: Text(
                 _status,
                 style: TextStyle(fontSize: 12, color: logTheme.foreground),

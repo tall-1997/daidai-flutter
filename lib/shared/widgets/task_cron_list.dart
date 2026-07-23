@@ -33,7 +33,7 @@ class TaskCronList extends StatelessWidget {
           vertical: compact ? 6 : 9,
         ),
         decoration: BoxDecoration(
-          color: isLight ? AppColors.slate50 : AppColors.slate800,
+          color: AppColors.slate500.withAlpha(isLight ? 8 : 24),
           borderRadius: BorderRadius.circular(compact ? 8 : 10),
           border: Border.all(
             color: isLight ? AppColors.slate200 : AppColors.slate700,
@@ -50,8 +50,8 @@ class TaskCronList extends StatelessWidget {
     }
 
     final isMulti = items.length > 1;
-    final cardBg = isLight ? AppColors.slate50 : AppColors.slate800;
-    final cardBorder = isLight ? AppColors.slate200 : AppColors.slate700;
+    final cardBg = AppColors.slate500.withAlpha(isLight ? 8 : 24);
+    final cardBorder = AppColors.slate500.withAlpha(isLight ? 28 : 56);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

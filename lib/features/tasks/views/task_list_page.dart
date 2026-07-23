@@ -2158,19 +2158,15 @@ class _TaskCard extends StatelessWidget {
 
   Color _statusBg() {
     if (task.isRunning) {
-      return isLight
-          ? AppColors.primaryLight
-          : AppColors.primary.withAlpha(25);
+      return AppColors.primary.withAlpha(isLight ? 18 : 25);
     }
     if (task.isQueued) {
       return AppColors.amber500.withAlpha(isLight ? 18 : 25);
     }
     if (task.isEnabled) {
-      return isLight
-          ? AppColors.blue100
-          : AppColors.blue500.withAlpha(25);
+      return AppColors.blue500.withAlpha(isLight ? 20 : 25);
     }
-    return isLight ? AppColors.slate100 : AppColors.darkSurfaceMuted;
+    return AppColors.slate500.withAlpha(isLight ? 14 : 24);
   }
 
   Color _statusFg() {
@@ -2356,6 +2352,9 @@ class _TaskCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: _statusBg(),
                         borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: _statusFg().withAlpha(isLight ? 36 : 48),
+                        ),
                       ),
                       child: Text(
                         _statusLabel(),
@@ -2626,9 +2625,7 @@ class _TaskSubscriptionChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: isLight
-            ? AppColors.lightSurfaceMuted
-            : AppColors.darkSurfaceMuted,
+        color: AppColors.slate500.withAlpha(isLight ? 12 : 24),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
           color: isLight ? AppColors.slate200 : AppColors.darkBorder,
@@ -2659,9 +2656,7 @@ class _TaskMiniCountChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: isLight
-            ? AppColors.slate100
-            : AppColors.darkSurfaceMuted,
+        color: AppColors.slate500.withAlpha(isLight ? 12 : 24),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -2807,9 +2802,8 @@ class _MetaChip extends ConsumerWidget {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
     
-    final background = active
-        ? (isLight ? AppColors.lightSurfaceMuted : AppColors.darkSurfaceMuted)
-        : (isLight ? AppColors.slate100 : AppColors.darkSurface);
+    final accent = active ? AppColors.primary : AppColors.slate500;
+    final background = accent.withAlpha(isLight ? 14 : 24);
     final foreground = active
         ? (isLight ? AppColors.slate700 : AppColors.slate300)
         : AppColors.slate400;

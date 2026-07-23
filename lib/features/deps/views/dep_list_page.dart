@@ -1404,15 +1404,15 @@ class _DepCard extends ConsumerWidget {
 
   Color _statusBg() {
     if (dep.isBusy) {
-      return isLight ? AppColors.blue100 : AppColors.blue500.withAlpha(25);
+      return AppColors.blue500.withAlpha(isLight ? 20 : 25);
     }
     if (dep.isFailed) {
-      return isLight ? AppColors.red100 : AppColors.red500.withAlpha(25);
+      return AppColors.red500.withAlpha(isLight ? 18 : 25);
     }
     if (dep.isCancelled) {
-      return isLight ? AppColors.slate100 : AppColors.slate700;
+      return AppColors.slate500.withAlpha(isLight ? 14 : 24);
     }
-    return isLight ? AppColors.primaryLight : AppColors.primary.withAlpha(25);
+    return AppColors.primary.withAlpha(isLight ? 18 : 25);
   }
 
   Color _statusFg() {

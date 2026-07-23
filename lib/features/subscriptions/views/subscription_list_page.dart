@@ -1121,12 +1121,12 @@ class _SubCard extends ConsumerWidget {
 
   Color _statusBg() {
     if (sub.isPulling) {
-      return isLight ? AppColors.blue100 : AppColors.blue500.withAlpha(25);
+      return AppColors.blue500.withAlpha(isLight ? 20 : 25);
     }
     if (sub.enabled) {
-      return isLight ? AppColors.primaryLight : AppColors.primary.withAlpha(25);
+      return AppColors.primary.withAlpha(isLight ? 18 : 25);
     }
-    return isLight ? AppColors.slate100 : AppColors.slate800;
+    return AppColors.slate500.withAlpha(isLight ? 14 : 24);
   }
 
   Color _statusFg() {
