@@ -162,6 +162,7 @@ class SseClient {
               if (autoReconnect) {
                 scheduleReconnect();
               } else {
+                _disposeConnection();
                 onDone?.call();
               }
             },
@@ -170,12 +171,14 @@ class SseClient {
               if (autoReconnect) {
                 scheduleReconnect();
               } else {
+                _disposeConnection();
                 onError?.call(error);
               }
             },
             cancelOnError: true,
           );
     } catch (e) {
+      _disposeConnection();
       if (!_closed) onError?.call(e);
     }
   }
