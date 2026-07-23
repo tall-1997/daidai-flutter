@@ -129,9 +129,8 @@ class AppLockController extends StateNotifier<AppLockState> {
     state = state.copyWith(loading: true);
     final rawConfig = await SecureStorage.getAppLockConfig();
     final biometrics = await _readAvailableBiometrics();
-    final nextConfig = _sanitizeConfig(
-      AppLockConfig.fromJson(rawConfig ?? const <String, dynamic>{}),
-      biometrics,
+    final nextConfig = AppLockConfig.fromJson(
+      rawConfig ?? const <String, dynamic>{},
     );
     state = state.copyWith(
       loading: false,
@@ -141,7 +140,6 @@ class AppLockController extends StateNotifier<AppLockState> {
       lockedUntil: null,
       unlockNotice: null,
     );
-    await SecureStorage.saveAppLockConfig(nextConfig.toJson());
   }
 
   Future<void> setEnabled(bool enabled) async {
