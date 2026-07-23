@@ -11,11 +11,18 @@
 
 ## 版本
 
-- App 版本：`v0.1.42`
+- App 版本：`v0.1.43`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.43
+
+- Android 支持 GitHub 静态 JSON 驱动的 bsdiff 差分增量升级。
+- 差分包通过原生后台 bspatch 与已安装 APK合并，完成后唤起系统安装器。
+- 补丁和目标 APK执行文件大小、MD5 与 SHA-256 校验，异常时自动回退完整 APK。
+- GitHub Actions 自动生成、反向验证并发布差分包与 `android-update.json`。
 
 ### v0.1.42
 

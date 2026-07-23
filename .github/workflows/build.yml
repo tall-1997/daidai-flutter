@@ -68,8 +68,10 @@ jobs:
       - name: Get version
         id: version
         run: |
-          VERSION=$(grep '^version:' pubspec.yaml | head -1 | awk '{print $2}')
+          RAW_VERSION=$(grep '^version:' pubspec.yaml | head -1 | awk '{print $2}')
+          VERSION="${RAW_VERSION%%+*}"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "BUILD_NUMBER=${RAW_VERSION##*+}" >> $GITHUB_OUTPUT
       
       - name: Rename APK
         run: |
@@ -78,6 +80,7 @@ jobs:
       - name: Generate Android delta update assets
         env:
           VERSION: ${{ steps.version.outputs.VERSION }}
+          BUILD_NUMBER: ${{ steps.version.outputs.BUILD_NUMBER }}
           REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
@@ -129,13 +132,14 @@ jobs:
           jq -n \
             --arg packageName "com.daidai.daidai_app" \
             --arg version "$VERSION" \
+            --argjson versionCode "$BUILD_NUMBER" \
             --arg fullUrl "${RELEASE_BASE}/${APK_NAME}" \
             --arg fullName "$APK_NAME" \
             --argjson fullSize "$FULL_SIZE" \
             --arg fullMd5 "$FULL_MD5" \
             --arg fullSha256 "$FULL_SHA256" \
             --argjson patches "$PATCH_JSON" \
-            '{schemaVersion:1,packageName:$packageName,version:$version,versionCode:0,releaseNotes:"",full:{url:$fullUrl,name:$fullName,size:$fullSize,md5:$fullMd5,sha256:$fullSha256},patches:$patches}' \
+            '{schemaVersion:1,packageName:$packageName,version:$version,versionCode:$versionCode,releaseNotes:"",full:{url:$fullUrl,name:$fullName,size:$fullSize,md5:$fullMd5,sha256:$fullSha256},patches:$patches}' \
             > android-update.json
       
       - name: Upload APK
@@ -178,7 +182,8 @@ jobs:
       - name: Get version
         id: version
         run: |
-          VERSION=$(grep '^version:' pubspec.yaml | head -1 | awk '{print $2}')
+          RAW_VERSION=$(grep '^version:' pubspec.yaml | head -1 | awk '{print $2}')
+          VERSION="${RAW_VERSION%%+*}"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
       
       - name: Create IPA
@@ -222,7 +227,8 @@ jobs:
       - name: Get version
         id: version
         run: |
-          VERSION=$(grep '^version:' pubspec.yaml | head -1 | awk '{print $2}')
+          RAW_VERSION=$(grep '^version:' pubspec.yaml | head -1 | awk '{print $2}')
+          VERSION="${RAW_VERSION%%+*}"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           # 确定 release tag：如果是 tag push 就用 ref_name，否则用版本号
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
