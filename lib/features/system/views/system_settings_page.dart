@@ -105,6 +105,7 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
       final configs = configData is Map<String, dynamic>
           ? configData
           : <String, dynamic>{};
+      if (!mounted) return;
 
       // Parse task execution configs
       _concurrencyC.text = _getConfigValueAny(configs, [
@@ -148,6 +149,7 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
         _loading = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() => _loading = false);
     }
   }
@@ -207,6 +209,7 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
     try {
       final resp = await DioClient.instance.dio.get(ApiEndpoints.checkUpdate);
       final data = extractData(resp.data);
+      if (!mounted) return;
       setState(() {
         _updateInfo = data is Map<String, dynamic> ? data : null;
         _checking = false;
@@ -223,6 +226,7 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
         }
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _checking = false);
       if (mounted) {
         String msg = '检查更新失败';
@@ -515,7 +519,7 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
         ),
       ),
     );
-    if (selected != null) {
+    if (mounted && selected != null) {
       setState(() => controller.text = selected);
     }
   }
@@ -556,7 +560,9 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
         );
       }
     }
-    setState(() => _savingConfigs = false);
+    if (mounted) {
+      setState(() => _savingConfigs = false);
+    }
   }
 
   @override

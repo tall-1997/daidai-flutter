@@ -102,6 +102,7 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
     try {
       final resp = await DioClient.instance.dio.get(ApiEndpoints.openApiApps);
       final data = extractData(resp.data);
+      if (!mounted) return;
       setState(() {
         _apps = (data is List)
             ? data.whereType<Map<String, dynamic>>().toList()
@@ -109,6 +110,7 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
         _loading = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() => _loading = false);
     }
   }
@@ -292,11 +294,12 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                                 int.tryParse(rateLimitC.text.trim()) ?? 100,
                           },
                         );
-                        if (!mounted) {
+                        if (!mounted || !ctx.mounted) {
                           return;
                         }
                         navigator.pop();
                         await _load();
+                        if (!mounted) return;
                         final data = extractData(resp.data);
                         if (data is Map && data['app_secret'] != null) {
                           _showSecretDialog(
@@ -427,7 +430,7 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                       data: {'app_key': appKey, 'app_secret': secret},
                     );
                     final data = extractData(resp.data);
-                    if (!mounted) return;
+                    if (!mounted || !dialogCtx.mounted) return;
                     Navigator.pop(dialogCtx);
                     if (data is Map) {
                       _showAccessTokenDialog(Map<String, dynamic>.from(data));
@@ -709,6 +712,7 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                           ApiEndpoints.openApiAppResetSecret(id),
                         );
                         final data = extractData(resp.data);
+                        if (!mounted) return;
                         if (data is Map && data['app_secret'] != null) {
                           _showSecretDialog(
                             appKey,
@@ -884,11 +888,12 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                                 int.tryParse(rateLimitC.text.trim()) ?? 0,
                           },
                         );
-                        if (!mounted) {
+                        if (!mounted || !ctx.mounted) {
                           return;
                         }
                         navigator.pop();
                         await _load();
+                        if (!mounted) return;
                         AppGlassNotice.show(
                           this.context,
                           '应用已保存',
@@ -965,7 +970,7 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                       data: {'password': passwordC.text},
                     );
                     final data = extractData(resp.data);
-                    if (!mounted) {
+                    if (!mounted || !dialogCtx.mounted) {
                       return;
                     }
                     Navigator.of(dialogCtx).pop();
@@ -1204,11 +1209,13 @@ class _OpenApiLogsPageState extends ConsumerState<OpenApiLogsPage> {
     setState(() => _loading = true);
     try {
       final logs = await _loadAllOpenApiLogs(widget.appId);
+      if (!mounted) return;
       setState(() {
         _logs = logs;
         _loading = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() => _loading = false);
     }
   }

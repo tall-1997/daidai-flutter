@@ -36,14 +36,15 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
   }
 
   Future<void> _loadPanels() async {
-    _panels = await SecureStorage.getPanels();
-    _activeServerUrl = await SecureStorage.getServerUrl();
-    _controller.clear();
-    _nameController.clear();
-
-    if (mounted) {
-      setState(() {});
-    }
+    final panels = await SecureStorage.getPanels();
+    final activeServerUrl = await SecureStorage.getServerUrl();
+    if (!mounted) return;
+    setState(() {
+      _panels = panels;
+      _activeServerUrl = activeServerUrl;
+      _controller.clear();
+      _nameController.clear();
+    });
   }
 
   static final _ipPattern = RegExp(
@@ -160,9 +161,8 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
       rethrow;
     }
     DioClient.instance.setBaseUrl(finalUrl);
-    ref.invalidate(dashboardProvider);
-
     if (!mounted) return;
+    ref.invalidate(dashboardProvider);
     ref.read(authProvider.notifier).setUnauthenticated();
     context.go(skipAutoLogin ? '/login?manual=1' : '/boot');
   }
@@ -207,6 +207,7 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
           ])],
         ),
       );
+      if (!mounted) return;
       if (confirm != true) {
         setState(() => _checking = false);
         return;
@@ -215,6 +216,7 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
 
     final authService = AuthService();
     var ok = await authService.checkHealth(finalUrl);
+    if (!mounted) return;
 
     if (!ok) {
       setState(() {
@@ -228,6 +230,7 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
     final panelToSave = _panelForSave(finalUrl, existing);
     if (existing == null || panelToSave.name != existing.name) {
       await SecureStorage.savePanel(panelToSave);
+      if (!mounted) return;
     }
 
     if (mounted) {
@@ -244,6 +247,7 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
         panelToSave,
         isNewPanel: url == null,
       );
+      if (!mounted) return;
       if (!shouldSwitch) {
         if (url == null) {
           _showMessage('服务器已保存，当前账号保持不变');
@@ -276,10 +280,12 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
         ])],
       ),
     );
+    if (!mounted) return;
 
     if (confirm != true) return;
 
     await SecureStorage.removePanel(panel.url);
+    if (!mounted) return;
     await _loadPanels();
   }
 

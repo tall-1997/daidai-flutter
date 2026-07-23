@@ -161,11 +161,13 @@ class _LoginLogsTabState extends ConsumerState<_LoginLogsTab>
         },
       );
       final paginated = extractPaginated(resp.data);
+      if (!mounted) return;
       setState(() {
         _logs = paginated.items;
         _loading = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() => _loading = false);
     }
   }
@@ -390,6 +392,7 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
     try {
       final resp = await DioClient.instance.dio.get(ApiEndpoints.sessions);
       final data = extractData(resp.data);
+      if (!mounted) return;
       setState(() {
         _sessions = (data is List)
             ? data.whereType<Map<String, dynamic>>().toList()
@@ -397,6 +400,7 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
         _loading = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() => _loading = false);
     }
   }
@@ -665,6 +669,7 @@ class _IpWhitelistTabState extends ConsumerState<_IpWhitelistTab>
     try {
       final resp = await DioClient.instance.dio.get(ApiEndpoints.ipWhitelist);
       final data = extractData(resp.data);
+      if (!mounted) return;
       setState(() {
         _items = (data is List)
             ? data.whereType<Map<String, dynamic>>().toList()
@@ -672,6 +677,7 @@ class _IpWhitelistTabState extends ConsumerState<_IpWhitelistTab>
         _loading = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() => _loading = false);
     }
   }
@@ -896,7 +902,7 @@ class _IpWhitelistTabState extends ConsumerState<_IpWhitelistTab>
                         'remarks': remarksC.text.trim(),
                       },
                     );
-                    if (!mounted) {
+                    if (!mounted || !dialogCtx.mounted) {
                       return;
                     }
                     Navigator.of(dialogCtx).pop();
@@ -959,11 +965,13 @@ class _TwoFaTabState extends ConsumerState<_TwoFaTab>
     try {
       final resp = await DioClient.instance.dio.get(ApiEndpoints.twoFaStatus);
       final data = extractData(resp.data);
+      if (!mounted) return;
       setState(() {
         _enabled = data is Map && data['enabled'] == true;
         _loading = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() => _loading = false);
     }
   }
@@ -1071,6 +1079,7 @@ class _TwoFaTabState extends ConsumerState<_TwoFaTab>
     try {
       final resp = await DioClient.instance.dio.post(ApiEndpoints.twoFaSetup);
       final data = extractData(resp.data);
+      if (!mounted) return;
       if (data is Map) {
         setState(() {
           _secret = data['secret']?.toString();
@@ -1094,6 +1103,7 @@ class _TwoFaTabState extends ConsumerState<_TwoFaTab>
         ApiEndpoints.twoFaVerify,
         data: {'code': code},
       );
+      if (!mounted) return;
       setState(() {
         _enabled = true;
         _secret = null;
@@ -1217,11 +1227,13 @@ class _LoginStatsTabState extends ConsumerState<_LoginStatsTab>
     try {
       final resp = await DioClient.instance.dio.get(ApiEndpoints.loginStats);
       final data = extractData(resp.data);
+      if (!mounted) return;
       setState(() {
         _stats = data is Map<String, dynamic> ? data : null;
         _loading = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() => _loading = false);
     }
   }
@@ -1345,11 +1357,13 @@ class _AuditLogsTabState extends ConsumerState<_AuditLogsTab>
         queryParameters: {'page': 1, 'page_size': 100},
       );
       final paginated = extractPaginated(resp.data);
+      if (!mounted) return;
       setState(() {
         _logs = paginated.items;
         _loading = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() => _loading = false);
     }
   }
