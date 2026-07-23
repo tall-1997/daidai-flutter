@@ -85,8 +85,16 @@ class SecureStorage {
     required String accessToken,
     required String refreshToken,
   }) async {
-    await _storage.write(key: _accessTokenKey, value: accessToken);
-    await _storage.write(key: _refreshTokenKey, value: refreshToken);
+    final previousAccessToken = await getAccessToken();
+    final previousRefreshToken = await getRefreshToken();
+    try {
+      await _storage.write(key: _accessTokenKey, value: accessToken);
+      await _storage.write(key: _refreshTokenKey, value: refreshToken);
+    } catch (error, stackTrace) {
+      await _restoreValue(_accessTokenKey, previousAccessToken);
+      await _restoreValue(_refreshTokenKey, previousRefreshToken);
+      Error.throwWithStackTrace(error, stackTrace);
+    }
   }
 
   static Future<String?> getAccessToken() =>
@@ -175,10 +183,30 @@ class SecureStorage {
   static Future<void> clearUser() => _storage.delete(key: _userKey);
 
   static Future<void> clearAuthSession() async {
-    await clearTokens();
-    await clearUser();
-    await clearTrustedLoginSession();
+    final previousValues = <String, String?>{
+      _accessTokenKey: await getAccessToken(),
+      _refreshTokenKey: await getRefreshToken(),
+      _userKey: await _storage.read(key: _userKey),
+      _trustedLoginUntilKey: await _storage.read(key: _trustedLoginUntilKey),
+      _trustedLoginServerUrlKey: await _storage.read(
+        key: _trustedLoginServerUrlKey,
+      ),
+    };
+    try {
+      await clearTokens();
+      await clearUser();
+      await clearTrustedLoginSession();
+    } catch (error, stackTrace) {
+      for (final entry in previousValues.entries) {
+        await _restoreValue(entry.key, entry.value);
+      }
+      Error.throwWithStackTrace(error, stackTrace);
+    }
   }
+
+  static Future<void> _restoreValue(String key, String? value) => value == null
+      ? _storage.delete(key: key)
+      : _storage.write(key: key, value: value);
 
   static Future<void> saveAppLockConfig(Map<String, dynamic> config) =>
       _storage.write(key: _appLockConfigKey, value: jsonEncode(config));
