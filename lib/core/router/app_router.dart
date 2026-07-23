@@ -12,6 +12,7 @@ import '../../features/tasks/views/task_views_page.dart';
 import '../../features/logs/views/log_list_page.dart';
 import '../../features/logs/views/log_stream_page.dart';
 import '../../features/envs/views/env_list_page.dart';
+import '../../features/envs/views/env_tools_page.dart';
 import '../../features/settings/views/more_page.dart';
 import '../../features/settings/views/sponsor_page.dart';
 import '../../features/subscriptions/views/subscription_list_page.dart';
@@ -173,6 +174,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/profile',
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (_, state) => _rootPage(const ProfilePage()),
+      ),
+      GoRoute(
+        path:'/env-tools',parentNavigatorKey:_rootNavigatorKey,pageBuilder:(_,state)=>_rootPage(const EnvToolsPage()),
       ),
       GoRoute(
         path:'/installed-packages',parentNavigatorKey:_rootNavigatorKey,pageBuilder:(_,state)=>_rootPage(const InstalledPackagesPage()),

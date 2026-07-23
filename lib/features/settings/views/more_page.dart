@@ -122,6 +122,7 @@ class _MorePageState extends ConsumerState<MorePage> {
             isLight: isLight,
             onTap: () => context.go('/envs'),
           ),
+          if(user?.isOperator==true)_SettingsItem(icon:Icons.tune_outlined,title:'环境变量高级工具',isLight:isLight,onTap:()=>context.push('/env-tools')),
           _SettingsItem(
             icon: Icons.notifications_none,
             title: '消息通知',
