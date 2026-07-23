@@ -1428,6 +1428,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
         builder: (ctx, setSheetState) {
           final theme = Theme.of(ctx);
           final navigator = Navigator.of(ctx);
+          final sheetRoute = ModalRoute.of(ctx);
           if (valueEditorOpen) {
             return _EnvValueSheetEditor(
               title: '编辑变量值',
@@ -1478,7 +1479,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                         await ref
                             .read(envListProvider.notifier)
                             .toggle(env.id, !env.enabled);
-                        if (!mounted) {
+                        if (!mounted || sheetRoute?.isCurrent != true) {
                           return;
                         }
                         navigator.pop();
@@ -1583,6 +1584,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                       child: FilledButton.icon(
                         onPressed: () async {
                           final navigator = Navigator.of(ctx);
+                          final sheetRoute = ModalRoute.of(ctx);
                           try {
                             await ref
                                 .read(envListProvider.notifier)
@@ -1593,7 +1595,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                                   remarks: remarksC.text.trim(),
                                   groups: _normalizeGroups([groupC.text]),
                                 );
-                            if (!mounted) {
+                            if (!mounted || sheetRoute?.isCurrent != true) {
                               return;
                             }
                             navigator.pop();
@@ -1651,6 +1653,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) {
           final navigator = Navigator.of(ctx);
+          final sheetRoute = ModalRoute.of(ctx);
           if (valueEditorOpen) {
             return _EnvValueSheetEditor(
               title: '新建变量值',
@@ -1733,7 +1736,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                             remarks: remarksC.text.trim(),
                             groups: _normalizeGroups([groupC.text]),
                           );
-                      if (!mounted) {
+                      if (!mounted || sheetRoute?.isCurrent != true) {
                         return;
                       }
                       navigator.pop();
