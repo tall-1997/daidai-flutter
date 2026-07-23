@@ -354,42 +354,23 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
           ],
         ),
         actions: [
-          if (_updateInfo?['auto_update_supported'] == true)
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(dialogCtx),
-                      child: const Text('稍后'),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: FilledButton(
-                      onPressed: () {
-                        Navigator.pop(dialogCtx);
-                        _doUpdate();
-                      },
-                      child: Text(_updateActionLabel()),
-                    ),
-                  ),
-                ),
-              ],
-            )
-          else
-            SizedBox(
-              width: double.infinity,
-              height: 44,
-              child: OutlinedButton(
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '稍后',
                 onPressed: () => Navigator.pop(dialogCtx),
-                child: const Text('稍后'),
               ),
-            ),
+              if (_updateInfo?['auto_update_supported'] == true)
+                AppGlassDialogAction(
+                  label: _updateActionLabel(),
+                  variant: AppLiquidGlassButtonVariant.warning,
+                  onPressed: () {
+                    Navigator.pop(dialogCtx);
+                    _doUpdate();
+                  },
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -441,29 +422,16 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
         title: const Text('重启面板'),
         content: const Text('确定要重启面板吗？所有运行中的任务将被中断。'),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(dialogCtx, false),
-                    child: const Text('取消'),
-                  ),
-                ),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(dialogCtx, false),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: FilledButton(
-                    onPressed: () => Navigator.pop(dialogCtx, true),
-                    style: FilledButton.styleFrom(
-                      foregroundColor: AppColors.red500,
-                    ),
-                    child: const Text('重启'),
-                  ),
-                ),
+              AppGlassDialogAction(
+                label: '重启',
+                variant: AppLiquidGlassButtonVariant.danger,
+                onPressed: () => Navigator.pop(dialogCtx, true),
               ),
             ],
           ),

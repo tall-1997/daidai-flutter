@@ -447,29 +447,34 @@ class _BackupPageState extends ConsumerState<BackupPage> {
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (!selection.any) {
-                  AppGlassNotice.show(
-                    this.context,
-                    '请至少选择一个备份项',
-                    type: AppGlassNoticeType.warning,
-                  );
-                  return;
-                }
-                Navigator.pop(
-                  dialogContext,
-                  _CreateBackupRequest(
-                    password: passwordController.text.trim(),
-                    selection: selection,
-                  ),
-                );
-              },
-              child: const Text('创建'),
+            AppLiquidGlassDialogActions(
+              actions: [
+                AppGlassDialogAction(
+                  label: '取消',
+                  onPressed: () => Navigator.pop(dialogContext),
+                ),
+                AppGlassDialogAction(
+                  label: '创建',
+                  variant: AppLiquidGlassButtonVariant.primary,
+                  onPressed: () {
+                    if (!selection.any) {
+                      AppGlassNotice.show(
+                        this.context,
+                        '请至少选择一个备份项',
+                        type: AppGlassNoticeType.warning,
+                      );
+                      return;
+                    }
+                    Navigator.pop(
+                      dialogContext,
+                      _CreateBackupRequest(
+                        password: passwordController.text.trim(),
+                        selection: selection,
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ],
         ),

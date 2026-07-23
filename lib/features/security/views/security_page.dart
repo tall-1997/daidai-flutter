@@ -688,14 +688,18 @@ class _IpWhitelistTabState extends ConsumerState<_IpWhitelistTab>
         title: const Text('删除白名单'),
         content: Text('确定删除 IP「${item['ip'] ?? ''}」吗？'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogCtx, true),
-            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
-            child: const Text('删除'),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(dialogCtx, false),
+              ),
+              AppGlassDialogAction(
+                label: '删除',
+                variant: AppLiquidGlassButtonVariant.danger,
+                onPressed: () => Navigator.pop(dialogCtx, true),
+              ),
+            ],
           ),
         ],
       ),
@@ -873,59 +877,49 @@ class _IpWhitelistTabState extends ConsumerState<_IpWhitelistTab>
           ],
         ),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(dialogCtx),
-                    child: const Text('取消'),
-                  ),
-                ),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(dialogCtx),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: FilledButton(
-                    onPressed: () async {
-                      if (ipC.text.trim().isEmpty) return;
-                      try {
-                        await DioClient.instance.dio.post(
-                          ApiEndpoints.ipWhitelist,
-                          data: {
-                            'ip': ipC.text.trim(),
-                            'remarks': remarksC.text.trim(),
-                          },
-                        );
-                        if (!mounted) {
-                          return;
-                        }
-                        Navigator.of(dialogCtx).pop();
-                        await _load();
-                        if (!mounted) {
-                          return;
-                        }
-                        AppGlassNotice.show(
-                          context,
-                          'IP 白名单已添加',
-                          type: AppGlassNoticeType.success,
-                        );
-                      } catch (error) {
-                        if (!mounted) {
-                          return;
-                        }
-                        AppGlassNotice.show(
-                          context,
-                          extractErrorMessage(error, '添加 IP 白名单失败'),
-                          type: AppGlassNoticeType.error,
-                        );
-                      }
-                    },
-                    child: const Text('添加'),
-                  ),
-                ),
+              AppGlassDialogAction(
+                label: '添加',
+                variant: AppLiquidGlassButtonVariant.primary,
+                onPressed: () async {
+                  if (ipC.text.trim().isEmpty) return;
+                  try {
+                    await DioClient.instance.dio.post(
+                      ApiEndpoints.ipWhitelist,
+                      data: {
+                        'ip': ipC.text.trim(),
+                        'remarks': remarksC.text.trim(),
+                      },
+                    );
+                    if (!mounted) {
+                      return;
+                    }
+                    Navigator.of(dialogCtx).pop();
+                    await _load();
+                    if (!mounted) {
+                      return;
+                    }
+                    AppGlassNotice.show(
+                      context,
+                      'IP 白名单已添加',
+                      type: AppGlassNoticeType.success,
+                    );
+                  } catch (error) {
+                    if (!mounted) {
+                      return;
+                    }
+                    AppGlassNotice.show(
+                      context,
+                      extractErrorMessage(error, '添加 IP 白名单失败'),
+                      type: AppGlassNoticeType.error,
+                    );
+                  }
+                },
               ),
             ],
           ),
@@ -1146,15 +1140,19 @@ class _TwoFaTabState extends ConsumerState<_TwoFaTab>
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.pop(dialogCtx, codeController.text.trim()),
-            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
-            child: const Text('禁用'),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(dialogCtx),
+              ),
+              AppGlassDialogAction(
+                label: '禁用',
+                variant: AppLiquidGlassButtonVariant.danger,
+                onPressed: () =>
+                    Navigator.pop(dialogCtx, codeController.text.trim()),
+              ),
+            ],
           ),
         ],
       ),

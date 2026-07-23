@@ -52,14 +52,18 @@ class _SshKeysPageState extends ConsumerState<SshKeysPage> {
         title: const Text('删除 SSH 密钥'),
         content: Text('确定要删除密钥「${key['name'] ?? ''}」吗？'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
-            child: const Text('删除'),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(ctx, false),
+              ),
+              AppGlassDialogAction(
+                label: '删除',
+                variant: AppLiquidGlassButtonVariant.danger,
+                onPressed: () => Navigator.pop(ctx, true),
+              ),
+            ],
           ),
         ],
       ),
@@ -114,54 +118,44 @@ class _SshKeysPageState extends ConsumerState<SshKeysPage> {
           ),
         ),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('取消'),
-                  ),
-                ),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(ctx),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: FilledButton(
-                    onPressed: () async {
-                      if (nameC.text.trim().isEmpty) return;
-                      if (privateKeyC.text.trim().isEmpty) return;
-                      try {
-                        await DioClient.instance.dio.post(
-                          ApiEndpoints.sshKeys,
-                          data: {
-                            'name': nameC.text.trim(),
-                            'private_key': privateKeyC.text,
-                          },
-                        );
-                        if (!mounted) return;
-                        Navigator.of(ctx).pop();
-                        await _load();
-                        if (!mounted) return;
-                        AppGlassNotice.show(
-                          context,
-                          'SSH 密钥已添加',
-                          type: AppGlassNoticeType.success,
-                        );
-                      } catch (error) {
-                        if (!mounted) return;
-                        AppGlassNotice.show(
-                          context,
-                          extractErrorMessage(error, '添加 SSH 密钥失败'),
-                          type: AppGlassNoticeType.error,
-                        );
-                      }
-                    },
-                    child: const Text('添加'),
-                  ),
-                ),
+              AppGlassDialogAction(
+                label: '添加',
+                variant: AppLiquidGlassButtonVariant.primary,
+                onPressed: () async {
+                  if (nameC.text.trim().isEmpty) return;
+                  if (privateKeyC.text.trim().isEmpty) return;
+                  try {
+                    await DioClient.instance.dio.post(
+                      ApiEndpoints.sshKeys,
+                      data: {
+                        'name': nameC.text.trim(),
+                        'private_key': privateKeyC.text,
+                      },
+                    );
+                    if (!mounted) return;
+                    Navigator.of(ctx).pop();
+                    await _load();
+                    if (!mounted) return;
+                    AppGlassNotice.show(
+                      context,
+                      'SSH 密钥已添加',
+                      type: AppGlassNoticeType.success,
+                    );
+                  } catch (error) {
+                    if (!mounted) return;
+                    AppGlassNotice.show(
+                      context,
+                      extractErrorMessage(error, '添加 SSH 密钥失败'),
+                      type: AppGlassNoticeType.error,
+                    );
+                  }
+                },
               ),
             ],
           ),

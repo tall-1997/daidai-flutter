@@ -273,8 +273,11 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
-                  height: 44,
-                  child: FilledButton(
+                  width: double.infinity,
+                  child: AppLiquidGlassButton(
+                    label: '创建',
+                    height: 44,
+                    performanceMode: true,
                     onPressed: () async {
                       if (nameC.text.trim().isEmpty) {
                         return;
@@ -312,15 +315,17 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                         );
                       }
                     },
-                    child: const Text('创建'),
                   ),
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
+                  width: double.infinity,
+                  child: AppLiquidGlassButton(
+                    label: '取消',
+                    height: 44,
+                    variant: AppLiquidGlassButtonVariant.secondary,
+                    performanceMode: true,
                     onPressed: () => Navigator.of(ctx).pop(),
-                    child: const Text('取消'),
                   ),
                 ),
               ],
@@ -402,50 +407,40 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
           ],
         ),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(dialogCtx),
-                    child: const Text('取消'),
-                  ),
-                ),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(dialogCtx),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: FilledButton(
-                    onPressed: () async {
-                      final secret = secretC.text.trim();
-                      if (secret.isEmpty) {
-                        return;
-                      }
-                      try {
-                        final resp = await DioClient.instance.dio.post(
-                          ApiEndpoints.openApiToken,
-                          data: {'app_key': appKey, 'app_secret': secret},
-                        );
-                        final data = extractData(resp.data);
-                        if (!mounted) return;
-                        Navigator.pop(dialogCtx);
-                        if (data is Map) {
-                          _showAccessTokenDialog(Map<String, dynamic>.from(data));
-                        }
-                      } catch (error) {
-                        if (!mounted) return;
-                        AppGlassNotice.show(
-                          this.context,
-                          extractErrorMessage(error, '获取访问 Token 失败'),
-                          type: AppGlassNoticeType.error,
-                        );
-                      }
-                    },
-                    child: const Text('获取'),
-                  ),
-                ),
+              AppGlassDialogAction(
+                label: '获取',
+                variant: AppLiquidGlassButtonVariant.primary,
+                onPressed: () async {
+                  final secret = secretC.text.trim();
+                  if (secret.isEmpty) {
+                    return;
+                  }
+                  try {
+                    final resp = await DioClient.instance.dio.post(
+                      ApiEndpoints.openApiToken,
+                      data: {'app_key': appKey, 'app_secret': secret},
+                    );
+                    final data = extractData(resp.data);
+                    if (!mounted) return;
+                    Navigator.pop(dialogCtx);
+                    if (data is Map) {
+                      _showAccessTokenDialog(Map<String, dynamic>.from(data));
+                    }
+                  } catch (error) {
+                    if (!mounted) return;
+                    AppGlassNotice.show(
+                      this.context,
+                      extractErrorMessage(error, '获取访问 Token 失败'),
+                      type: AppGlassNoticeType.error,
+                    );
+                  }
+                },
               ),
             ],
           ),
@@ -656,13 +651,20 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                                 : '确认启用「$name」吗？',
                           ),
                           actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(d, false),
-                              child: const Text('取消'),
-                            ),
-                            FilledButton(
-                              onPressed: () => Navigator.pop(d, true),
-                              child: Text(enabled ? '禁用' : '启用'),
+                            AppLiquidGlassDialogActions(
+                              actions: [
+                                AppGlassDialogAction(
+                                  label: '取消',
+                                  onPressed: () => Navigator.pop(d, false),
+                                ),
+                                AppGlassDialogAction(
+                                  label: enabled ? '禁用' : '启用',
+                                  onPressed: () => Navigator.pop(d, true),
+                                  variant: enabled
+                                      ? AppLiquidGlassButtonVariant.danger
+                                      : AppLiquidGlassButtonVariant.primary,
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -734,29 +736,16 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                           title: const Text('删除应用'),
                           content: Text('确定要删除「$name」吗？'),
                           actions: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: SizedBox(
-                                    height: 44,
-                                    child: OutlinedButton(
-                                      onPressed: () => Navigator.pop(d, false),
-                                      child: const Text('取消'),
-                                    ),
-                                  ),
+                            AppLiquidGlassDialogActions(
+                              actions: [
+                                AppGlassDialogAction(
+                                  label: '取消',
+                                  onPressed: () => Navigator.pop(d, false),
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: SizedBox(
-                                    height: 44,
-                                    child: FilledButton(
-                                      onPressed: () => Navigator.pop(d, true),
-                                      style: FilledButton.styleFrom(
-                                        foregroundColor: AppColors.red500,
-                                      ),
-                                      child: const Text('删除'),
-                                    ),
-                                  ),
+                                AppGlassDialogAction(
+                                  label: '删除',
+                                  onPressed: () => Navigator.pop(d, true),
+                                  variant: AppLiquidGlassButtonVariant.danger,
                                 ),
                               ],
                             ),
@@ -879,8 +868,11 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
-                  height: 44,
-                  child: FilledButton(
+                  width: double.infinity,
+                  child: AppLiquidGlassButton(
+                    label: '保存',
+                    height: 44,
+                    performanceMode: true,
                     onPressed: () async {
                       try {
                         await DioClient.instance.dio.put(
@@ -913,15 +905,17 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                         );
                       }
                     },
-                    child: const Text('保存'),
                   ),
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
+                  width: double.infinity,
+                  child: AppLiquidGlassButton(
+                    label: '取消',
+                    height: 44,
+                    variant: AppLiquidGlassButtonVariant.secondary,
+                    performanceMode: true,
                     onPressed: () => Navigator.of(ctx).pop(),
-                    child: const Text('取消'),
                   ),
                 ),
               ],
@@ -954,53 +948,43 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
           ],
         ),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(dialogCtx),
-                    child: const Text('取消'),
-                  ),
-                ),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(dialogCtx),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: FilledButton(
-                    onPressed: () async {
-                      if (passwordC.text.isEmpty) return;
-                      try {
-                        final resp = await DioClient.instance.dio.post(
-                          ApiEndpoints.openApiAppViewSecret(id),
-                          data: {'password': passwordC.text},
-                        );
-                        final data = extractData(resp.data);
-                        if (!mounted) {
-                          return;
-                        }
-                        Navigator.of(dialogCtx).pop();
-                        if (data is Map && data['app_secret'] != null) {
-                          _showSecretDialog(
-                            appKey,
-                            data['app_secret'].toString(),
-                          );
-                        }
-                      } catch (error) {
-                        if (mounted) {
-                          AppGlassNotice.show(
-                            this.context,
-                            extractErrorMessage(error, '查看密钥失败'),
-                            type: AppGlassNoticeType.error,
-                          );
-                        }
-                      }
-                    },
-                    child: const Text('确认'),
-                  ),
-                ),
+              AppGlassDialogAction(
+                label: '确认',
+                variant: AppLiquidGlassButtonVariant.primary,
+                onPressed: () async {
+                  if (passwordC.text.isEmpty) return;
+                  try {
+                    final resp = await DioClient.instance.dio.post(
+                      ApiEndpoints.openApiAppViewSecret(id),
+                      data: {'password': passwordC.text},
+                    );
+                    final data = extractData(resp.data);
+                    if (!mounted) {
+                      return;
+                    }
+                    Navigator.of(dialogCtx).pop();
+                    if (data is Map && data['app_secret'] != null) {
+                      _showSecretDialog(
+                        appKey,
+                        data['app_secret'].toString(),
+                      );
+                    }
+                  } catch (error) {
+                    if (mounted) {
+                      AppGlassNotice.show(
+                        this.context,
+                        extractErrorMessage(error, '查看密钥失败'),
+                        type: AppGlassNoticeType.error,
+                      );
+                    }
+                  }
+                },
               ),
             ],
           ),

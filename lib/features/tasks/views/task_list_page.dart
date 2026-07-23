@@ -1161,13 +1161,18 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('确定'),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(ctx),
+              ),
+              AppGlassDialogAction(
+                label: '确定',
+                onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+                variant: AppLiquidGlassButtonVariant.primary,
+              ),
+            ],
           ),
         ],
       ),
@@ -1207,13 +1212,18 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
         title: const Text('删除分组'),
         content: Text('确定将 "$groupName" 分组中的 ${tasks.length} 个任务移回未分组？'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('确定', style: TextStyle(color: Colors.red)),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(ctx, false),
+              ),
+              AppGlassDialogAction(
+                label: '确定',
+                onPressed: () => Navigator.pop(ctx, true),
+                variant: AppLiquidGlassButtonVariant.danger,
+              ),
+            ],
           ),
         ],
       ),
@@ -1293,43 +1303,48 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('取消'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(ctx);
-                if (selected.isEmpty) return;
-                final tasksToMove = ungroupedTasks
-                    .where((t) => selected.contains(t.id))
-                    .toList();
-                try {
-                  await ref
-                      .read(taskProvider.notifier)
-                      .batchUpdateGroupLabel(
-                        tasks: tasksToMove,
-                        oldGroupName: null,
-                        newGroupName: targetGroup,
-                      );
-                  if (mounted) {
-                    AppGlassNotice.show(
-                      this.context,
-                      '已将 ${tasksToMove.length} 个任务添加到 "$targetGroup"',
-                      type: AppGlassNoticeType.success,
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    AppGlassNotice.show(
-                      this.context,
-                      '添加任务到分组失败',
-                      type: AppGlassNoticeType.error,
-                    );
-                  }
-                }
-              },
-              child: Text('添加 (${selected.length})'),
+            AppLiquidGlassDialogActions(
+              actions: [
+                AppGlassDialogAction(
+                  label: '取消',
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+                AppGlassDialogAction(
+                  label: '添加 (${selected.length})',
+                  variant: AppLiquidGlassButtonVariant.primary,
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    if (selected.isEmpty) return;
+                    final tasksToMove = ungroupedTasks
+                        .where((t) => selected.contains(t.id))
+                        .toList();
+                    try {
+                      await ref
+                          .read(taskProvider.notifier)
+                          .batchUpdateGroupLabel(
+                            tasks: tasksToMove,
+                            oldGroupName: null,
+                            newGroupName: targetGroup,
+                          );
+                      if (mounted) {
+                        AppGlassNotice.show(
+                          this.context,
+                          '已将 ${tasksToMove.length} 个任务添加到 "$targetGroup"',
+                          type: AppGlassNoticeType.success,
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        AppGlassNotice.show(
+                          this.context,
+                          '添加任务到分组失败',
+                          type: AppGlassNoticeType.error,
+                        );
+                      }
+                    }
+                  },
+                ),
+              ],
             ),
           ],
         ),
@@ -1398,44 +1413,49 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('取消'),
-            ),
-            TextButton(
-              onPressed: () async {
-                final groupName = nameController.text.trim();
-                Navigator.pop(ctx);
-                if (groupName.isEmpty || selected.isEmpty) return;
-                final tasksToMove = ungroupedTasks
-                    .where((t) => selected.contains(t.id))
-                    .toList();
-                try {
-                  await ref
-                      .read(taskProvider.notifier)
-                      .batchUpdateGroupLabel(
-                        tasks: tasksToMove,
-                        oldGroupName: null,
-                        newGroupName: groupName,
-                      );
-                  if (mounted) {
-                    AppGlassNotice.show(
-                      this.context,
-                      '已创建分组 "$groupName" 并添加 ${tasksToMove.length} 个任务',
-                      type: AppGlassNoticeType.success,
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    AppGlassNotice.show(
-                      this.context,
-                      '创建分组失败',
-                      type: AppGlassNoticeType.error,
-                    );
-                  }
-                }
-              },
-              child: const Text('创建'),
+            AppLiquidGlassDialogActions(
+              actions: [
+                AppGlassDialogAction(
+                  label: '取消',
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+                AppGlassDialogAction(
+                  label: '创建',
+                  variant: AppLiquidGlassButtonVariant.primary,
+                  onPressed: () async {
+                    final groupName = nameController.text.trim();
+                    Navigator.pop(ctx);
+                    if (groupName.isEmpty || selected.isEmpty) return;
+                    final tasksToMove = ungroupedTasks
+                        .where((t) => selected.contains(t.id))
+                        .toList();
+                    try {
+                      await ref
+                          .read(taskProvider.notifier)
+                          .batchUpdateGroupLabel(
+                            tasks: tasksToMove,
+                            oldGroupName: null,
+                            newGroupName: groupName,
+                          );
+                      if (mounted) {
+                        AppGlassNotice.show(
+                          this.context,
+                          '已创建分组 "$groupName" 并添加 ${tasksToMove.length} 个任务',
+                          type: AppGlassNoticeType.success,
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        AppGlassNotice.show(
+                          this.context,
+                          '创建分组失败',
+                          type: AppGlassNoticeType.error,
+                        );
+                      }
+                    }
+                  },
+                ),
+              ],
             ),
           ],
         ),
@@ -1740,29 +1760,16 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
             ],
           ),
           actions: [
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(dialogContext, false),
-                      child: const Text('取消'),
-                    ),
-                  ),
+            AppLiquidGlassDialogActions(
+              actions: [
+                AppGlassDialogAction(
+                  label: '取消',
+                  onPressed: () => Navigator.pop(dialogContext, false),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: FilledButton(
-                      onPressed: () => Navigator.pop(dialogContext, true),
-                      style: FilledButton.styleFrom(
-                        foregroundColor: AppColors.red500,
-                      ),
-                      child: const Text('删除'),
-                    ),
-                  ),
+                AppGlassDialogAction(
+                  label: '删除',
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  variant: AppLiquidGlassButtonVariant.danger,
                 ),
               ],
             ),

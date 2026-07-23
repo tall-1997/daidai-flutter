@@ -852,22 +852,27 @@ class _DepListPageState extends ConsumerState<DepListPage> {
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(
-                  dialogCtx,
-                  initial.copyWith(
-                    pipMirror: pipController.text.trim(),
-                    npmMirror: npmController.text.trim(),
-                    linuxMirror: linuxController.text.trim(),
-                  ),
-                );
-              },
-              child: const Text('保存'),
+            AppLiquidGlassDialogActions(
+              actions: [
+                AppGlassDialogAction(
+                  label: '取消',
+                  onPressed: () => Navigator.pop(dialogCtx),
+                ),
+                AppGlassDialogAction(
+                  label: '保存',
+                  variant: AppLiquidGlassButtonVariant.primary,
+                  onPressed: () {
+                    Navigator.pop(
+                      dialogCtx,
+                      initial.copyWith(
+                        pipMirror: pipController.text.trim(),
+                        npmMirror: npmController.text.trim(),
+                        linuxMirror: linuxController.text.trim(),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ],
         ),

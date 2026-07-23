@@ -127,26 +127,16 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
               : '切换到“$panelLabel”需要退出当前账号后重新登录，是否继续？',
         ),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(dialogCtx, false),
-                    child: Text(isNewPanel ? '稍后切换' : '取消'),
-                  ),
-                ),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: isNewPanel ? '稍后切换' : '取消',
+                onPressed: () => Navigator.pop(dialogCtx, false),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: FilledButton(
-                    onPressed: () => Navigator.pop(dialogCtx, true),
-                    child: Text(isNewPanel ? '立即切换' : '切换登录'),
-                  ),
-                ),
+              AppGlassDialogAction(
+                label: isNewPanel ? '立即切换' : '切换登录',
+                variant: AppLiquidGlassButtonVariant.warning,
+                onPressed: () => Navigator.pop(dialogCtx, true),
               ),
             ],
           ),

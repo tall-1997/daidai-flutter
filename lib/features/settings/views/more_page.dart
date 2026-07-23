@@ -400,29 +400,16 @@ class _MorePageState extends ConsumerState<MorePage> {
         title: const Text('退出登录'),
         content: const Text('确定要退出登录吗？'),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(dialogCtx, false),
-                    child: const Text('取消'),
-                  ),
-                ),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(dialogCtx, false),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: FilledButton(
-                    onPressed: () => Navigator.pop(dialogCtx, true),
-                    style: FilledButton.styleFrom(
-                      foregroundColor: AppColors.red500,
-                    ),
-                    child: const Text('退出'),
-                  ),
-                ),
+              AppGlassDialogAction(
+                label: '退出',
+                variant: AppLiquidGlassButtonVariant.danger,
+                onPressed: () => Navigator.pop(dialogCtx, true),
               ),
             ],
           ),

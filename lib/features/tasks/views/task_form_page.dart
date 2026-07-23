@@ -1077,9 +1077,9 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
         }
         return Align(
           alignment: Alignment.topLeft,
-          child: Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(12),
+          child: AppLiquidGlassSurface(
+            borderRadius: 12,
+            performanceMode: true,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 220, maxWidth: 280),
               child: ListView.builder(

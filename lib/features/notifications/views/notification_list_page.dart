@@ -359,10 +359,12 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                     ),
                   const SizedBox(height: 20),
                   SizedBox(
-                    height: 44,
-                    child: FilledButton.icon(
-                      icon: const Icon(Icons.send_outlined, size: 18),
-                      label: const Text('发送'),
+                    width: double.infinity,
+                    child: AppLiquidGlassButton(
+                      label: '发送',
+                      icon: Icons.send_outlined,
+                      height: 44,
+                      performanceMode: true,
                       onPressed: () async {
                         final title = titleC.text.trim();
                         final content = contentC.text.trim();
@@ -407,10 +409,13 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                   ),
                   const SizedBox(height: 8),
                   SizedBox(
-                    height: 44,
-                    child: OutlinedButton(
+                    width: double.infinity,
+                    child: AppLiquidGlassButton(
+                      label: '取消',
+                      height: 44,
+                      variant: AppLiquidGlassButtonVariant.secondary,
+                      performanceMode: true,
                       onPressed: () => navigator.pop(),
-                      child: const Text('取消'),
                     ),
                   ),
                 ],
@@ -452,29 +457,16 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
         title: const Text('删除通知渠道'),
         content: Text('确定要删除「${channel.name}」吗？'),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(dialogContext, false),
-                    child: const Text('取消'),
-                  ),
-                ),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(dialogContext, false),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: FilledButton(
-                    onPressed: () => Navigator.pop(dialogContext, true),
-                    style: FilledButton.styleFrom(
-                      foregroundColor: AppColors.red500,
-                    ),
-                    child: const Text('删除'),
-                  ),
-                ),
+              AppGlassDialogAction(
+                label: '删除',
+                onPressed: () => Navigator.pop(dialogContext, true),
+                variant: AppLiquidGlassButtonVariant.danger,
               ),
             ],
           ),
@@ -871,7 +863,10 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                       ),
                     ],
                     const SizedBox(height: 20),
-                    FilledButton(
+                    AppLiquidGlassButton(
+                      label: channel == null ? '创建' : '保存',
+                      width: double.infinity,
+                      performanceMode: true,
                       onPressed: () async {
                         final name = nameController.text.trim();
                         if (name.isEmpty) {
@@ -944,10 +939,6 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                           );
                         }
                       },
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(0, 48),
-                      ),
-                      child: Text(channel == null ? '创建' : '保存'),
                     ),
                   ],
                 ),

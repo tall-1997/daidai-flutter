@@ -570,13 +570,19 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
         title: const Text('加入任务'),
         content: Text('脚本「${path.split('/').last}」上传成功，是否直接添加到定时任务？'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('稍后再说'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('立即添加'),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '稍后再说',
+                onPressed: () => Navigator.pop(dialogContext, false),
+                variant: AppLiquidGlassButtonVariant.secondary,
+              ),
+              AppGlassDialogAction(
+                label: '立即添加',
+                onPressed: () => Navigator.pop(dialogContext, true),
+                variant: AppLiquidGlassButtonVariant.primary,
+              ),
+            ],
           ),
         ],
       ),
@@ -1019,12 +1025,17 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () => navigator.pop(),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () async {
+            AppLiquidGlassDialogActions(
+              actions: [
+                AppGlassDialogAction(
+                  label: '取消',
+                  onPressed: () => navigator.pop(),
+                  variant: AppLiquidGlassButtonVariant.secondary,
+                ),
+                AppGlassDialogAction(
+                  label: '保存',
+                  variant: AppLiquidGlassButtonVariant.primary,
+                  onPressed: () async {
                 final newName = controller.text.trim();
                 if (newName.isEmpty) {
                   AppGlassNotice.show(
@@ -1056,8 +1067,9 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                     type: AppGlassNoticeType.error,
                   );
                 }
-              },
-              child: const Text('保存'),
+                  },
+                ),
+              ],
             ),
           ],
         );
@@ -1076,14 +1088,19 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
               : '确定要删除脚本「${file.name}」吗？',
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
-            child: const Text('删除'),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(dialogContext, false),
+                variant: AppLiquidGlassButtonVariant.secondary,
+              ),
+              AppGlassDialogAction(
+                label: '删除',
+                onPressed: () => Navigator.pop(dialogContext, true),
+                variant: AppLiquidGlassButtonVariant.danger,
+              ),
+            ],
           ),
         ],
       ),
@@ -1187,12 +1204,17 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
               ],
             ),
             actions: [
-              TextButton(
-                onPressed: () => navigator.pop(),
-                child: const Text('取消'),
-              ),
-              FilledButton(
-                onPressed: () async {
+              AppLiquidGlassDialogActions(
+                actions: [
+                  AppGlassDialogAction(
+                    label: '取消',
+                    onPressed: () => navigator.pop(),
+                    variant: AppLiquidGlassButtonVariant.secondary,
+                  ),
+                  AppGlassDialogAction(
+                    label: '移动',
+                    variant: AppLiquidGlassButtonVariant.primary,
+                    onPressed: () async {
                   try {
                     final newPath = await ref
                         .read(scriptProvider.notifier)
@@ -1215,8 +1237,9 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                       type: AppGlassNoticeType.error,
                     );
                   }
-                },
-                child: const Text('移动'),
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -1277,12 +1300,17 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
               ),
             ),
             actions: [
-              TextButton(
-                onPressed: () => navigator.pop(),
-                child: const Text('取消'),
-              ),
-              FilledButton(
-                onPressed: () async {
+              AppLiquidGlassDialogActions(
+                actions: [
+                  AppGlassDialogAction(
+                    label: '取消',
+                    onPressed: () => navigator.pop(),
+                    variant: AppLiquidGlassButtonVariant.secondary,
+                  ),
+                  AppGlassDialogAction(
+                    label: '复制',
+                    variant: AppLiquidGlassButtonVariant.primary,
+                    onPressed: () async {
                   final newName = nameController.text.trim();
                   if (newName.isEmpty) {
                     AppGlassNotice.show(
@@ -1318,8 +1346,9 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                       type: AppGlassNoticeType.error,
                     );
                   }
-                },
-                child: const Text('复制'),
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -1390,12 +1419,17 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
               ),
             ),
             actions: [
-              TextButton(
-                onPressed: () => navigator.pop(),
-                child: const Text('取消'),
-              ),
-              FilledButton(
-                onPressed: () async {
+              AppLiquidGlassDialogActions(
+                actions: [
+                  AppGlassDialogAction(
+                    label: '取消',
+                    onPressed: () => navigator.pop(),
+                    variant: AppLiquidGlassButtonVariant.secondary,
+                  ),
+                  AppGlassDialogAction(
+                    label: '创建',
+                    variant: AppLiquidGlassButtonVariant.primary,
+                    onPressed: () async {
                   final fileName = nameController.text.trim();
                   if (fileName.isEmpty) {
                     AppGlassNotice.show(
@@ -1425,8 +1459,9 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                       type: AppGlassNoticeType.error,
                     );
                   }
-                },
-                child: const Text('创建'),
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -1482,12 +1517,17 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
               ),
             ),
             actions: [
-              TextButton(
-                onPressed: () => navigator.pop(),
-                child: const Text('取消'),
-              ),
-              FilledButton(
-                onPressed: () async {
+              AppLiquidGlassDialogActions(
+                actions: [
+                  AppGlassDialogAction(
+                    label: '取消',
+                    onPressed: () => navigator.pop(),
+                    variant: AppLiquidGlassButtonVariant.secondary,
+                  ),
+                  AppGlassDialogAction(
+                    label: '创建',
+                    variant: AppLiquidGlassButtonVariant.primary,
+                    onPressed: () async {
                   final name = nameController.text.trim();
                   if (name.isEmpty) {
                     AppGlassNotice.show(
@@ -1519,8 +1559,9 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                       type: AppGlassNoticeType.error,
                     );
                   }
-                },
-                child: const Text('创建'),
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -1620,12 +1661,17 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
               ),
             ),
             actions: [
-              TextButton(
-                onPressed: () => navigator.pop(),
-                child: const Text('取消'),
-              ),
-              FilledButton(
-                onPressed: () async {
+              AppLiquidGlassDialogActions(
+                actions: [
+                  AppGlassDialogAction(
+                    label: '取消',
+                    onPressed: () => navigator.pop(),
+                    variant: AppLiquidGlassButtonVariant.secondary,
+                  ),
+                  AppGlassDialogAction(
+                    label: '上传',
+                    variant: AppLiquidGlassButtonVariant.primary,
+                    onPressed: () async {
                   try {
                     final paths = await ref
                         .read(scriptProvider.notifier)
@@ -1655,8 +1701,9 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                       type: AppGlassNoticeType.error,
                     );
                   }
-                },
-                child: const Text('上传'),
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -2440,14 +2487,19 @@ class _ScriptVersionSheetState extends ConsumerState<_ScriptVersionSheet> {
         title: const Text('回滚脚本'),
         content: Text('确定要回滚到 v${version.version} 吗？'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(foregroundColor: AppColors.amber500),
-            child: const Text('回滚'),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(dialogContext, false),
+                variant: AppLiquidGlassButtonVariant.secondary,
+              ),
+              AppGlassDialogAction(
+                label: '回滚',
+                onPressed: () => Navigator.pop(dialogContext, true),
+                variant: AppLiquidGlassButtonVariant.warning,
+              ),
+            ],
           ),
         ],
       ),
@@ -2823,14 +2875,19 @@ class _ScriptDebugRunSheetState extends State<_ScriptDebugRunSheet> {
         title: const Text('清除运行记录'),
         content: const Text('确定要清除此运行记录吗？'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
-            child: const Text('清除'),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(ctx, false),
+                variant: AppLiquidGlassButtonVariant.secondary,
+              ),
+              AppGlassDialogAction(
+                label: '清除',
+                onPressed: () => Navigator.pop(ctx, true),
+                variant: AppLiquidGlassButtonVariant.danger,
+              ),
+            ],
           ),
         ],
       ),

@@ -361,7 +361,10 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                 const SizedBox(height: 20),
                 SizedBox(
                   height: 44,
-                  child: FilledButton(
+                  child: AppLiquidGlassButton(
+                    label: '创建',
+                    height: 44,
+                    performanceMode: true,
                     onPressed: () async {
                       if (usernameC.text.trim().isEmpty ||
                           passwordC.text.isEmpty) {
@@ -395,15 +398,18 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                         );
                       }
                     },
-                    child: const Text('创建'),
                   ),
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
                   height: 44,
-                  child: OutlinedButton(
+                  child: AppLiquidGlassButton(
+                    label: '取消',
                     onPressed: () => Navigator.of(ctx).pop(),
-                    child: const Text('取消'),
+                    width: double.infinity,
+                    height: 44,
+                    variant: AppLiquidGlassButtonVariant.secondary,
+                    performanceMode: true,
                   ),
                 ),
               ],
@@ -427,51 +433,41 @@ class _UserListPageState extends ConsumerState<UserListPage> {
             decoration: const InputDecoration(labelText: '新密码'),
           ),
           actions: [
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(dialogCtx),
-                      child: const Text('取消'),
-                    ),
-                  ),
+            AppLiquidGlassDialogActions(
+              actions: [
+                AppGlassDialogAction(
+                  label: '取消',
+                  onPressed: () => Navigator.pop(dialogCtx),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: FilledButton(
-                      onPressed: () async {
-                        if (passwordC.text.isEmpty) return;
-                        try {
-                          await ref
-                              .read(userListProvider.notifier)
-                              .resetPassword(user.id, passwordC.text);
-                          if (!mounted) {
-                            return;
-                          }
-                          Navigator.of(dialogCtx).pop();
-                          AppGlassNotice.show(
-                            this.context,
-                            '密码已重置',
-                            type: AppGlassNoticeType.success,
-                          );
-                        } catch (error) {
-                          if (!mounted) {
-                            return;
-                          }
-                          AppGlassNotice.show(
-                            this.context,
-                            extractErrorMessage(error, '重置密码失败'),
-                            type: AppGlassNoticeType.error,
-                          );
-                        }
-                      },
-                      child: const Text('确认'),
-                    ),
-                  ),
+                AppGlassDialogAction(
+                  label: '确认',
+                  variant: AppLiquidGlassButtonVariant.warning,
+                  onPressed: () async {
+                    if (passwordC.text.isEmpty) return;
+                    try {
+                      await ref
+                          .read(userListProvider.notifier)
+                          .resetPassword(user.id, passwordC.text);
+                      if (!mounted) {
+                        return;
+                      }
+                      Navigator.of(dialogCtx).pop();
+                      AppGlassNotice.show(
+                        this.context,
+                        '密码已重置',
+                        type: AppGlassNoticeType.success,
+                      );
+                    } catch (error) {
+                      if (!mounted) {
+                        return;
+                      }
+                      AppGlassNotice.show(
+                        this.context,
+                        extractErrorMessage(error, '重置密码失败'),
+                        type: AppGlassNoticeType.error,
+                      );
+                    }
+                  },
                 ),
               ],
             ),

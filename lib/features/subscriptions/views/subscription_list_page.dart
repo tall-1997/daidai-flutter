@@ -369,29 +369,16 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
         title: const Text('删除订阅'),
         content: Text('确定要删除「${sub.name}」吗？'),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(dialogContext, false),
-                    child: const Text('取消'),
-                  ),
-                ),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(dialogContext, false),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: FilledButton(
-                    onPressed: () => Navigator.pop(dialogContext, true),
-                    style: FilledButton.styleFrom(
-                      foregroundColor: AppColors.red500,
-                    ),
-                    child: const Text('删除'),
-                  ),
-                ),
+              AppGlassDialogAction(
+                label: '删除',
+                onPressed: () => Navigator.pop(dialogContext, true),
+                variant: AppLiquidGlassButtonVariant.danger,
               ),
             ],
           ),
@@ -672,8 +659,10 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                         children: [
                           SizedBox(
                             width: double.infinity,
-                            height: 44,
-                            child: FilledButton(
+                            child: AppLiquidGlassButton(
+                              label: '创建',
+                              height: 44,
+                              performanceMode: true,
                               onPressed: () async {
                                 if (nameC.text.trim().isEmpty) return;
                                 try {
@@ -718,16 +707,17 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                                   );
                                 }
                               },
-                              child: const Text('创建'),
                             ),
                           ),
                           const SizedBox(height: 8),
                           SizedBox(
                             width: double.infinity,
-                            height: 44,
-                            child: OutlinedButton(
+                            child: AppLiquidGlassButton(
+                              label: '取消',
+                              height: 44,
+                              variant: AppLiquidGlassButtonVariant.secondary,
+                              performanceMode: true,
                               onPressed: () => Navigator.of(ctx).pop(),
-                              child: const Text('取消'),
                             ),
                           ),
                         ],
@@ -992,17 +982,20 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                       child: Row(
                         children: [
                           Expanded(
-                            child: OutlinedButton(
+                            child: AppLiquidGlassButton(
+                              label: '关闭',
+                              height: 44,
+                              variant: AppLiquidGlassButtonVariant.secondary,
+                              performanceMode: true,
                               onPressed: () => Navigator.of(ctx).pop(),
-                              style: OutlinedButton.styleFrom(
-                                minimumSize: const Size(0, 44),
-                              ),
-                              child: const Text('关闭'),
                             ),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: FilledButton(
+                            child: AppLiquidGlassButton(
+                              label: '保存',
+                              height: 44,
+                              performanceMode: true,
                               onPressed: () async {
                                 try {
                                   await ref
@@ -1046,10 +1039,6 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                                   );
                                 }
                               },
-                              style: FilledButton.styleFrom(
-                                minimumSize: const Size(0, 44),
-                              ),
-                              child: const Text('保存'),
                             ),
                           ),
                         ],

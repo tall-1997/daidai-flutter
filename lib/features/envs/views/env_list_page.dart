@@ -300,9 +300,9 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
         }
         return Align(
           alignment: Alignment.topLeft,
-          child: Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(12),
+          child: AppLiquidGlassSurface(
+            borderRadius: 12,
+            performanceMode: true,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 220, maxWidth: 280),
               child: ListView.builder(
@@ -532,29 +532,16 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
         title: const Text('批量删除'),
         content: Text('确定删除选中的 $count 个环境变量吗？'),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(dialogCtx).pop(false),
-                    child: const Text('取消'),
-                  ),
-                ),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.of(dialogCtx).pop(false),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: FilledButton(
-                    onPressed: () => Navigator.of(dialogCtx).pop(true),
-                    style: FilledButton.styleFrom(
-                      foregroundColor: AppColors.red500,
-                    ),
-                    child: const Text('删除'),
-                  ),
-                ),
+              AppGlassDialogAction(
+                label: '删除',
+                onPressed: () => Navigator.of(dialogCtx).pop(true),
+                variant: AppLiquidGlassButtonVariant.danger,
               ),
             ],
           ),
@@ -572,29 +559,16 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
         title: const Text('删除环境变量'),
         content: Text('确定删除「${env.name}」吗？删除后无法恢复。'),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(dialogCtx).pop(false),
-                    child: const Text('取消'),
-                  ),
-                ),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.of(dialogCtx).pop(false),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: FilledButton(
-                    onPressed: () => Navigator.of(dialogCtx).pop(true),
-                    style: FilledButton.styleFrom(
-                      foregroundColor: AppColors.red500,
-                    ),
-                    child: const Text('删除'),
-                  ),
-                ),
+              AppGlassDialogAction(
+                label: '删除',
+                onPressed: () => Navigator.of(dialogCtx).pop(true),
+                variant: AppLiquidGlassButtonVariant.danger,
               ),
             ],
           ),
@@ -813,38 +787,23 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
             ),
           ),
           actions: [
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(dialogCtx).pop(),
-                      child: const Text('取消'),
-                    ),
-                  ),
+            AppLiquidGlassDialogActions(
+              actions: [
+                AppGlassDialogAction(
+                  label: '取消',
+                  onPressed: () => Navigator.of(dialogCtx).pop(),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(dialogCtx).pop(const []),
-                      child: const Text('清空分组'),
-                    ),
-                  ),
+                AppGlassDialogAction(
+                  label: '清空分组',
+                  onPressed: () => Navigator.of(dialogCtx).pop(const []),
+                  variant: AppLiquidGlassButtonVariant.warning,
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: FilledButton(
-                      onPressed: () => Navigator.of(dialogCtx).pop(
-                        _normalizeGroups([controller.text, ...selectedGroups]),
-                      ),
-                      child: const Text('确认'),
-                    ),
+                AppGlassDialogAction(
+                  label: '确认',
+                  onPressed: () => Navigator.of(dialogCtx).pop(
+                    _normalizeGroups([controller.text, ...selectedGroups]),
                   ),
+                  variant: AppLiquidGlassButtonVariant.primary,
                 ),
               ],
             ),

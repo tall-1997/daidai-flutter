@@ -364,10 +364,13 @@ class _AppLockOverlayState extends State<_AppLockOverlay> {
           ),
         ),
         const SizedBox(height: 14),
-        FilledButton.icon(
+        AppLiquidGlassButton(
+          label: '解锁',
+          icon: Icons.lock_open_outlined,
           onPressed: _submitting ? null : _unlockWithPassword,
-          icon: const Icon(Icons.lock_open_outlined, size: 18),
-          label: Text(_submitting ? '验证中...' : '解锁'),
+          width: double.infinity,
+          loading: _submitting,
+          performanceMode: true,
         ),
       ],
     );
@@ -392,10 +395,13 @@ class _AppLockOverlayState extends State<_AppLockOverlay> {
           subtitle: '按顺序点击已设置的图案点位',
         ),
         const SizedBox(height: 14),
-        FilledButton.icon(
+        AppLiquidGlassButton(
+          label: '验证图案',
+          icon: Icons.gesture_outlined,
           onPressed: _submitting ? null : _unlockWithPattern,
-          icon: const Icon(Icons.gesture_outlined, size: 18),
-          label: Text(_submitting ? '验证中...' : '验证图案'),
+          width: double.infinity,
+          loading: _submitting,
+          performanceMode: true,
         ),
       ],
     );
@@ -437,12 +443,15 @@ class _AppLockOverlayState extends State<_AppLockOverlay> {
           ),
         ),
         const SizedBox(height: 14),
-        FilledButton.icon(
+        AppLiquidGlassButton(
+          label: '重新验证',
+          icon: Icons.verified_user_outlined,
           onPressed: _submitting
               ? null
               : () => _unlockWithBiometric(showFailureMessage: true),
-          icon: const Icon(Icons.verified_user_outlined, size: 18),
-          label: Text(_submitting ? '验证中...' : '重新验证'),
+          width: double.infinity,
+          loading: _submitting,
+          performanceMode: true,
         ),
       ],
     );

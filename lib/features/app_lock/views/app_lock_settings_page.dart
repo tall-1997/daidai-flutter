@@ -47,6 +47,7 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
         final confirmed = await _confirmAction(
           '需要配置解锁方式',
           '开启应用锁前请至少设置一种验证方式（密码、图案或生物识别）。\n\n是否现在前往下方配置？',
+          variant: AppLiquidGlassButtonVariant.warning,
         );
         if (confirmed != true) return;
         // 滚动到底部让用户看到配置选项
@@ -127,25 +128,30 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final password = passwordController.text.trim();
-                final confirm = confirmController.text.trim();
-                if (password.length < 4) {
-                  _showMessage('应用锁密码至少需要 4 位');
-                  return;
-                }
-                if (password != confirm) {
-                  _showMessage('两次输入的密码不一致');
-                  return;
-                }
-                Navigator.pop(dialogCtx, password);
-              },
-              child: const Text('保存'),
+            AppLiquidGlassDialogActions(
+              actions: [
+                AppGlassDialogAction(
+                  label: '取消',
+                  onPressed: () => Navigator.pop(dialogCtx),
+                ),
+                AppGlassDialogAction(
+                  label: '保存',
+                  variant: AppLiquidGlassButtonVariant.primary,
+                  onPressed: () {
+                    final password = passwordController.text.trim();
+                    final confirm = confirmController.text.trim();
+                    if (password.length < 4) {
+                      _showMessage('应用锁密码至少需要 4 位');
+                      return;
+                    }
+                    if (password != confirm) {
+                      _showMessage('两次输入的密码不一致');
+                      return;
+                    }
+                    Navigator.pop(dialogCtx, password);
+                  },
+                ),
+              ],
             ),
           ],
         ),
@@ -168,7 +174,11 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
   }
 
   Future<void> _removePassword() async {
-    final confirmed = await _confirmAction('移除密码', '移除后将不能再使用密码进行应用解锁，是否继续？');
+    final confirmed = await _confirmAction(
+      '移除密码',
+      '移除后将不能再使用密码进行应用解锁，是否继续？',
+      variant: AppLiquidGlassButtonVariant.danger,
+    );
     if (confirmed != true) return;
     await ref.read(appLockProvider.notifier).removePassword();
     _showMessage('应用锁密码已移除');
@@ -192,7 +202,11 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
   }
 
   Future<void> _removePattern() async {
-    final confirmed = await _confirmAction('移除图案', '移除后将不能再使用图案进行应用解锁，是否继续？');
+    final confirmed = await _confirmAction(
+      '移除图案',
+      '移除后将不能再使用图案进行应用解锁，是否继续？',
+      variant: AppLiquidGlassButtonVariant.danger,
+    );
     if (confirmed != true) return;
     await ref.read(appLockProvider.notifier).removePattern();
     _showMessage('应用锁图案已移除');
@@ -207,20 +221,29 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
     }
   }
 
-  Future<bool?> _confirmAction(String title, String content) {
+  Future<bool?> _confirmAction(
+    String title,
+    String content, {
+    required AppLiquidGlassButtonVariant variant,
+  }) {
     return showDialog<bool>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
         title: Text(title),
         content: Text(content),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogCtx, true),
-            child: const Text('继续'),
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(dialogCtx, false),
+              ),
+              AppGlassDialogAction(
+                label: '继续',
+                variant: variant,
+                onPressed: () => Navigator.pop(dialogCtx, true),
+              ),
+            ],
           ),
         ],
       ),
@@ -636,13 +659,18 @@ class _PatternSetupDialogState extends State<_PatternSetupDialog> {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: _submit,
-          child: Text(isConfirmStep ? '完成' : '下一步'),
+        AppLiquidGlassDialogActions(
+          actions: [
+            AppGlassDialogAction(
+              label: '取消',
+              onPressed: () => Navigator.pop(context),
+            ),
+            AppGlassDialogAction(
+              label: isConfirmStep ? '完成' : '下一步',
+              variant: AppLiquidGlassButtonVariant.primary,
+              onPressed: _submit,
+            ),
+          ],
         ),
       ],
     );
