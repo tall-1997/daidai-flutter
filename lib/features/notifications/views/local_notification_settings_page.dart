@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:liquid_glass_easy/liquid_glass_easy.dart';
 import '../../../core/services/local_notification_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/app_card.dart';
@@ -179,10 +180,13 @@ class _LocalNotificationSettingsPageState
         SizedBox(
           width: double.infinity,
           height: 44,
-          child: OutlinedButton.icon(
+          child: AppLiquidGlassButton(
+            label: '请求通知权限',
+            icon: Icons.security,
             onPressed: _requestPermission,
-            icon: const Icon(Icons.security, size: 18),
-            label: const Text('请求通知权限'),
+            width: double.infinity,
+            height: 44,
+            performanceMode: true,
           ),
         ),
       ],
@@ -251,10 +255,11 @@ class _ChannelTile extends ConsumerWidget {
                 ],
               ),
             ),
-            Switch(
+            LiquidGlassToggle(
               value: enabled,
               activeColor: AppColors.primary,
               onChanged: onToggle,
+              pixelRatio: 0.8,
             ),
           ],
         ),
@@ -262,10 +267,14 @@ class _ChannelTile extends ConsumerWidget {
         SizedBox(
           width: double.infinity,
           height: 40,
-          child: OutlinedButton.icon(
+          child: AppLiquidGlassButton(
+            label: '发送测试通知',
+            icon: Icons.send,
             onPressed: onTest,
-            icon: const Icon(Icons.send, size: 16),
-            label: const Text('发送测试通知', style: TextStyle(fontSize: 13)),
+            width: double.infinity,
+            height: 40,
+            variant: AppLiquidGlassButtonVariant.secondary,
+            performanceMode: true,
           ),
         ),
       ],

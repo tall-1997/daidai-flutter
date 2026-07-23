@@ -7,6 +7,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../shared/utils/ansi_text.dart';
 import '../../../shared/utils/log_background.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class PanelLogPage extends StatefulWidget {
   const PanelLogPage({super.key});
@@ -162,18 +163,20 @@ class _PanelLogPageState extends State<PanelLogPage> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: _keywordController,
-                  textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    labelText: '关键字筛选',
-                    hintText: '比如 update / scheduler / ERROR',
-                    suffixIcon: IconButton(
-                      onPressed: _load,
-                      icon: const Icon(Icons.search),
+                AppLiquidGlassInput(
+                  child: TextField(
+                    controller: _keywordController,
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      labelText: '关键字筛选',
+                      hintText: '比如 update / scheduler / ERROR',
+                      suffixIcon: IconButton(
+                        onPressed: _load,
+                        icon: const Icon(Icons.search),
+                      ),
                     ),
+                    onSubmitted: (_) => _load(),
                   ),
-                  onSubmitted: (_) => _load(),
                 ),
               ],
             ),

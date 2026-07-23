@@ -67,29 +67,35 @@ class _SecurityPageState extends ConsumerState<SecurityPage>
               ),
             ),
             const SizedBox(height: 12),
-            TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              labelColor: AppColors.primary,
-              unselectedLabelColor: isLight
-                  ? AppColors.slate500
-                  : AppColors.slate400,
-              indicatorColor: AppColors.primary,
-              labelStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: AppLiquidGlassSurface(
+                borderRadius: 18,
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: isLight
+                      ? AppColors.slate500
+                      : AppColors.slate400,
+                  indicatorColor: AppColors.primary,
+                  dividerColor: Colors.transparent,
+                  labelStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 14),
+                  tabs: const [
+                    Tab(text: '登录日志'),
+                    Tab(text: '活跃会话'),
+                    Tab(text: 'IP 白名单'),
+                    Tab(text: '两步验证'),
+                    Tab(text: '登录统计'),
+                    Tab(text: '审计日志'),
+                  ],
+                ),
               ),
-              labelPadding: const EdgeInsets.symmetric(horizontal: 14),
-              padding: const EdgeInsets.only(left: 20),
-              tabs: const [
-                Tab(text: '登录日志'),
-                Tab(text: '活跃会话'),
-                Tab(text: 'IP 白名单'),
-                Tab(text: '两步验证'),
-                Tab(text: '登录统计'),
-                Tab(text: '审计日志'),
-              ],
             ),
             Expanded(
               child: TabBarView(

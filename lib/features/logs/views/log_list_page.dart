@@ -504,7 +504,8 @@ class _LogListPageState extends ConsumerState<LogListPage> {
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: TextField(
+              child: AppLiquidGlassInput(
+                child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: '搜索任务名称...',
@@ -538,6 +539,7 @@ class _LogListPageState extends ConsumerState<LogListPage> {
                     ref.read(logListProvider.notifier).setKeyword(value);
                   });
                 },
+                ),
               ),
             ),
             const SizedBox(height: 12),

@@ -822,16 +822,27 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                         ),
                       ),
                       if (selectedType == 'email')
-                        SwitchListTile.adaptive(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('启用 SMTP SSL'),
-                          subtitle: const Text(
-                            '465 端口通常需要开启，25/587 可按邮箱服务要求选择',
-                          ),
-                          value: smtpSsl,
-                          onChanged: (value) {
-                            setSheetState(() => smtpSsl = value);
-                          },
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('启用 SMTP SSL'),
+                                  Text(
+                                    '465 端口通常需要开启，25/587 可按邮箱服务要求选择',
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            AppLiquidGlassToggle(
+                              value: smtpSsl,
+                              onChanged: (value) {
+                                setSheetState(() => smtpSsl = value);
+                              },
+                            ),
+                          ],
                         ),
                     ],
                     if (fields.isEmpty) ...[

@@ -951,7 +951,8 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                   Expanded(
                     child: SizedBox(
                       height: 44,
-                      child: TextField(
+                      child: AppLiquidGlassInput(
+                        child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
                           hintText: '搜索变量...',
@@ -994,6 +995,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                             },
                           );
                         },
+                        ),
                       ),
                     ),
                   ),

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:liquid_glass_easy/liquid_glass_easy.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_provider.dart';
@@ -268,16 +269,17 @@ class _BlurIntensitySlider extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Slider(
-            value: currentValue,
-            min: 0,
-            max: 20,
-            divisions: 20,
-            activeColor: AppColors.primary,
-            inactiveColor: isLight
-                ? AppColors.slate200
-                : AppColors.slate700,
-            onChanged: onChanged,
+          child: LayoutBuilder(
+            builder: (context, constraints) => LiquidGlassSlider(
+              value: (currentValue / 20).clamp(0.0, 1.0),
+              layout: LiquidGlassSliderLayout(width: constraints.maxWidth),
+              activeColor: AppColors.primary,
+              inactiveColor: isLight
+                  ? AppColors.slate200
+                  : AppColors.slate700,
+              pixelRatio: 0.8,
+              onChanged: (value) => onChanged((value * 20).roundToDouble()),
+            ),
           ),
         ),
         SizedBox(

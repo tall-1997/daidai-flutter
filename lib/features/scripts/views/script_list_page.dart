@@ -667,7 +667,8 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: TextField(
+              child: AppLiquidGlassInput(
+                child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: '搜索脚本名称或路径...',
@@ -691,6 +692,7 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                   ref.read(scriptProvider.notifier).setKeyword(value);
                   setState(() {});
                 },
+                ),
               ),
             ),
             const SizedBox(height: 12),

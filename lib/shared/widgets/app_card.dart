@@ -189,6 +189,147 @@ class AppLiquidGlassSurface extends StatelessWidget {
   }
 }
 
+class AppLiquidGlassInput extends StatelessWidget {
+  final Widget child;
+  final double borderRadius;
+
+  const AppLiquidGlassInput({
+    super.key,
+    required this.child,
+    this.borderRadius = 14,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return AppLiquidGlassSurface(
+      borderRadius: borderRadius,
+      performanceMode: true,
+      child: Theme(
+        data: theme.copyWith(
+          inputDecorationTheme: theme.inputDecorationTheme.copyWith(
+            filled: true,
+            fillColor: Colors.transparent,
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            errorBorder: InputBorder.none,
+            focusedErrorBorder: InputBorder.none,
+          ),
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+class AppLiquidGlassToggle extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+  final Color activeColor;
+
+  const AppLiquidGlassToggle({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.activeColor = AppColors.primary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onChanged != null;
+    return Opacity(
+      opacity: enabled ? 1 : 0.45,
+      child: IgnorePointer(
+        ignoring: !enabled,
+        child: LiquidGlassToggle(
+          value: value,
+          onChanged: onChanged ?? (_) {},
+          activeColor: activeColor,
+          inactiveColor: Theme.of(context).brightness == Brightness.light
+              ? const Color(0x66708090)
+              : const Color(0x88506678),
+          pixelRatio: 0.8,
+        ),
+      ),
+    );
+  }
+}
+
+enum AppLiquidGlassButtonVariant { primary, secondary, danger, warning }
+
+class AppLiquidGlassButton extends StatelessWidget {
+  final String label;
+  final IconData? icon;
+  final VoidCallback? onPressed;
+  final double? width;
+  final double height;
+  final bool loading;
+  final AppLiquidGlassButtonVariant variant;
+  final bool performanceMode;
+
+  const AppLiquidGlassButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.icon,
+    this.width,
+    this.height = 48,
+    this.loading = false,
+    this.variant = AppLiquidGlassButtonVariant.primary,
+    this.performanceMode = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final color = switch (variant) {
+      AppLiquidGlassButtonVariant.primary => AppColors.primary,
+      AppLiquidGlassButtonVariant.secondary =>
+        isLight ? AppColors.slate600 : AppColors.slate300,
+      AppLiquidGlassButtonVariant.danger => AppColors.red500,
+      AppLiquidGlassButtonVariant.warning => AppColors.amber500,
+    };
+    if (loading) {
+      return SizedBox(
+        width: width,
+        height: height,
+        child: AppLiquidGlassSurface(
+          borderRadius: height / 2,
+          accentColor: color,
+          selected: true,
+          performanceMode: performanceMode,
+          child: Center(
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: color,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    return LiquidGlassButton(
+      label: label,
+      icon: icon,
+      onPressed: onPressed,
+      width: width,
+      height: height,
+      foregroundColor: onPressed == null ? AppColors.slate400 : color,
+      style: appLiquidGlassStyle(
+        isLight: isLight,
+        borderRadius: height / 2,
+        accentColor: color,
+        selected: onPressed != null,
+        performanceMode: performanceMode,
+      ),
+    );
+  }
+}
+
 LiquidGlassStyle appLiquidGlassStyle({
   required bool isLight,
   double borderRadius = 16,

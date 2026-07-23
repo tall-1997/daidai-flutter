@@ -515,14 +515,27 @@ class _DepListPageState extends ConsumerState<DepListPage> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('自动拆分'),
-                    subtitle: const Text('开启后按换行、空格、逗号拆分为多个依赖'),
-                    value: autoSplit,
-                    onChanged: (value) {
-                      setDialogState(() => autoSplit = value);
-                    },
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('自动拆分'),
+                            Text(
+                              '开启后按换行、空格、逗号拆分为多个依赖',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      AppLiquidGlassToggle(
+                        value: autoSplit,
+                        onChanged: (value) {
+                          setDialogState(() => autoSplit = value);
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),

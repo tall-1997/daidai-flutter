@@ -918,25 +918,35 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
                                   ],
                                 ),
                                 const SizedBox(height: 12),
-                                SwitchListTile.adaptive(
-                                  value: _autoInstallDeps,
-                                  contentPadding: EdgeInsets.zero,
-                                  dense: true,
-                                  title: const Text(
-                                    '自动安装缺失依赖',
-                                    style: TextStyle(fontSize: 13),
-                                  ),
-                                  subtitle: Text(
-                                    '运行失败时自动安装',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: isLight
-                                          ? AppColors.slate500
-                                          : AppColors.slate400,
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            '自动安装缺失依赖',
+                                            style: TextStyle(fontSize: 13),
+                                          ),
+                                          Text(
+                                            '运行失败时自动安装',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: isLight
+                                                  ? AppColors.slate500
+                                                  : AppColors.slate400,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  onChanged: (v) =>
-                                      setState(() => _autoInstallDeps = v),
+                                    AppLiquidGlassToggle(
+                                      value: _autoInstallDeps,
+                                      onChanged: (v) =>
+                                          setState(() => _autoInstallDeps = v),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),

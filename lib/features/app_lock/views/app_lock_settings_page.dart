@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:liquid_glass_easy/liquid_glass_easy.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../providers/app_lock_provider.dart';
@@ -322,9 +323,11 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
                                       ],
                                     ),
                                   ),
-                                  Switch.adaptive(
+                                  LiquidGlassToggle(
                                     value: lockState.isEnabled,
                                     onChanged: _toggleEnabled,
+                                    activeColor: AppColors.primary,
+                                    pixelRatio: 0.8,
                                   ),
                                 ],
                               ),
@@ -418,17 +421,24 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
                           subtitle: lockState.biometricAvailable
                               ? '调用设备系统级${lockState.biometricLabel}能力进行验证。'
                               : '当前设备未检测到可用的指纹或人脸能力。',
-                          trailing: Switch.adaptive(
-                            value:
-                                lockState.config.biometricEnabled &&
-                                lockState.biometricAvailable,
-                            onChanged: lockState.biometricAvailable
-                                ? _toggleBiometric
-                                : null,
+                          trailing: Opacity(
+                            opacity: lockState.biometricAvailable ? 1 : 0.45,
+                            child: IgnorePointer(
+                              ignoring: !lockState.biometricAvailable,
+                              child: LiquidGlassToggle(
+                                value: lockState.config.biometricEnabled &&
+                                    lockState.biometricAvailable,
+                                onChanged: _toggleBiometric,
+                                activeColor: AppColors.primary,
+                                pixelRatio: 0.8,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 20),
-                        FilledButton.icon(
+                        AppLiquidGlassButton(
+                          label: '立即锁定并测试',
+                          icon: Icons.lock_clock_outlined,
                           onPressed: lockState.isEnabled
                               ? () {
                                   ref
@@ -437,8 +447,7 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
                                   _showMessage('应用已立即锁定，可直接验证体验');
                                 }
                               : null,
-                          icon: const Icon(Icons.lock_clock_outlined, size: 18),
-                          label: const Text('立即锁定并测试'),
+                          performanceMode: true,
                         ),
                       ],
                     ),

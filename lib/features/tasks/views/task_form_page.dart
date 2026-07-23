@@ -579,19 +579,13 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: FilledButton(
+            child: AppLiquidGlassButton(
+              label: '保存',
               onPressed: _saving ? null : _save,
-              style: FilledButton.styleFrom(minimumSize: const Size(80, 38)),
-              child: _saving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('保存'),
+              width: 80,
+              height: 38,
+              loading: _saving,
+              performanceMode: true,
             ),
           ),
         ],
@@ -906,26 +900,39 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
 
               // 通知
               section('通知与并发', [
-                SwitchListTile.adaptive(
-                  value: _notifyOnFailure,
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  title: const Text('失败时通知', style: TextStyle(fontSize: 14)),
-                  onChanged: (v) => setState(() => _notifyOnFailure = v),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text('失败时通知', style: TextStyle(fontSize: 14)),
+                    ),
+                    AppLiquidGlassToggle(
+                      value: _notifyOnFailure,
+                      onChanged: (v) => setState(() => _notifyOnFailure = v),
+                    ),
+                  ],
                 ),
-                SwitchListTile.adaptive(
-                  value: _notifyOnSuccess,
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  title: const Text('成功时通知', style: TextStyle(fontSize: 14)),
-                  onChanged: (v) => setState(() => _notifyOnSuccess = v),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text('成功时通知', style: TextStyle(fontSize: 14)),
+                    ),
+                    AppLiquidGlassToggle(
+                      value: _notifyOnSuccess,
+                      onChanged: (v) => setState(() => _notifyOnSuccess = v),
+                    ),
+                  ],
                 ),
-                SwitchListTile.adaptive(
-                  value: _allowMultipleInstances,
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  title: const Text('允许多实例', style: TextStyle(fontSize: 14)),
-                  onChanged: (v) => setState(() => _allowMultipleInstances = v),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text('允许多实例', style: TextStyle(fontSize: 14)),
+                    ),
+                    AppLiquidGlassToggle(
+                      value: _allowMultipleInstances,
+                      onChanged: (v) =>
+                          setState(() => _allowMultipleInstances = v),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<int?>(

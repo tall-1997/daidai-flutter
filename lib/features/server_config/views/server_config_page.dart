@@ -5,6 +5,7 @@ import '../../../core/auth/auth_provider.dart';
 import '../../../core/auth/auth_service.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/storage/secure_storage.dart';
+import '../../../shared/widgets/app_card.dart';
 import '../../dashboard/providers/dashboard_provider.dart';
 
 class ServerConfigPage extends ConsumerStatefulWidget {
@@ -477,15 +478,11 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
                 ),
               ],
               const SizedBox(height: 20),
-              FilledButton(
+              AppLiquidGlassButton(
+                label: _isManageMode ? '保存并检测' : '连接',
                 onPressed: _checking ? null : _connect,
-                child: _checking
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(_isManageMode ? '保存并检测' : '连接'),
+                width: double.infinity,
+                loading: _checking,
               ),
             ],
           ),

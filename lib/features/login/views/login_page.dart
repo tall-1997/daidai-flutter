@@ -592,36 +592,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                       // Login Button
                       const SizedBox(height: 24),
-                      SizedBox(
+                      AppLiquidGlassButton(
+                        label: _needsInit ? '创建并登录' : '连接并登录',
+                        onPressed: _loading ? null : _submit,
                         width: double.infinity,
                         height: 52,
-                        child: FilledButton(
-                          onPressed: _loading ? null : _submit,
-                          style: FilledButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 4,
-                            shadowColor: AppColors.primary.withAlpha(80),
-                          ),
-                          child: _loading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : Text(
-                                  _needsInit ? '创建并登录' : '连接并登录',
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                        ),
+                        loading: _loading,
                       ),
 
                       // Switch panel

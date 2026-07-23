@@ -200,7 +200,8 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: SizedBox(
                 height: 44,
-                child: TextField(
+                child: AppLiquidGlassInput(
+                  child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: '搜索订阅...',
@@ -234,6 +235,7 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                       ref.read(subscriptionListProvider.notifier).setKeyword(v);
                     });
                   },
+                  ),
                 ),
               ),
             ),
@@ -633,7 +635,7 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                                       ],
                                     ),
                                   ),
-                                  Switch(
+                                  AppLiquidGlassToggle(
                                     value: forceOverwrite,
                                     onChanged: (v) =>
                                         setSheetState(() => forceOverwrite = v),
@@ -962,7 +964,7 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                                       ],
                                     ),
                                   ),
-                                  Switch(
+                                  AppLiquidGlassToggle(
                                     value: forceOverwrite,
                                     onChanged: (v) =>
                                         setSheetState(() => forceOverwrite = v),

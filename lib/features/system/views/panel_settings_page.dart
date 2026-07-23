@@ -180,18 +180,13 @@ class _PanelSettingsPageState extends ConsumerState<PanelSettingsPage> {
                         SizedBox(
                           width: double.infinity,
                           height: 44,
-                          child: FilledButton(
+                          child: AppLiquidGlassButton(
+                            label: '保存设置',
                             onPressed: _saving ? null : _save,
-                            child: _saving
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Text('保存设置'),
+                            width: double.infinity,
+                            height: 44,
+                            loading: _saving,
+                            performanceMode: true,
                           ),
                         ),
                       ],

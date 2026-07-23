@@ -832,7 +832,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: TextField(
+              child: AppLiquidGlassInput(
+                child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
                   hintText: '搜索任务名称或命令...',
@@ -860,6 +861,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   style: const TextStyle(fontSize: 14),
                   onChanged: _onSearchChanged,
                 ),
+              ),
             ),
             const SizedBox(height: 12),
             SizedBox(
