@@ -121,7 +121,7 @@ class AppLockState {
 }
 
 class AppLockController extends StateNotifier<AppLockState> {
-  AppLockController() : super(const AppLockState());
+  AppLockController() : super(const AppLockState(loading: true));
 
   final LocalAuthentication _localAuth = LocalAuthentication();
 

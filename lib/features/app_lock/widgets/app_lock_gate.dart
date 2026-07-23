@@ -56,14 +56,26 @@ class _AppLockGateState extends ConsumerState<AppLockGate> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     final lockState = ref.watch(appLockProvider);
+    final showInitializing =
+        auth.status == AuthStatus.authenticated && lockState.loading;
     final showOverlay =
         auth.status == AuthStatus.authenticated &&
+        !lockState.loading &&
         lockState.isEnabled &&
         lockState.locked;
 
     return Stack(
       children: [
         widget.child,
+        if (showInitializing)
+          const Positioned.fill(
+            child: ColoredBox(
+              color: Color(0xEE07111F),
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+            ),
+          ),
         if (showOverlay)
           Positioned.fill(
             child: _AppLockOverlay(
