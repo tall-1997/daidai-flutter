@@ -2026,111 +2026,113 @@ class _EnvCardState extends State<_EnvCard> {
         }
       },
       onLongPress: widget.onLongPress,
-      child: AppCard(
-        stableForScrolling: true,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 14,
-        ),
-        child: Column(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: AppCard(
+          stableForScrolling: true,
+          margin: const EdgeInsets.only(bottom: 12),
+          borderRadius: 16,
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            Row(
-              children: [
-                if (widget.selectionMode) ...[
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: Checkbox(
-                      value: widget.selected,
-                      onChanged: (_) => widget.onSelectedChanged(),
-                      activeColor: AppColors.primary,
-                      visualDensity: VisualDensity.compact,
-                      materialTapTargetSize:
-                          MaterialTapTargetSize.shrinkWrap,
+              Row(
+                children: [
+                  if (widget.selectionMode) ...[
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Checkbox(
+                        value: widget.selected,
+                        onChanged: (_) => widget.onSelectedChanged(),
+                        activeColor: AppColors.primary,
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize:
+                            MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: widget.env.enabled
+                          ? AppColors.primary
+                          : AppColors.slate300,
+                      shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 8),
-                ],
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: widget.env.enabled
-                        ? AppColors.primary
-                        : AppColors.slate300,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    widget.env.name,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: widget.isLight
-                          ? AppColors.blue600
-                          : AppColors.blue500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (!widget.selectionMode) ...[
-                  _MiniBtn(
-                    icon: Icons.copy_outlined,
-                    onTap: widget.onCopy,
-                  ),
-                  const SizedBox(width: 4),
-                  _MiniBtn(
-                    icon: Icons.open_in_new,
-                    onTap: widget.onTap,
-                  ),
-                ],
-              ],
-            ),
-            Padding(
-              padding: EdgeInsets.only(
-                left: widget.selectionMode ? 32 : 14,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.env.value,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontFamily: 'monospace',
-                      height: 1.55,
-                      color: widget.isLight
-                          ? AppColors.slate600
-                          : AppColors.slate400,
-                    ),
-                    maxLines: 8,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (widget.env.remarks.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.env.remarks,
+                  Expanded(
+                    child: Text(
+                      widget.env.name,
                       style: TextStyle(
-                        fontSize: 12,
-                        height: 1.4,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
                         color: widget.isLight
-                            ? AppColors.slate400
-                            : AppColors.slate500,
-                        fontStyle: FontStyle.italic,
+                            ? AppColors.blue600
+                            : AppColors.blue500,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                  ),
+                  if (!widget.selectionMode) ...[
+                    _MiniBtn(
+                      icon: Icons.copy_outlined,
+                      onTap: widget.onCopy,
+                    ),
+                    const SizedBox(width: 4),
+                    _MiniBtn(
+                      icon: Icons.open_in_new,
+                      onTap: widget.onTap,
+                    ),
                   ],
                 ],
               ),
-            ),
+              Padding(
+                padding: EdgeInsets.only(
+                  left: widget.selectionMode ? 32 : 14,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.env.value,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontFamily: 'monospace',
+                        height: 1.55,
+                        color: widget.isLight
+                            ? AppColors.slate600
+                            : AppColors.slate400,
+                      ),
+                      maxLines: 6,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (widget.env.remarks.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        widget.env.remarks,
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.4,
+                          color: widget.isLight
+                              ? AppColors.slate400
+                              : AppColors.slate500,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ],
+          ),
         ),
       ),
     );

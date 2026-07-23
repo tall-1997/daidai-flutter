@@ -1720,13 +1720,6 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       onSelectedChanged: () => _toggleTaskSelection(task.id),
       onRun: () => _runTask(task),
       onStop: () => _stopTask(task),
-      onToggleEnabled: () => _toggleTaskEnabled(task),
-      onCopy: () => _copyTask(task),
-      onTogglePinned: () => _togglePinned(task),
-      onStats: () => _showTaskStats(task),
-      onLogFiles: () => _showTaskLogFiles(task),
-      onEdit: () => context.push('/tasks/edit', extra: task),
-      onDelete: () => _confirmDelete(task),
     );
   }
 
@@ -1840,7 +1833,7 @@ class _TaskInfoDialogContent extends StatelessWidget {
   }
 }
 
-class _TaskCard extends StatefulWidget {
+class _TaskCard extends StatelessWidget {
   final Task task;
   final bool isLight;
   final bool selectionMode;
@@ -1850,13 +1843,6 @@ class _TaskCard extends StatefulWidget {
   final VoidCallback onSelectedChanged;
   final VoidCallback onRun;
   final VoidCallback onStop;
-  final VoidCallback onToggleEnabled;
-  final VoidCallback onCopy;
-  final VoidCallback onTogglePinned;
-  final VoidCallback onStats;
-  final VoidCallback onLogFiles;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
 
   const _TaskCard({
     super.key,
@@ -1869,37 +1855,7 @@ class _TaskCard extends StatefulWidget {
     required this.onSelectedChanged,
     required this.onRun,
     required this.onStop,
-    required this.onToggleEnabled,
-    required this.onCopy,
-    required this.onTogglePinned,
-    required this.onStats,
-    required this.onLogFiles,
-    required this.onEdit,
-    required this.onDelete,
   });
-
-  @override
-  State<_TaskCard> createState() => _TaskCardState();
-}
-
-class _TaskCardState extends State<_TaskCard> {
-  static const double _actionWidth = 52;
-  static const double _actionGap = 4;
-  static const double _actionsWidth = _actionWidth * 3 + _actionGap * 2 + 8;
-
-  double _dragOffset = 0;
-  bool _dragging = false;
-
-  Task get task => widget.task;
-
-  @override
-  void didUpdateWidget(covariant _TaskCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.selectionMode || oldWidget.task.id != widget.task.id) {
-      _dragOffset = 0;
-      _dragging = false;
-    }
-  }
 
   Color _dotColor() {
     if (task.isRunning) {
@@ -1932,30 +1888,30 @@ class _TaskCardState extends State<_TaskCard> {
 
   Color _statusBg() {
     if (task.isRunning) {
-      return widget.isLight
+      return isLight
           ? AppColors.primaryLight
           : AppColors.primary.withAlpha(25);
     }
     if (task.isQueued) {
-      return AppColors.amber500.withAlpha(widget.isLight ? 18 : 25);
+      return AppColors.amber500.withAlpha(isLight ? 18 : 25);
     }
     if (task.isEnabled) {
-      return widget.isLight
+      return isLight
           ? AppColors.blue100
           : AppColors.blue500.withAlpha(25);
     }
-    return widget.isLight ? AppColors.slate100 : AppColors.darkSurfaceMuted;
+    return isLight ? AppColors.slate100 : AppColors.darkSurfaceMuted;
   }
 
   Color _statusFg() {
     if (task.isRunning) {
-      return widget.isLight ? const Color(0xFF047857) : AppColors.primary;
+      return isLight ? const Color(0xFF047857) : AppColors.primary;
     }
     if (task.isQueued) {
       return AppColors.amber500;
     }
     if (task.isEnabled) {
-      return widget.isLight ? AppColors.blue600 : AppColors.blue500;
+      return isLight ? AppColors.blue600 : AppColors.blue500;
     }
     return AppColors.slate500;
   }
@@ -2000,81 +1956,6 @@ class _TaskCardState extends State<_TaskCard> {
     return '暂无计划';
   }
 
-  void _closeActions() {
-    if (_dragOffset == 0) {
-      return;
-    }
-    setState(() => _dragOffset = 0);
-  }
-
-  void _runSwipeAction(VoidCallback action) {
-    _closeActions();
-    action();
-  }
-
-  Future<void> _showMoreActions() async {
-    _closeActions();
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: Icon(
-                task.isPinned ? Icons.push_pin_outlined : Icons.push_pin,
-                color: AppColors.amber500,
-              ),
-              title: Text(task.isPinned ? '取消置顶' : '置顶'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                widget.onTogglePinned();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.copy_outlined, color: AppColors.blue500),
-              title: const Text('复制任务'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                widget.onCopy();
-              },
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.bar_chart_outlined,
-                color: AppColors.primary,
-              ),
-              title: const Text('任务统计'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                widget.onStats();
-              },
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.folder_open_outlined,
-                color: AppColors.amber500,
-              ),
-              title: const Text('日志文件'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                widget.onLogFiles();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: const Text('编辑任务'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                widget.onEdit();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final dotColor = _dotColor();
@@ -2082,258 +1963,137 @@ class _TaskCardState extends State<_TaskCard> {
     final hasFailure = task.lastRunStatus == 1;
     final primaryColor = task.isRunning ? AppColors.red500 : AppColors.primary;
 
-    return PopScope(
-      canPop: _dragOffset == 0,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop || _dragOffset == 0) {
-          return;
-        }
-        // 侧滑按钮展开时，系统返回先收起按钮，避免用户回滑时误退出 APP。
-        _closeActions();
-      },
+    return GestureDetector(
+      onTap: onTap,
+      onLongPress: onLongPress,
       child: Padding(
         padding: const EdgeInsets.only(bottom: 10),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          clipBehavior: Clip.hardEdge,
-          child: Stack(
-          clipBehavior: Clip.hardEdge,
-          children: [
-            Positioned.fill(
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: SizedBox(
-                  width: _actionsWidth,
-                  child: AppLiquidGlassSurface(
-                    borderRadius: 16,
-                    performanceMode: true,
-                    padding: const EdgeInsets.all(4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        _TaskSwipeActionButton(
-                          label: task.isDisabled ? '启用' : '禁用',
-                          icon: task.isDisabled
-                              ? Icons.play_circle_outline
-                              : Icons.pause_circle_outline,
-                          color: task.isDisabled
-                              ? AppColors.primary
-                              : AppColors.slate500,
-                          onTap: () => _runSwipeAction(widget.onToggleEnabled),
+        child: AppLiquidGlassSurface(
+          borderRadius: 16,
+          performanceMode: true,
+          selected: selected || hasFailure,
+          accentColor: selected
+              ? AppColors.primary
+              : hasFailure
+              ? AppColors.red500
+              : null,
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+                Row(
+                  children: [
+                    if (selectionMode) ...[
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Checkbox(
+                          value: selected,
+                          onChanged: (_) => onSelectedChanged(),
+                          activeColor: AppColors.primary,
+                          visualDensity: VisualDensity.compact,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
                         ),
-                        const SizedBox(width: _actionGap),
-                        _TaskSwipeActionButton(
-                          label: '更多',
-                          icon: Icons.more_horiz,
-                          color: AppColors.blue500,
-                          onTap: _showMoreActions,
-                        ),
-                        const SizedBox(width: _actionGap),
-                        _TaskSwipeActionButton(
-                          label: '删除',
-                          icon: Icons.delete_outline,
-                          color: AppColors.red500,
-                          onTap: () => _runSwipeAction(widget.onDelete),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                if (_dragOffset != 0) {
-                  _closeActions();
-                  return;
-                }
-                widget.onTap();
-              },
-              onLongPress: widget.onLongPress,
-              onHorizontalDragStart: widget.selectionMode
-                  ? null
-                  : (_) => setState(() => _dragging = true),
-              onHorizontalDragUpdate: widget.selectionMode
-                  ? null
-                  : (details) {
-                      // 左滑露出右侧次要操作；关闭时也限制在卡片内处理，避免和系统返回手势抢动作。
-                      final nextOffset = (_dragOffset + details.delta.dx)
-                          .clamp(-_actionsWidth, 0.0)
-                          .toDouble();
-                      if (nextOffset == _dragOffset) {
-                        return;
-                      }
-                      setState(() => _dragOffset = nextOffset);
-                    },
-              onHorizontalDragCancel: widget.selectionMode
-                  ? null
-                  : () => setState(() => _dragging = false),
-              onHorizontalDragEnd: widget.selectionMode
-                  ? null
-                  : (_) {
-                      final nextOffset =
-                          _dragOffset.abs() > _actionsWidth * 0.42
-                          ? -_actionsWidth
-                          : 0.0;
-                      setState(() {
-                        _dragging = false;
-                        _dragOffset = nextOffset;
-                      });
-                      if (nextOffset == -_actionsWidth) {
-                        HapticFeedback.selectionClick();
-                      }
-                    },
-              child: AnimatedContainer(
-                duration: _dragging
-                    ? Duration.zero
-                    : const Duration(milliseconds: 160),
-                curve: Curves.easeOutCubic,
-                transform: Matrix4.translationValues(_dragOffset, 0, 0),
-                child: RepaintBoundary(
-                  child: AppLiquidGlassSurface(
-                    borderRadius: 16,
-                    performanceMode: true,
-                    selected: widget.selected || hasFailure,
-                    accentColor: widget.selected
-                        ? AppColors.primary
-                        : hasFailure
-                        ? AppColors.red500
-                        : null,
-                    padding: const EdgeInsets.all(14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                    Row(
-                      children: [
-                        if (widget.selectionMode) ...[
-                          SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: Checkbox(
-                              value: widget.selected,
-                              onChanged: (_) => widget.onSelectedChanged(),
-                              activeColor: AppColors.primary,
-                              visualDensity: VisualDensity.compact,
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: dotColor,
-                            shape: BoxShape.circle,
-                            boxShadow: task.isRunning || hasFailure
-                                ? [
-                                    BoxShadow(
-                                      color: dotColor.withAlpha(140),
-                                      blurRadius: 8,
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            task.name,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (task.isPinned)
-                          const Padding(
-                            padding: EdgeInsets.only(right: 6),
-                            child: Icon(
-                              Icons.push_pin,
-                              size: 14,
-                              color: AppColors.amber500,
-                            ),
-                          ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _statusBg(),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            _statusLabel(),
-                            style: TextStyle(
-fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: _statusFg(),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    _TaskScheduleSummary(
-                      taskType: task.taskType,
-                      taskTypeLabel: _taskTypeLabel(),
-                      expressions: _scheduleExpressions(),
-                      isLight: widget.isLight,
-                    ),
-                    if (labels.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      _TaskSubscriptionSummary(
-                        labels: labels,
-                        isLight: widget.isLight,
                       ),
+                      const SizedBox(width: 8),
                     ],
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _bottomText(),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: hasFailure
-                                  ? AppColors.red500
-                                  : (widget.isLight
-                                        ? AppColors.slate400
-                                        : AppColors.slate500),
-                            ),
-                          ),
-                        ),
-                        if (!widget.selectionMode) ...[
-                          _TaskPrimaryActionButton(
-                            label: task.isRunning ? '停止' : '运行',
-                            icon: task.isRunning
-                                ? Icons.stop_rounded
-                                : Icons.play_arrow_rounded,
-                            color: primaryColor,
-                            onTap: task.isRunning
-                                ? widget.onStop
-                                : widget.onRun,
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(
-                            Icons.swipe_left_alt_rounded,
-                            size: 18,
-                            color: AppColors.slate400,
-                          ),
-                        ],
-                      ],
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: dotColor,
+                        shape: BoxShape.circle,
+                        boxShadow: task.isRunning || hasFailure
+                            ? [
+                                BoxShadow(
+                                  color: dotColor.withAlpha(140),
+                                  blurRadius: 8,
+                                ),
+                              ]
+                            : null,
+                      ),
                     ),
-                      ],
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        task.name,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (task.isPinned)
+                      const Padding(
+                        padding: EdgeInsets.only(right: 6),
+                        child: Icon(
+                          Icons.push_pin,
+                          size: 14,
+                          color: AppColors.amber500,
+                        ),
+                      ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _statusBg(),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        _statusLabel(),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: _statusFg(),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ),
-            ),
-            ),
-          ],
+                const SizedBox(height: 10),
+                _TaskScheduleSummary(
+                  taskType: task.taskType,
+                  taskTypeLabel: _taskTypeLabel(),
+                  expressions: _scheduleExpressions(),
+                  isLight: isLight,
+                ),
+                if (labels.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  _TaskSubscriptionSummary(labels: labels, isLight: isLight),
+                ],
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _bottomText(),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: hasFailure
+                              ? AppColors.red500
+                              : (isLight
+                                    ? AppColors.slate400
+                                    : AppColors.slate500),
+                        ),
+                      ),
+                    ),
+                    if (!selectionMode)
+                      _TaskPrimaryActionButton(
+                        label: task.isRunning ? '停止' : '运行',
+                        icon: task.isRunning
+                            ? Icons.stop_rounded
+                            : Icons.play_arrow_rounded,
+                        color: primaryColor,
+                        onTap: task.isRunning ? onStop : onRun,
+                      ),
+                  ],
+                ),
+            ],
           ),
         ),
       ),
@@ -2356,7 +2116,6 @@ class _TaskPrimaryActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLight = Theme.of(context).brightness == Brightness.light;
     return AppLiquidGlassSurface(
       onTap: onTap,
       borderRadius: 18,
@@ -2365,65 +2124,19 @@ class _TaskPrimaryActionButton extends StatelessWidget {
       performanceMode: true,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 16, color: color),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
-              ),
-            ],
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
           ),
-    );
-  }
-}
-
-class _TaskSwipeActionButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _TaskSwipeActionButton({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isLight = Theme.of(context).brightness == Brightness.light;
-    return SizedBox(
-      width: _TaskCardState._actionWidth,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 15, color: color),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }
