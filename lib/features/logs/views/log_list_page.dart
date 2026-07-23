@@ -107,6 +107,27 @@ class LogListNotifier extends StateNotifier<LogListState> {
     await load();
   }
 
+  Future<void> refreshFirstPage() async {
+    final requestId = ++_loadRequestId;
+    try {
+      final response = await DioClient.instance.dio.get(
+        ApiEndpoints.logs,
+        queryParameters: _currentQueryParams(page: 1),
+      );
+      final paginated = extractPaginated(response.data);
+      final firstPage = paginated.items.map(TaskLog.fromJson).toList();
+      if (requestId != _loadRequestId) return;
+      final firstPageIds = firstPage.map((log) => log.id).toSet();
+      final merged = [
+        ...firstPage,
+        ...state.logs.where((log) => !firstPageIds.contains(log.id)),
+      ];
+      state = state.copyWith(logs: merged, total: paginated.total);
+    } catch (_) {
+      // 自动刷新失败时保留当前分页和滚动内容。
+    }
+  }
+
   void setKeyword(String keyword) {
     state = state.copyWith(keyword: keyword);
     load(refresh: true);
@@ -227,7 +248,7 @@ class _LogListPageState extends ConsumerState<LogListPage> {
     final hasRunning = state.logs.any((log) => log.isRunning);
     if (hasRunning) {
       _refreshTimer ??= Timer.periodic(const Duration(seconds: 5), (_) {
-        ref.read(logListProvider.notifier).load(refresh: true);
+        ref.read(logListProvider.notifier).refreshFirstPage();
       });
     } else {
       _refreshTimer?.cancel();
