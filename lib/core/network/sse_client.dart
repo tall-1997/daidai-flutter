@@ -31,6 +31,7 @@ class SseClient {
       onDone: onDone,
       onError: onError,
       autoReconnect: autoReconnect,
+      authRefreshAttempts: 0,
     );
   }
 
@@ -40,6 +41,7 @@ class SseClient {
     void Function()? onDone,
     void Function(dynamic error)? onError,
     bool autoReconnect = false,
+    int authRefreshAttempts = 0,
   }) async {
     if (_closed) return;
 
@@ -60,6 +62,11 @@ class SseClient {
       final response = await _client!.send(request);
 
       if (response.statusCode == 401 && !_closed) {
+        if (authRefreshAttempts >= 1) {
+          _disposeConnection();
+          onError?.call('认证刷新后仍无法建立连接，请重新登录');
+          return;
+        }
         final refreshed = await _refreshAccessToken();
         if (refreshed && !_closed) {
           _disposeConnection();
@@ -69,6 +76,7 @@ class SseClient {
             onDone: onDone,
             onError: onError,
             autoReconnect: autoReconnect,
+            authRefreshAttempts: authRefreshAttempts + 1,
           );
           return;
         }
@@ -102,6 +110,7 @@ class SseClient {
               onDone: onDone,
               onError: onError,
               autoReconnect: autoReconnect,
+              authRefreshAttempts: 0,
             );
           });
         }
