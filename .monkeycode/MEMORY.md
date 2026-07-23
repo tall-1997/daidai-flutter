@@ -46,3 +46,5 @@
   - toast 使用 `AppGlassNotice`，显示在底部导航上方并清理旧提示队列。
   - Dialog、BottomSheet 和 PopupMenu 统一使用玻璃主题的表面、圆角、描边与遮罩。
   - 高频整卡使用低成本 Lens，终端、编辑器和纯展示徽标保持轻量绘制。
+  - 完整卡片和可点击信息表面统一使用 `AppCard` 或 `AppLiquidGlassSurface`。
+  - 业务提示统一使用 `AppGlassNotice`，避免直接调用 `showSnackBar`。

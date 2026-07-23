@@ -118,3 +118,5 @@ flutter build ios --release --no-codesign
 - Dialog、BottomSheet 和 PopupMenu 使用统一半透明表面、描边、圆角和遮罩。
 - 设置菜单、系统操作、订阅历史和脚本版本历史使用 `performanceMode` Lens。
 - 终端、编辑器、状态点和纯展示徽标继续使用轻量绘制。
+- 完整卡片、菜单入口、排序条目和可点击信息表面统一使用 `AppCard` 或 `AppLiquidGlassSurface`。
+- 全仓业务代码通过 `AppGlassNotice` 显示反馈，直接 `showSnackBar` 仅保留在共享实现内部。
