@@ -140,4 +140,20 @@ void main() {
       expect(classifyAppUpdate(info(hasUpdate: true, url: '')), AppUpdateAvailability.installerMissing);
     });
   });
+
+  group('automatic update policy', () {
+    final now = DateTime.utc(2026, 7, 24, 12);
+
+    test('checks at most once per 24 hours', () {
+      expect(shouldRunAutomaticUpdateCheck(null, now), isTrue);
+      expect(shouldRunAutomaticUpdateCheck(now.subtract(const Duration(hours: 23)), now), isFalse);
+      expect(shouldRunAutomaticUpdateCheck(now.subtract(const Duration(hours: 24)), now), isTrue);
+    });
+
+    test('reminds for a new version or after 24 hours', () {
+      expect(shouldShowAutomaticUpdateReminder(version: '2', lastVersion: '1', lastReminder: now, now: now), isTrue);
+      expect(shouldShowAutomaticUpdateReminder(version: '2', lastVersion: '2', lastReminder: now.subtract(const Duration(hours: 12)), now: now), isFalse);
+      expect(shouldShowAutomaticUpdateReminder(version: '2', lastVersion: '2', lastReminder: now.subtract(const Duration(hours: 24)), now: now), isTrue);
+    });
+  });
 }

@@ -46,11 +46,17 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Future<void> _silentUpdateCheck() async {
     try {
+      if (!await AppUpdateService.beginAutomaticCheck()) return;
       final info = await AppUpdateService.checkUpdate();
       if (info != null &&
           classifyAppUpdate(info) == AppUpdateAvailability.updateAvailable &&
           mounted) {
-        AppUpdateService.showUpdateDialog(context, info);
+        final show = await AppUpdateService.claimAutomaticReminder(
+          info.latestVersion,
+        );
+        if (mounted && show) {
+          AppUpdateService.showUpdateDialog(context, info);
+        }
       }
     } catch (_) {
       // Silent — do not disturb user on failure

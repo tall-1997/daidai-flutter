@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../network/app_user_agent.dart';
 import '../theme/app_theme.dart';
@@ -84,6 +85,21 @@ AppUpdateAvailability classifyAppUpdate(AppUpdateInfo info) {
   return AppUpdateAvailability.updateAvailable;
 }
 
+bool shouldRunAutomaticUpdateCheck(
+  DateTime? lastCheck,
+  DateTime now, {
+  Duration interval = const Duration(hours: 24),
+}) => lastCheck == null || now.difference(lastCheck) >= interval;
+
+bool shouldShowAutomaticUpdateReminder({
+  required String version,
+  required String? lastVersion,
+  required DateTime? lastReminder,
+  required DateTime now,
+}) => lastVersion != version ||
+    lastReminder == null ||
+    now.difference(lastReminder) >= const Duration(hours: 24);
+
 class AppUpdateService {
   AppUpdateService._();
 
@@ -94,6 +110,35 @@ class AppUpdateService {
   ));
 
   static const _platform = MethodChannel('com.daidai.panel/app_install');
+  static const _autoCheckAtKey = 'app_update_auto_check_at';
+  static const _reminderAtKey = 'app_update_reminder_at';
+  static const _reminderVersionKey = 'app_update_reminder_version';
+
+  static Future<bool> beginAutomaticCheck() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_autoCheckAtKey);
+    final lastCheck = raw == null ? null : DateTime.tryParse(raw);
+    final now = DateTime.now().toUtc();
+    if (!shouldRunAutomaticUpdateCheck(lastCheck, now)) return false;
+    await prefs.setString(_autoCheckAtKey, now.toIso8601String());
+    return true;
+  }
+
+  static Future<bool> claimAutomaticReminder(String version) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_reminderAtKey);
+    final now = DateTime.now().toUtc();
+    final allowed = shouldShowAutomaticUpdateReminder(
+      version: version,
+      lastVersion: prefs.getString(_reminderVersionKey),
+      lastReminder: raw == null ? null : DateTime.tryParse(raw),
+      now: now,
+    );
+    if (!allowed) return false;
+    await prefs.setString(_reminderVersionKey, version);
+    await prefs.setString(_reminderAtKey, now.toIso8601String());
+    return true;
+  }
 
   /// Check GitHub Releases for new version.
   static Future<AppUpdateInfo?> checkUpdate({bool throwOnError = false}) async {
