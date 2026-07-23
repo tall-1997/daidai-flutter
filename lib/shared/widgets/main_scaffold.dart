@@ -186,12 +186,15 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
         realTimeCapture: true,
         useSync: true,
         safeArea: true,
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            backgroundWidget,
-            widget.child,
-          ],
+        body: LiquidGlassView(
+          pixelRatio: 0.7,
+          realTimeCapture: false,
+          useSync: true,
+          backgroundWidget: backgroundWidget,
+          child: Material(
+            type: MaterialType.transparency,
+            child: SizedBox.expand(child: widget.child),
+          ),
         ),
         bottomNavigationBar: _buildBottomBar(context, idx),
       ),
