@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:liquid_glass_easy/liquid_glass_easy.dart';
 import '../../core/theme/theme_provider.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -19,40 +20,40 @@ class AppBackground extends ConsumerWidget {
         settings.backgroundImagePath!.isNotEmpty;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    if (!hasBg) {
-      return ColoredBox(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        child: child,
-      );
-    }
-
     final blur = settings.blurIntensity.clamp(0.0, 50.0);
-
-    return Stack(
-      children: [
-        // 背景图层
-        Positioned.fill(
-          child: Image.file(
-            File(settings.backgroundImagePath!),
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-          ),
-        ),
-        // 模糊覆盖层：仅在 blur > 0 时渲染
-        if (blur > 0)
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-              child: Container(
-                color: isDark
-                    ? Colors.black.withAlpha(20)
-                    : Colors.white.withAlpha(8),
+    final Widget background = hasBg
+        ? Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.file(
+                File(settings.backgroundImagePath!),
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => ColoredBox(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                ),
               ),
-            ),
-          ),
-        // 内容层：Scaffold 透明背景使图片透过
-        Positioned.fill(child: child),
-      ],
+              if (blur > 0)
+                BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+                  child: ColoredBox(
+                    color: isDark
+                        ? AppColors.darkPage.withAlpha(72)
+                        : Colors.white.withAlpha(28),
+                  ),
+                ),
+            ],
+          )
+        : ColoredBox(color: Theme.of(context).scaffoldBackgroundColor);
+
+    return LiquidGlassView(
+      pixelRatio: 0.8,
+      realTimeCapture: true,
+      useSync: true,
+      backgroundWidget: background,
+      child: Material(
+        type: MaterialType.transparency,
+        child: SizedBox.expand(child: child),
+      ),
     );
   }
 }

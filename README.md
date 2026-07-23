@@ -105,7 +105,7 @@
 ### v0.1.7
 
 - 主题：移除经典风格，全部页面统一使用液态玻璃效果；全局 LiquidGlass theme 配置对齐 iOS26 ultraThickMaterial 材质（light: thickness=32/blur=12, dark: thickness=48/blur=18）
-- 导航：主脚手架升级 GlassScaffold + GlassAppBar，底部选项卡升级 premium 品质材质
+- 导航：主脚手架使用 LiquidGlassScaffold，底部选项卡使用 LiquidGlassBottomNavBar 折射材质
 - 界面：恢复主题设置中的背景图片选择器和模糊强度滑块（0-20 可调）
 - 界面：统一全部二级/三级页面卡片背景使用 glassCardColor，移除硬编码 Colors.white/slate900
 - 架构：清理 glassMode 状态字段和所有条件分支，减少 200+ 行冗余代码
@@ -207,7 +207,7 @@ Material 3 主题 + Liquid Glass 液态玻璃风格，全局对齐 iOS26 ultraTh
 | 图表展示 | `fl_chart` | 仪表盘 CPU/内存趋势图 |
 | 生物识别 | `local_auth` | 指纹/面部识别应用锁 |
 | 密码哈希 | `crypto` | SHA256 迭代哈希存储应用锁密码 |
-| 主题 UI | `liquid_glass_widgets` | 液态玻璃卡片、脚手架、导航栏 |
+| 主题 UI | `liquid_glass_easy` | LiquidGlassLens 卡片、LiquidGlassScaffold、LiquidGlassBottomNavBar |
 | 国际化 | `intl` | 日期时间中文格式化 |
 | 文件选择 | `file_picker` | 脚本上传、备份文件选择 |
 | 设备信息 | `device_info_plus` | 客户端 User-Agent 构建 |
@@ -265,7 +265,7 @@ flutter build ios --release --no-codesign
 - [GoRouter](https://pub.dev/packages/go_router) -- Flutter 声明式路由库
 - [Dio](https://pub.dev/packages/dio) -- Dart HTTP 客户端
 - [fl_chart](https://pub.dev/packages/fl_chart) -- Flutter 图表库
-- [Liquid Glass Widgets](https://pub.dev/packages/liquid_glass_widgets) -- 液态玻璃 UI 组件库
+- [Liquid Glass Easy](https://pub.dev/packages/liquid_glass_easy) -- 实时折射液态玻璃 UI 组件库
 - [flutter_secure_storage](https://pub.dev/packages/flutter_secure_storage) -- Flutter 安全存储
 - [local_auth](https://pub.dev/packages/local_auth) -- 本地生物认证
 - [webview_flutter](https://pub.dev/packages/webview_flutter) -- Flutter WebView

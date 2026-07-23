@@ -10,7 +10,7 @@
 | 网络请求 | Dio | Retrofit + OkHttp | URLSession (async/await) |
 | 本地存储 | FlutterSecureStorage + SharedPreferences | EncryptedSharedPreferences + DataStore | Keychain + UserDefaults |
 | 路由 | go_router | Navigation Compose | NavigationStack |
-| 毛玻璃效果 | liquid_glass_widgets (GlassCard, GlassScaffold, GlassTabBar) | RenderEffect.createBlurEffect (Android 12+) / 半透明降级 | .ultraThinMaterial |
+| 毛玻璃效果 | liquid_glass_easy (LiquidGlassLens, LiquidGlassScaffold, LiquidGlassBottomNavBar) | RenderEffect.createBlurEffect (Android 12+) / 半透明降级 | .ultraThinMaterial |
 | 图表 | fl_chart | Canvas 自绘 | Canvas 自绘 |
 | 图片加载 | Image.network | Coil (AsyncImage) | AsyncImage (原生) |
 | 依赖注入 | Riverpod Provider | Hilt (@HiltViewModel) | 手动注入 (@EnvironmentObject) |
@@ -43,7 +43,7 @@ Modifier.graphicsLayer {
 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
 ```
 - iOS 15+ 原生支持，无需降级
-- 视觉效果与 Flutter 的 `liquid_glass_widgets` 最接近
+- 视觉效果与 Flutter 的 `liquid_glass_easy` 实时折射效果最接近
 
 ### 2. Token 自动刷新机制
 

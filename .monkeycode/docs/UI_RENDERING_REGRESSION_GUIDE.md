@@ -10,18 +10,16 @@
 
 深色颜色值不是主要原因。日志页使用相同的 `AppColors.darkSurface` 和 `AppColors.darkBorder`，通过普通 `Container + BoxDecoration` 能稳定呈现蓝灰半透明表面。
 
-## 稳定架构
+## 历史稳定架构
 
-- 应用根级保留 `LiquidGlassWidgets.wrap`。
-- 主页面保留 `GlassScaffold`。
-- 底部导航保留 `GlassTabBar`。
-- 内容卡片统一使用 `AppCard`。
-- `AppCard` 使用确定性的 `Container + BoxDecoration`。
+- 主页面使用 `LiquidGlassScaffold`。
+- 底部导航使用 `LiquidGlassBottomNavBar`。
+- 内容卡片统一使用基于 `LiquidGlassLens` 的 `AppCard`。
 - 浅色表面使用 `AppColors.lightSurface`。
 - 深色表面使用 `AppColors.darkSurface`。
 - 深色边框使用 `AppColors.darkBorder`。
 - 滚动列表优先使用 `ListView.builder` 或 Sliver 惰性构建。
-- 可位移、可排序和可复用的列表项中不放置 `BackdropFilter` 或逐项玻璃采样层。
+- 滚动 Lens 使用低失真、低模糊、零色散配置，并关闭 Stretch Overscroll。
 
 ## 禁止回归模式
 
@@ -84,7 +82,7 @@ flutter build apk --release
 flutter build ios --release --no-codesign
 ```
 
-正常情况下，`GlassCard(` 搜索结果为空；`liquid_glass_widgets` 仅用于应用根主题、页面级玻璃 Scaffold 和底部导航。
+正常情况下，旧 `GlassCard(` 与 `liquid_glass_widgets` 搜索结果为空；液态玻璃统一由 `liquid_glass_easy` 提供。
 
 ## 统一控件视觉
 

@@ -69,7 +69,9 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   Widget _buildBottomBar(BuildContext context, int idx) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final width = (MediaQuery.sizeOf(context).width - 32).clamp(280.0, 380.0);
+    final width = (MediaQuery.sizeOf(context).width - 32)
+        .clamp(220.0, 380.0)
+        .toDouble();
 
     return LiquidGlassBottomNavBar(
       items: const [

@@ -19,8 +19,8 @@
 - Context: v0.1.29 修复深色模式纯黑卡片和滚动渲染问题
 - Instructions:
   - 修改卡片渲染后，检查浅色和深色模式、快速滚动、分组展开、侧滑操作和小屏布局。
-  - 内容级滚动卡片沿用日志页的确定性半透明表面实现。
-  - 页面级 `GlassScaffold` 和底部 `GlassTabBar` 可保留液态玻璃效果。
+  - 内容级滚动卡片使用 `LiquidGlassLens` 的低失真、低模糊、零色散配置。
+  - 页面级使用 `LiquidGlassScaffold` 和 `LiquidGlassBottomNavBar`。
   - 提交前确认 Android 与 iOS 构建均通过。
 
 ### 统一液态玻璃控件
@@ -29,7 +29,7 @@
 - Instructions:
   - 标准控件优先通过 `AppTheme` 统一液态玻璃视觉。
   - 自定义控件复用 `appGlassDecoration` 或 `AppGlassIconButton`。
-  - 视觉与底部 `GlassTabBar` 保持一致，滚动内容继续使用确定性表面。
+  - 视觉与底部 `LiquidGlassBottomNavBar` 保持一致。
   - 新控件需要提供圆角裁剪和窄屏防溢出处理。
 
 ### liquid_glass_easy 架构
