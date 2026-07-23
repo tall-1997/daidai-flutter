@@ -15,6 +15,7 @@ import '../../../core/network/sse_client.dart';
 import '../../../core/services/local_notification_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/task.dart';
+import '../../../shared/models/task_log.dart';
 import '../../../shared/utils/ansi_text.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../shared/utils/time_utils.dart';
@@ -424,14 +425,28 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
         ApiEndpoints.taskLogFiles(task.id),
       );
       final data = extractData(response.data);
+      final files = data is List
+          ? data
+                .whereType<Map>()
+                .map(
+                  (item) => _TaskLogFile.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ),
+                )
+                .toList()
+          : <_TaskLogFile>[];
+      final logsByPath = await _loadTaskLogsByPath(task.id);
+      final linkedFiles = files
+          .map((file) => file.copyWith(logId: logsByPath[file.path]?.id))
+          .toList();
       if (!mounted) return;
-      await showDialog<void>(
+      final selectedLogId = await showDialog<int>(
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: Text('${task.name} 日志文件'),
-          content: _TaskInfoDialogContent(
-            emptyText: '暂无日志文件',
-            lines: _formatTaskInfoLines(data),
+          content: _TaskLogFileList(
+            files: linkedFiles,
+            onOpen: (logId) => Navigator.pop(dialogContext, logId),
           ),
           actions: [
             TextButton(
@@ -441,9 +456,40 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
           ],
         ),
       );
+      if (!mounted || selectedLogId == null) return;
+      context.push('/logs/$selectedLogId/stream');
     } catch (error) {
       await _showActionError(error, '加载任务日志文件失败');
     }
+  }
+
+  Future<Map<String, TaskLog>> _loadTaskLogsByPath(int taskId) async {
+    const pageSize = 100;
+    final logsByPath = <String, TaskLog>{};
+    var page = 1;
+    var loaded = 0;
+    var total = 0;
+    while (page == 1 || loaded < total) {
+      final response = await DioClient.instance.dio.get(
+        ApiEndpoints.logs,
+        queryParameters: {
+          'page': page,
+          'page_size': pageSize,
+          'task_id': taskId,
+        },
+      );
+      final paginated = extractPaginated(response.data);
+      if (page == 1) total = paginated.total;
+      if (paginated.items.isEmpty) break;
+      for (final item in paginated.items) {
+        final log = TaskLog.fromJson(item);
+        final path = log.logPath?.trim() ?? '';
+        if (path.isNotEmpty) logsByPath[path] = log;
+      }
+      loaded += paginated.items.length;
+      page++;
+    }
+    return logsByPath;
   }
 
   List<String> _formatTaskInfoLines(dynamic data) {
@@ -1886,6 +1932,122 @@ class _TaskInfoDialogContent extends StatelessWidget {
               )
               .toList(),
         ),
+      ),
+    );
+  }
+}
+
+class _TaskLogFile {
+  final String filename;
+  final String path;
+  final int size;
+  final DateTime? createdAt;
+  final int? logId;
+
+  const _TaskLogFile({
+    required this.filename,
+    required this.path,
+    required this.size,
+    this.createdAt,
+    this.logId,
+  });
+
+  factory _TaskLogFile.fromJson(Map<String, dynamic> json) => _TaskLogFile(
+    filename: json['filename']?.toString() ?? '',
+    path: json['path']?.toString() ?? '',
+    size: json['size'] is num
+        ? (json['size'] as num).toInt()
+        : int.tryParse(json['size']?.toString() ?? '') ?? 0,
+    createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
+  );
+
+  _TaskLogFile copyWith({int? logId}) => _TaskLogFile(
+    filename: filename,
+    path: path,
+    size: size,
+    createdAt: createdAt,
+    logId: logId ?? this.logId,
+  );
+}
+
+class _TaskLogFileList extends StatelessWidget {
+  final List<_TaskLogFile> files;
+  final ValueChanged<int> onOpen;
+
+  const _TaskLogFileList({required this.files, required this.onOpen});
+
+  String _formatSize(int size) {
+    if (size < 1024) return '$size B';
+    if (size < 1024 * 1024) return '${(size / 1024).toStringAsFixed(1)} KB';
+    return '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (files.isEmpty) return const Text('暂无日志文件');
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 440, maxHeight: 420),
+      child: ListView.separated(
+        shrinkWrap: true,
+        itemCount: files.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (context, index) {
+          final file = files[index];
+          final canOpen = file.logId != null;
+          return AppLiquidGlassSurface(
+            onTap: canOpen ? () => onOpen(file.logId!) : null,
+            borderRadius: 12,
+            performanceMode: true,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Icon(
+                  canOpen ? Icons.description_outlined : Icons.file_present,
+                  color: canOpen ? AppColors.primary : AppColors.slate400,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        file.filename.isEmpty ? file.path : file.filename,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${_formatSize(file.size)} · ${formatTimeCn(file.createdAt)}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (!canOpen)
+                        const Text(
+                          '无对应日志记录',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.slate400,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (canOpen)
+                  const Icon(
+                    Icons.chevron_right,
+                    size: 20,
+                    color: AppColors.slate400,
+                  ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
