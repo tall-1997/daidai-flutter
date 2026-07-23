@@ -525,6 +525,46 @@ class AppLiquidGlassDialogActions extends StatelessWidget {
   }
 }
 
+enum AppGlassNoticeType { info, success, warning, error }
+
+class AppGlassNotice {
+  static void show(
+    BuildContext context,
+    String message, {
+    AppGlassNoticeType type = AppGlassNoticeType.info,
+    Duration duration = const Duration(seconds: 3),
+  }) {
+    final messenger = ScaffoldMessenger.of(context);
+    final color = switch (type) {
+      AppGlassNoticeType.info => AppColors.blue500,
+      AppGlassNoticeType.success => AppColors.primary,
+      AppGlassNoticeType.warning => AppColors.amber500,
+      AppGlassNoticeType.error => AppColors.red500,
+    };
+    final icon = switch (type) {
+      AppGlassNoticeType.info => Icons.info_outline,
+      AppGlassNoticeType.success => Icons.check_circle_outline,
+      AppGlassNoticeType.warning => Icons.warning_amber_rounded,
+      AppGlassNoticeType.error => Icons.error_outline,
+    };
+
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          duration: duration,
+          content: Row(
+            children: [
+              Icon(icon, size: 19, color: color),
+              const SizedBox(width: 10),
+              Expanded(child: Text(message)),
+            ],
+          ),
+        ),
+      );
+  }
+}
+
 LiquidGlassStyle appLiquidGlassStyle({
   required bool isLight,
   double borderRadius = 16,

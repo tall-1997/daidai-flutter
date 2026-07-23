@@ -26,9 +26,7 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    AppGlassNotice.show(context, message);
   }
 
   String _readError(Object error, String fallback) {

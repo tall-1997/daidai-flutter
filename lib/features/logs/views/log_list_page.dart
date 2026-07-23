@@ -241,9 +241,7 @@ class _LogListPageState extends ConsumerState<LogListPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppGlassNotice.show(context, message);
   }
 
   String _extractError(Object error, String fallback) {

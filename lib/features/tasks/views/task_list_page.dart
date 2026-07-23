@@ -104,9 +104,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppGlassNotice.show(context, message);
   }
 
   Future<void> _handleTaskTransferAction(

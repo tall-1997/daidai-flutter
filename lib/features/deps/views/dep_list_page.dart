@@ -381,9 +381,7 @@ class _DepListPageState extends ConsumerState<DepListPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppGlassNotice.show(context, message);
   }
 
   String _extractError(Object error, String fallback) {

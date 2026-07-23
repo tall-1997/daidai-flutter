@@ -348,29 +348,65 @@ class AppTheme {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       ),
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: cardColor,
+        backgroundColor: controlColor,
         surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        modalElevation: 0,
+        shadowColor: Colors.transparent,
+        showDragHandle: true,
+        dragHandleColor: isLight
+            ? AppColors.slate300
+            : AppColors.slate500,
+        dragHandleSize: const Size(36, 4),
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
       ),
       popupMenuTheme: PopupMenuThemeData(
-        color: cardColor,
+        color: controlColor,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: BorderSide(color: borderColor),
+        ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: cardColor,
+        backgroundColor: controlColor,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        barrierColor: isLight
+            ? AppColors.slate900.withAlpha(48)
+            : Colors.black.withAlpha(118),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: borderColor),
+        ),
         actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
       ),
-      dialogBackgroundColor: cardColor,
+      dialogBackgroundColor: controlColor,
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: isLight ? AppColors.slate900 : AppColors.slate800,
-        contentTextStyle: const TextStyle(color: Colors.white, fontSize: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: isLight
+            ? AppColors.lightControlPressed
+            : AppColors.darkControlPressed,
+        contentTextStyle: TextStyle(
+          color: cs.onSurface,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+        actionTextColor: AppColors.primary,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: BorderSide(color: borderColor),
+        ),
         behavior: SnackBarBehavior.floating,
+        insetPadding: const EdgeInsets.fromLTRB(16, 8, 16, 92),
+        showCloseIcon: true,
+        closeIconColor: cs.onSurfaceVariant,
+        dismissDirection: DismissDirection.horizontal,
       ),
     );
   }

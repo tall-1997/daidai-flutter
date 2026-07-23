@@ -479,9 +479,7 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppGlassNotice.show(context, message);
   }
 
   String _extractScriptError(dynamic error, String fallback) =>
@@ -1786,9 +1784,7 @@ class _ScriptViewPageState extends ConsumerState<ScriptViewPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppGlassNotice.show(context, message);
   }
 
   String _extractScriptError(dynamic error, String fallback) =>

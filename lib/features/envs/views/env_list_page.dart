@@ -358,9 +358,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    AppGlassNotice.show(context, message);
   }
 
   Future<void> _handleEnvTransferAction(_EnvTransferAction? action) async {

@@ -310,9 +310,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppGlassNotice.show(context, message);
   }
 
   void _ensureProgressPolling() {

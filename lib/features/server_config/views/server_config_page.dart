@@ -98,9 +98,7 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppGlassNotice.show(context, message);
   }
 
   PanelConfig _panelForSave(String finalUrl, PanelConfig? existing) {
