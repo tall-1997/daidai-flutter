@@ -493,15 +493,11 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                                   final label = t == 'git-repo'
                                       ? 'Git 仓库'
                                       : '单文件';
-                                  return ChoiceChip(
-                                      label: Text(
-                                        label,
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
+                                  return AppLiquidGlassChoiceChip(
+                                      label: label,
                                       selected: selectedType == t,
                                       onSelected: (_) =>
                                           setSheetState(() => selectedType = t),
-                                      visualDensity: VisualDensity.compact,
                                   );
                                 }),
                               ],
@@ -809,30 +805,23 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            Row(
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                const Text(
-                                  '类型  ',
-                                  style: TextStyle(fontSize: 13),
-                                ),
+                                const Text('类型', style: TextStyle(fontSize: 13)),
                                 ...['git-repo', 'single-file'].map((t) {
                                   final label = t == 'git-repo'
                                       ? 'Git 仓库'
                                       : '单文件';
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: ChoiceChip(
-                                      label: Text(
-                                        label,
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
+                                  return AppLiquidGlassChoiceChip(
+                                      label: label,
                                       selected: selectedType == t,
                                       onSelected: (_) =>
                                           setSheetState(() => selectedType = t),
-                                      visualDensity: VisualDensity.compact,
-                                    ),
                                   );
-                                }),
+                                  }),
                               ],
                             ),
                             const SizedBox(height: 12),

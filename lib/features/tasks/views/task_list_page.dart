@@ -876,9 +876,9 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   itemBuilder: (_, index) {
                   final filter = _taskStatusFilters[index];
                   final selected = state.statusFilter == filter.value;
-                  return ChoiceChip(
-                    label: Text(filter.label),
-                    selected: selected,
+                   return AppLiquidGlassChoiceChip(
+                     label: filter.label,
+                     selected: selected,
                     onSelected: (_) {
                       if (_scrollController.hasClients &&
                           _scrollController.offset > 0) {
@@ -888,20 +888,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                           .read(taskProvider.notifier)
                           .setStatusFilter(filter.value);
                     },
-                    selectedColor: theme.colorScheme.primaryContainer,
-                    side: BorderSide(
-                      color: selected
-                          ? AppColors.primary.withAlpha(90)
-                          : (isLight
-                                ? AppColors.slate200
-                                : AppColors.darkBorder),
-                    ),
-                    labelStyle: TextStyle(
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                      color: selected ? AppColors.primary : null,
-                    ),
-                    visualDensity: VisualDensity.compact,
-                  );
+                   );
                   },
                 ),
               ),

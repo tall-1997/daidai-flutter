@@ -243,8 +243,8 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                   spacing: 8,
                   runSpacing: 8,
                   children: _apiScopeOptions.map((option) {
-                    return FilterChip(
-                      label: Text(option.label),
+                    return AppLiquidGlassChoiceChip(
+                      label: option.label,
                       selected: selectedScopes.contains(option.value),
                       onSelected: (selected) {
                         setSheetState(() {
@@ -843,8 +843,8 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                   spacing: 8,
                   runSpacing: 8,
                   children: _apiScopeOptions.map((option) {
-                    return FilterChip(
-                      label: Text(option.label),
+                    return AppLiquidGlassChoiceChip(
+                      label: option.label,
                       selected: selectedScopes.contains(option.value),
                       onSelected: (selected) {
                         setSheetState(() {

@@ -774,8 +774,8 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                     runSpacing: 8,
                     children: groups
                         .map(
-                          (group) => ActionChip(
-                            label: Text(group),
+                           (group) => AppLiquidGlassActionChip(
+                             label: group,
                             onPressed: () {
                               if (selectedGroups.contains(group)) {
                                 selectedGroups.remove(group);

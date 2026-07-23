@@ -343,8 +343,8 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                       spacing: 8,
                       runSpacing: 8,
                       children: enabledChannels.map((channel) {
-                        return FilterChip(
-                          label: Text(channel.name),
+                        return AppLiquidGlassChoiceChip(
+                          label: channel.name,
                           selected: selectedIds.contains(channel.id),
                           onSelected: (selected) {
                             setSheetState(() {

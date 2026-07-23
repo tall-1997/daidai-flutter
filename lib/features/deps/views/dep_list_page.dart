@@ -779,8 +779,8 @@ class _DepListPageState extends ConsumerState<DepListPage> {
                             'https://mirrors.cloud.tencent.com/pypi/simple',
                           ),
                         ].map((entry) {
-                          return ActionChip(
-                            label: Text(entry.key),
+                           return AppLiquidGlassActionChip(
+                             label: entry.key,
                             onPressed: () {
                               setDialogState(
                                 () => pipController.text = entry.value,
@@ -810,8 +810,8 @@ class _DepListPageState extends ConsumerState<DepListPage> {
                             'https://repo.huaweicloud.com/repository/npm/',
                           ),
                         ].map((entry) {
-                          return ActionChip(
-                            label: Text(entry.$1),
+                           return AppLiquidGlassActionChip(
+                             label: entry.$1,
                             onPressed: () {
                               setDialogState(
                                 () => npmController.text = entry.$2,
@@ -836,8 +836,8 @@ class _DepListPageState extends ConsumerState<DepListPage> {
                     spacing: 8,
                     runSpacing: 8,
                     children: _linuxMirrorOptions(initial).map((entry) {
-                      return ActionChip(
-                        label: Text(entry.key),
+                       return AppLiquidGlassActionChip(
+                         label: entry.key,
                         onPressed: initial.linuxMirrorSupported
                             ? () {
                                 setDialogState(

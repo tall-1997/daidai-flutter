@@ -330,6 +330,132 @@ class AppLiquidGlassButton extends StatelessWidget {
   }
 }
 
+class AppLiquidGlassChoiceChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final ValueChanged<bool>? onSelected;
+  final Color accentColor;
+  final bool performanceMode;
+
+  const AppLiquidGlassChoiceChip({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onSelected,
+    this.accentColor = AppColors.primary,
+    this.performanceMode = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppLiquidGlassSurface(
+      onTap: onSelected == null ? null : () => onSelected!(!selected),
+      borderRadius: 16,
+      accentColor: accentColor,
+      selected: selected,
+      performanceMode: performanceMode,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          color: selected
+              ? accentColor
+              : Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+class AppLiquidGlassActionChip extends StatelessWidget {
+  final String label;
+  final VoidCallback? onPressed;
+  final IconData? icon;
+  final Color accentColor;
+
+  const AppLiquidGlassActionChip({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.icon,
+    this.accentColor = AppColors.primary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppLiquidGlassSurface(
+      onTap: onPressed,
+      borderRadius: 16,
+      accentColor: accentColor,
+      selected: false,
+      performanceMode: true,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 15, color: accentColor),
+            const SizedBox(width: 5),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class AppLiquidGlassInputChip extends StatelessWidget {
+  final String label;
+  final VoidCallback? onDeleted;
+  final Color accentColor;
+
+  const AppLiquidGlassInputChip({
+    super.key,
+    required this.label,
+    required this.onDeleted,
+    this.accentColor = AppColors.primary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppLiquidGlassSurface(
+      borderRadius: 16,
+      accentColor: accentColor,
+      performanceMode: true,
+      padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+          if (onDeleted != null) ...[
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: onDeleted,
+              behavior: HitTestBehavior.opaque,
+              child: const Padding(
+                padding: EdgeInsets.all(3),
+                child: Icon(Icons.close, size: 14),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 LiquidGlassStyle appLiquidGlassStyle({
   required bool isLight,
   double borderRadius = 16,

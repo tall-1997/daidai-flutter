@@ -675,29 +675,17 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                     runSpacing: 8,
                     children: [
                       for (final template in _cronTemplates)
-                        ActionChip(
-                          label: Text(
-                            template.name,
-                            style: const TextStyle(fontSize: 12),
-                          ),
+                        AppLiquidGlassActionChip(
+                          label: template.name,
                           onPressed: () {
                             _cronC.text = template.expression;
                             setState(() => _cronPreview = null);
                           },
                           visualDensity: VisualDensity.compact,
                         ),
-                      ActionChip(
-                        avatar: _parsingCron
-                            ? const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.manage_search, size: 16),
-                        label: Text(
-                          _loadingCronTemplates ? '模板加载中' : '解析预览',
-                          style: const TextStyle(fontSize: 12),
-                        ),
+                       AppLiquidGlassActionChip(
+                         icon: Icons.manage_search,
+                         label: _loadingCronTemplates ? '模板加载中' : '解析预览',
                         onPressed: _parsingCron ? null : _parseCronExpression,
                         visualDensity: VisualDensity.compact,
                       ),
@@ -739,10 +727,9 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                     runSpacing: 6,
                     children: [
                       ..._labels.map(
-                        (l) => InputChip(
-                          label: Text(l, style: const TextStyle(fontSize: 12)),
+                        (l) => AppLiquidGlassInputChip(
+                          label: l,
                           onDeleted: () => setState(() => _labels.remove(l)),
-                          visualDensity: VisualDensity.compact,
                         ),
                       ),
                     ],
@@ -865,22 +852,22 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    ChoiceChip(
-                      label: const Text('继承系统'),
+                     AppLiquidGlassChoiceChip(
+                       label: '继承系统',
                       selected: _randomDelayMode == _RandomDelayMode.inherit,
                       onSelected: (_) => setState(
                         () => _randomDelayMode = _RandomDelayMode.inherit,
                       ),
                     ),
-                    ChoiceChip(
-                      label: const Text('不延迟'),
+                     AppLiquidGlassChoiceChip(
+                       label: '不延迟',
                       selected: _randomDelayMode == _RandomDelayMode.disabled,
                       onSelected: (_) => setState(
                         () => _randomDelayMode = _RandomDelayMode.disabled,
                       ),
                     ),
-                    ChoiceChip(
-                      label: const Text('自定义'),
+                     AppLiquidGlassChoiceChip(
+                       label: '自定义',
                       selected: _randomDelayMode == _RandomDelayMode.custom,
                       onSelected: (_) => setState(
                         () => _randomDelayMode = _RandomDelayMode.custom,

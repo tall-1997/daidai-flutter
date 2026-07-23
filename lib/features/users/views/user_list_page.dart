@@ -262,14 +262,12 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                 runSpacing: 8,
                 children: ['admin', 'operator', 'viewer']
                     .map(
-                      (item) => ChoiceChip(
-                        label: Text(
-                          item == 'admin'
-                              ? '管理员'
-                              : item == 'operator'
-                              ? '操作员'
-                              : '观察者',
-                        ),
+                       (item) => AppLiquidGlassChoiceChip(
+                         label: item == 'admin'
+                               ? '管理员'
+                               : item == 'operator'
+                               ? '操作员'
+                               : '观察者',
                         selected: role == item,
                         onSelected: (_) => setDialogState(() => role = item),
                       ),
@@ -353,18 +351,14 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                   children: [
                     const Text('角色', style: TextStyle(fontSize: 13)),
                     ...['admin', 'operator', 'viewer'].map(
-                      (r) => ChoiceChip(
-                          label: Text(
-                            r == 'admin'
+                      (r) => AppLiquidGlassChoiceChip(
+                          label: r == 'admin'
                                 ? '管理员'
                                 : r == 'operator'
                                 ? '操作员'
                                 : '观察者',
-                            style: const TextStyle(fontSize: 12),
-                          ),
                           selected: role == r,
                           onSelected: (_) => setSheetState(() => role = r),
-                          visualDensity: VisualDensity.compact,
                       ),
                     ),
                   ],

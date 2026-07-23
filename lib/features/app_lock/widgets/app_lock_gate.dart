@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/app_card.dart';
 import '../providers/app_lock_provider.dart';
 import 'pattern_pad.dart';
 
@@ -300,8 +301,8 @@ class _AppLockOverlayState extends State<_AppLockOverlay> {
                         runSpacing: 8,
                         children: methods.map((method) {
                           final selected = _activeMethod == method;
-                          return ChoiceChip(
-                            label: Text(_methodLabel(method, widget.state)),
+                           return AppLiquidGlassChoiceChip(
+                             label: _methodLabel(method, widget.state),
                             selected: selected,
                             onSelected: (_) {
                               setState(() {
