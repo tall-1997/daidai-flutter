@@ -42,6 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -73,12 +74,78 @@ jobs:
       - name: Rename APK
         run: |
           cp build/app/outputs/flutter-apk/app-release.apk daidai-flutter-v${{ steps.version.outputs.VERSION }}-android.apk
+
+      - name: Generate Android delta update assets
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          DEBIAN_FRONTEND=noninteractive sudo apt-get update
+          DEBIAN_FRONTEND=noninteractive sudo apt-get install -y bsdiff
+
+          APK_NAME="daidai-flutter-v${VERSION}-android.apk"
+          APK_PATH="$PWD/${APK_NAME}"
+          FULL_SIZE=$(stat -c%s "$APK_PATH")
+          FULL_MD5=$(md5sum "$APK_PATH" | cut -d ' ' -f1)
+          FULL_SHA256=$(sha256sum "$APK_PATH" | cut -d ' ' -f1)
+          RELEASE_BASE="https://github.com/${REPOSITORY}/releases/download/v${VERSION}"
+          PATCH_JSON='[]'
+
+          PREV_TAG=$(gh release list --repo "$REPOSITORY" --exclude-drafts --exclude-pre-releases --limit 10 --json tagName --jq ".[].tagName" | grep -v "^v${VERSION}$" | head -1 || true)
+          if [[ -n "$PREV_TAG" ]]; then
+            mkdir -p previous
+            gh release download "$PREV_TAG" --repo "$REPOSITORY" --pattern "*-android.apk" --dir previous
+            OLD_APK=$(find previous -maxdepth 1 -type f -name "*-android.apk" | head -1 || true)
+            if [[ -n "$OLD_APK" ]]; then
+              FROM_VERSION="${PREV_TAG#v}"
+              PATCH_NAME="daidai-flutter-v${FROM_VERSION}-to-v${VERSION}.patch"
+              bsdiff "$OLD_APK" "$APK_PATH" "$PATCH_NAME"
+              bspatch "$OLD_APK" reconstructed.apk "$PATCH_NAME"
+              cmp --silent "$APK_PATH" reconstructed.apk
+
+              PATCH_SIZE=$(stat -c%s "$PATCH_NAME")
+              if (( PATCH_SIZE < FULL_SIZE )); then
+                OLD_MD5=$(md5sum "$OLD_APK" | cut -d ' ' -f1)
+                OLD_SHA256=$(sha256sum "$OLD_APK" | cut -d ' ' -f1)
+                PATCH_MD5=$(md5sum "$PATCH_NAME" | cut -d ' ' -f1)
+                PATCH_SHA256=$(sha256sum "$PATCH_NAME" | cut -d ' ' -f1)
+                PATCH_JSON=$(jq -n \
+                  --arg fromVersion "$FROM_VERSION" \
+                  --arg oldApkMd5 "$OLD_MD5" \
+                  --arg oldApkSha256 "$OLD_SHA256" \
+                  --arg url "${RELEASE_BASE}/${PATCH_NAME}" \
+                  --arg name "$PATCH_NAME" \
+                  --argjson size "$PATCH_SIZE" \
+                  --arg md5 "$PATCH_MD5" \
+                  --arg sha256 "$PATCH_SHA256" \
+                  '[{fromVersion:$fromVersion,fromVersionCode:0,oldApkMd5:$oldApkMd5,oldApkSha256:$oldApkSha256,url:$url,name:$name,size:$size,md5:$md5,sha256:$sha256}]')
+              else
+                mv "$PATCH_NAME" /tmp/oversized-android-update.patch
+              fi
+            fi
+          fi
+
+          jq -n \
+            --arg packageName "com.daidai.daidai_app" \
+            --arg version "$VERSION" \
+            --arg fullUrl "${RELEASE_BASE}/${APK_NAME}" \
+            --arg fullName "$APK_NAME" \
+            --argjson fullSize "$FULL_SIZE" \
+            --arg fullMd5 "$FULL_MD5" \
+            --arg fullSha256 "$FULL_SHA256" \
+            --argjson patches "$PATCH_JSON" \
+            '{schemaVersion:1,packageName:$packageName,version:$version,versionCode:0,releaseNotes:"",full:{url:$fullUrl,name:$fullName,size:$fullSize,md5:$fullMd5,sha256:$fullSha256},patches:$patches}' \
+            > android-update.json
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: daidai-flutter-v${{ steps.version.outputs.VERSION }}-android.apk
+          path: |
+            daidai-flutter-v${{ steps.version.outputs.VERSION }}-android.apk
+            android-update.json
+            *.patch
           if-no-files-found: error
 
   build-ios:
