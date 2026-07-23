@@ -3443,12 +3443,14 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
         id: taskId,
         title: '$title 执行完成',
         body: '任务已成功执行完毕',
+        payload: taskNotificationPayload(taskId),
       );
     } else {
       LocalNotificationService().showTaskNotification(
         id: taskId,
         title: '$title 执行结束',
         body: '任务状态: $data',
+        payload: taskNotificationPayload(taskId),
       );
     }
   }

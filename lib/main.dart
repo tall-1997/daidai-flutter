@@ -7,6 +7,7 @@ import 'core/network/app_user_agent.dart';
 import 'core/network/dio_client.dart';
 import 'core/services/local_notification_service.dart';
 import 'core/storage/secure_storage.dart';
+import 'core/router/app_router.dart';
 import 'features/app_lock/providers/app_lock_provider.dart';
 
 /// 全局 WidgetsBindingObserver 回调 - 处理后台返回时的应用锁和通知
@@ -93,4 +94,9 @@ void main() async {
       child: const DaidaiApp(),
     ),
   );
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    LocalNotificationService().setNavigationHandler((route) {
+      container.read(routerProvider).push(route);
+    });
+  });
 }

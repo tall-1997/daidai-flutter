@@ -1,5 +1,6 @@
 import 'package:daidai_app/features/dashboard/providers/dashboard_provider.dart';
 import 'package:daidai_app/core/services/android_update_manifest.dart';
+import 'package:daidai_app/core/services/local_notification_service.dart';
 import 'package:daidai_app/shared/models/subscription.dart';
 import 'package:daidai_app/shared/utils/api_utils.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -111,5 +112,17 @@ void main() {
     expect(manifest.full.name, 'app.apk');
     expect(manifest.patches.single.fromVersionCode, 42);
     expect(manifest.patches.single.oldApkSha256, 'old-sha');
+  });
+
+  group('notification payload navigation', () {
+    test('routes task and log payloads', () {
+      expect(notificationPayloadRoute(taskNotificationPayload(12)), '/tasks/12/live-logs');
+      expect(notificationPayloadRoute(logNotificationPayload(8)), '/logs/8/stream');
+    });
+
+    test('ignores malformed payloads', () {
+      expect(notificationPayloadRoute('invalid'), isNull);
+      expect(notificationPayloadRoute('{"type":"task","id":0}'), isNull);
+    });
   });
 }

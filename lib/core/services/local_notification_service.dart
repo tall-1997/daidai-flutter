@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,12 +13,18 @@ class LocalNotificationService {
 
   static const _prefsKeyTaskEnabled = 'local_notify_task_enabled';
   static const _prefsKeySystemEnabled = 'local_notify_system_enabled';
+  static const _pendingPayloadKey = 'local_notify_pending_payload';
+  void Function(String route)? _navigationHandler;
+  String? _pendingPayload;
 
   /// 后台通知回调 - 当应用在后台运行且收到通知时由系统调用
   @pragma('vm:entry-point')
-  static void _onDidReceiveBackgroundNotificationResponse(
-      NotificationResponse response) {
-    // 后台通知点击处理 - 当前无需特殊动作
+  static Future<void> _onDidReceiveBackgroundNotificationResponse(
+      NotificationResponse response) async {
+    final payload = response.payload;
+    if (payload == null || payload.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_pendingPayloadKey, payload);
   }
 
   Future<void> initialize() async {
@@ -40,10 +45,37 @@ class LocalNotificationService {
       onDidReceiveBackgroundNotificationResponse:
           _onDidReceiveBackgroundNotificationResponse,
     );
+    final launch = await _plugin.getNotificationAppLaunchDetails();
+    _pendingPayload = launch?.didNotificationLaunchApp == true
+        ? launch?.notificationResponse?.payload
+        : null;
+    final prefs = await SharedPreferences.getInstance();
+    _pendingPayload ??= prefs.getString(_pendingPayloadKey);
+    await prefs.remove(_pendingPayloadKey);
   }
 
   void _onNotificationTap(NotificationResponse response) {
-    // 可在后续扩展中处理通知点击跳转
+    final payload = response.payload;
+    if (payload == null || payload.isEmpty) return;
+    _dispatchPayload(payload);
+  }
+
+  void setNavigationHandler(void Function(String route) handler) {
+    _navigationHandler = handler;
+    final pending = _pendingPayload;
+    _pendingPayload = null;
+    if (pending != null) _dispatchPayload(pending);
+  }
+
+  void _dispatchPayload(String payload) {
+    final route = notificationPayloadRoute(payload);
+    if (route == null) return;
+    final handler = _navigationHandler;
+    if (handler == null) {
+      _pendingPayload = payload;
+    } else {
+      handler(route);
+    }
   }
 
   Future<bool> requestPermissions() async {
@@ -195,6 +227,28 @@ class LocalNotificationService {
         ? _prefsKeyTaskEnabled
         : _prefsKeySystemEnabled;
     await prefs.setBool(key, enabled);
+  }
+}
+
+String taskNotificationPayload(int taskId) =>
+    jsonEncode({'type': 'task', 'id': taskId});
+
+String logNotificationPayload(int logId) =>
+    jsonEncode({'type': 'log', 'id': logId});
+
+String? notificationPayloadRoute(String payload) {
+  try {
+    final data = jsonDecode(payload);
+    if (data is! Map) return null;
+    final id = data['id'];
+    if (id is! num || id.toInt() <= 0) return null;
+    return switch (data['type']) {
+      'task' => '/tasks/${id.toInt()}/live-logs',
+      'log' => '/logs/${id.toInt()}/stream',
+      _ => null,
+    };
+  } catch (_) {
+    return null;
   }
 }
 
