@@ -216,6 +216,21 @@ class AppLiquidGlassInput extends StatelessWidget {
             errorBorder: InputBorder.none,
             focusedErrorBorder: InputBorder.none,
           ),
+          iconButtonTheme: IconButtonThemeData(
+            style: ButtonStyle(
+              backgroundColor: const WidgetStatePropertyAll(
+                Colors.transparent,
+              ),
+              foregroundColor: WidgetStatePropertyAll(
+                theme.colorScheme.onSurfaceVariant,
+              ),
+              overlayColor: WidgetStatePropertyAll(
+                AppColors.primary.withAlpha(18),
+              ),
+              side: const WidgetStatePropertyAll(BorderSide.none),
+              shape: const WidgetStatePropertyAll(CircleBorder()),
+            ),
+          ),
         ),
         child: child,
       ),

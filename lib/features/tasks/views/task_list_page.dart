@@ -936,15 +936,29 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                     constraints: BoxConstraints(
                       maxWidth: compactLayout ? 96 : 132,
                     ),
-                    child: TextButton.icon(
-                      onPressed: _showGroupPicker,
-                      icon: const Icon(Icons.label_outline, size: 16),
-                      label: Text(
-                        state.labelFilter?.isNotEmpty == true
-                            ? state.labelFilter!
-                            : '全部分组',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                    child: AppLiquidGlassSurface(
+                      onTap: _showGroupPicker,
+                      borderRadius: 12,
+                      performanceMode: true,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.label_outline, size: 16),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              state.labelFilter?.isNotEmpty == true
+                                  ? state.labelFilter!
+                                  : '全部分组',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -972,21 +986,18 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                         ),
                       ),
                     ],
-                    icon: _taskTransferBusy
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.more_horiz),
+                    child: _TaskGlassIconTarget(
+                      icon: Icons.more_horiz,
+                      loading: _taskTransferBusy,
+                    ),
                   ),
                   if (state.statusFilter != null || state.labelFilter != null)
                     compactLayout
-                        ? IconButton(
+                        ? _TaskGlassIconTarget(
+                            icon: Icons.filter_alt_off,
                             tooltip: '清除筛选',
-                            icon: const Icon(Icons.filter_alt_off, size: 18),
-                             onPressed: () {
-                               if (_selectionMode) _setSelectionMode(false);
+                            onTap: () {
+                              if (_selectionMode) _setSelectionMode(false);
                               if (_scrollController.hasClients &&
                                   _scrollController.offset > 0) {
                                 _scrollController.jumpTo(0);
@@ -1003,17 +1014,30 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                               );
                             },
                           )
-                        : TextButton(
-                             onPressed: () {
-                        if (_selectionMode) _setSelectionMode(false);
-                        if (_scrollController.hasClients &&
-                            _scrollController.offset > 0) {
-                          _scrollController.jumpTo(0);
-                        }
-                        ref.read(taskProvider.notifier).setStatusFilter(null);
-                        ref.read(taskProvider.notifier).setLabelFilter(null);
-                        SecureStorage.saveUiState(_selectedGroupStorageKey, '');
+                        : AppLiquidGlassSurface(
+                            onTap: () {
+                              if (_selectionMode) _setSelectionMode(false);
+                              if (_scrollController.hasClients &&
+                                  _scrollController.offset > 0) {
+                                _scrollController.jumpTo(0);
+                              }
+                              ref
+                                  .read(taskProvider.notifier)
+                                  .setStatusFilter(null);
+                              ref
+                                  .read(taskProvider.notifier)
+                                  .setLabelFilter(null);
+                              SecureStorage.saveUiState(
+                                _selectedGroupStorageKey,
+                                '',
+                              );
                             },
+                            borderRadius: 12,
+                            performanceMode: true,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
                             child: const Text('清除筛选'),
                           ),
                 ],
@@ -1082,18 +1106,15 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
             if (_taskSortMode) ...[
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                child: Container(
+                child: AppLiquidGlassSurface(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 10,
                   ),
-                  decoration: BoxDecoration(
-                    color: isLight
-                        ? AppColors.primary.withAlpha(12)
-                        : AppColors.primary.withAlpha(20),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.primary.withAlpha(40)),
-                  ),
+                  borderRadius: 10,
+                  accentColor: AppColors.primary,
+                  selected: true,
+                  performanceMode: true,
                   child: const Row(
                     children: [
                       Icon(Icons.swap_vert, size: 16, color: AppColors.primary),
@@ -2249,7 +2270,7 @@ class _TaskCard extends StatelessWidget {
                     if (!selectionMode)
                       PopupMenuButton<_TaskItemAction>(
                         tooltip: '任务操作',
-                        icon: const Icon(Icons.more_vert, size: 20),
+                        padding: EdgeInsets.zero,
                         onSelected: onAction,
                         itemBuilder: (_) => [
                           PopupMenuItem(
@@ -2284,6 +2305,10 @@ class _TaskCard extends StatelessWidget {
                             ),
                           ),
                         ],
+                        child: const _TaskGlassIconTarget(
+                          icon: Icons.more_vert,
+                          compact: true,
+                        ),
                       ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -2841,6 +2866,51 @@ class _TaskHeaderChipButton extends ConsumerWidget {
           ],
         ),
     );
+  }
+}
+
+class _TaskGlassIconTarget extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  final String? tooltip;
+  final bool loading;
+  final bool compact;
+
+  const _TaskGlassIconTarget({
+    required this.icon,
+    this.onTap,
+    this.tooltip,
+    this.loading = false,
+    this.compact = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final target = SizedBox(
+      width: 44,
+      height: 44,
+      child: Center(
+        child: SizedBox(
+          width: compact ? 32 : 36,
+          height: compact ? 32 : 36,
+          child: AppLiquidGlassSurface(
+            onTap: onTap,
+            borderRadius: 18,
+            performanceMode: true,
+            child: Center(
+              child: loading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(icon, size: 18, color: AppColors.slate400),
+            ),
+          ),
+        ),
+      ),
+    );
+    return tooltip == null ? target : Tooltip(message: tooltip!, child: target);
   }
 }
 
@@ -3517,9 +3587,12 @@ class _GroupPopupMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      icon: Icon(Icons.more_vert, size: 18, color: AppColors.slate400),
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(),
+      child: const _TaskGlassIconTarget(
+        icon: Icons.more_vert,
+        compact: true,
+      ),
       itemBuilder: (ctx) => [
         if (!isUngrouped && onRename != null)
           const PopupMenuItem(value: 'rename', child: Text('重命名分组')),

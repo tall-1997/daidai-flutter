@@ -33,10 +33,10 @@ class AppColors {
   static const darkSurfaceMuted = Color(0xCC111C2D);
   static const lightBorder = Color(0x99FFFFFF);
   static const darkBorder = Color(0x6636475C);
-  static const lightControl = Color(0xD9FFFFFF);
-  static const darkControl = Color(0xD11A2638);
-  static const lightControlPressed = Color(0xF2FFFFFF);
-  static const darkControlPressed = Color(0xE6334459);
+  static const lightControl = Color(0x2EFFFFFF);
+  static const darkControl = Color(0x52111C2D);
+  static const lightControlPressed = Color(0x52FFFFFF);
+  static const darkControlPressed = Color(0x70334459);
   static const miuixRed = Color(0xFFE5534B);
   static const miuixGreen = Color(0xFF30A14E);
   static const miuixBlue = Color(0xFF3B82F6);
@@ -105,7 +105,7 @@ class AppTheme {
   static ThemeData _buildTheme(ColorScheme cs) {
     final isLight = cs.brightness == Brightness.light;
     final cardColor = isLight ? AppColors.lightSurface : AppColors.darkSurface;
-    final borderColor = isLight ? AppColors.slate200 : AppColors.darkBorder;
+    final borderColor = isLight ? const Color(0x70FFFFFF) : AppColors.darkBorder;
     final scaffoldBg = isLight ? AppColors.lightPage : AppColors.darkPage;
     final controlColor = isLight
         ? AppColors.lightControl
