@@ -111,3 +111,5 @@ flutter build ios --release --no-codesign
 - 高曝光主按钮使用 `AppLiquidGlassButton`。
 - 交互型 Chip 使用 `AppLiquidGlassChoiceChip`、`AppLiquidGlassActionChip` 或 `AppLiquidGlassInputChip`。
 - 纯展示状态徽标保留轻量绘制，避免无收益的 Lens 嵌套。
+- 高价值确认对话框使用 `AppLiquidGlassDialogActions`。
+- 卡片内部辅助链接、分页、编辑器工具和纯关闭按钮可保留 Material，控制 Lens 嵌套数量。

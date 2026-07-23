@@ -42,3 +42,4 @@
   - Android 全局关闭 Stretch Overscroll，避免滚动边缘玻璃变黑。
   - 搜索、Toggle、Slider、主按钮和交互 Chip 优先使用项目共享的 `liquid_glass_easy` 封装。
   - 滚动卡片内部的纯展示徽标保持轻量绘制，控制 Lens 嵌套数量。
+  - 高价值取消/确认对话框使用 `AppLiquidGlassDialogActions`，窄屏自动纵向排列。
