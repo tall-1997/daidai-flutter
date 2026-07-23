@@ -15,6 +15,7 @@ class SseEvent {
 class SseClient {
   http.Client? _client;
   StreamSubscription? _subscription;
+  Timer? _reconnectTimer;
   bool _closed = false;
 
   Future<void> connect({
@@ -88,6 +89,24 @@ class SseClient {
       String buffer = '';
       String? currentEvent;
       final dataLines = <String>[];
+      var reconnectScheduled = false;
+
+      void scheduleReconnect() {
+        if (!autoReconnect || _closed || reconnectScheduled) return;
+        reconnectScheduled = true;
+        _disposeConnection();
+        _reconnectTimer?.cancel();
+        _reconnectTimer = Timer(const Duration(seconds: 1), () {
+          _doConnect(
+            path: path,
+            onEvent: onEvent,
+            onDone: onDone,
+            onError: onError,
+            autoReconnect: autoReconnect,
+            authRefreshAttempts: 0,
+          );
+        });
+      }
 
       void emitEvent() {
         if (dataLines.isEmpty) {
@@ -102,17 +121,7 @@ class SseClient {
             data == 'reconnect' &&
             autoReconnect &&
             !_closed) {
-          _disposeConnection();
-          Future.delayed(const Duration(seconds: 1), () {
-            _doConnect(
-              path: path,
-              onEvent: onEvent,
-              onDone: onDone,
-              onError: onError,
-              autoReconnect: autoReconnect,
-              authRefreshAttempts: 0,
-            );
-          });
+          scheduleReconnect();
         }
 
         currentEvent = null;
@@ -149,10 +158,20 @@ class SseClient {
                 buffer = '';
               }
               emitEvent();
-              if (!_closed) onDone?.call();
+              if (_closed) return;
+              if (autoReconnect) {
+                scheduleReconnect();
+              } else {
+                onDone?.call();
+              }
             },
             onError: (error) {
-              if (!_closed) onError?.call(error);
+              if (_closed) return;
+              if (autoReconnect) {
+                scheduleReconnect();
+              } else {
+                onError?.call(error);
+              }
             },
             cancelOnError: true,
           );
@@ -184,6 +203,8 @@ class SseClient {
 
   void close() {
     _closed = true;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
     _disposeConnection();
   }
 
