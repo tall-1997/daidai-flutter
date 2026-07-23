@@ -116,6 +116,12 @@ class AppTheme {
     final overlayGlassColor = isLight
         ? Colors.white.withAlpha(188)
         : AppColors.slate900.withAlpha(196);
+    final modalSurfaceColor = isLight
+        ? Colors.white.withAlpha(236)
+        : AppColors.slate900.withAlpha(236);
+    final modalBarrierColor = isLight
+        ? AppColors.slate950.withAlpha(64)
+        : Colors.black.withAlpha(96);
 
     Color resolveControlColor(Set<WidgetState> states) {
       if (states.contains(WidgetState.disabled)) {
@@ -351,7 +357,8 @@ class AppTheme {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       ),
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: controlColor,
+        backgroundColor: modalSurfaceColor,
+        modalBarrierColor: modalBarrierColor,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         modalElevation: 0,
@@ -376,13 +383,11 @@ class AppTheme {
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: overlayGlassColor,
+        backgroundColor: modalSurfaceColor,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         shadowColor: Colors.transparent,
-        barrierColor: isLight
-            ? AppColors.slate900.withAlpha(48)
-            : Colors.black.withAlpha(118),
+        barrierColor: modalBarrierColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
           side: BorderSide(color: borderColor),
