@@ -1022,11 +1022,13 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                         ),
                       ),
                     ],
-                    child: AppLiquidGlassSurface(
-                      borderRadius: 12,
-                      performanceMode: true,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: SizedBox(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 140),
+                      child: AppLiquidGlassSurface(
+                        borderRadius: 12,
+                        performanceMode: true,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: SizedBox(
                         height: 44,
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -1037,13 +1039,17 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                               color: AppColors.slate400,
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              state.selectedGroups.isEmpty
-                                  ? '全部'
-                                  : state.selectedGroups.join(' / '),
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: theme.colorScheme.onSurface,
+                            Flexible(
+                              child: Text(
+                                state.selectedGroups.isEmpty
+                                    ? '全部'
+                                    : state.selectedGroups.join(' / '),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: theme.colorScheme.onSurface,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 4),
@@ -1053,6 +1059,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                               color: AppColors.slate400,
                             ),
                           ],
+                        ),
                         ),
                       ),
                     ),
