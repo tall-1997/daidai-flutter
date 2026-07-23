@@ -12,8 +12,33 @@ permissions:
   contents: write
 
 jobs:
+  quality:
+    name: Analyze and Test
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
   build-android:
     name: Build Android
+    needs: quality
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -58,6 +83,7 @@ jobs:
 
   build-ios:
     name: Build iOS
+    needs: quality
     runs-on: macos-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
