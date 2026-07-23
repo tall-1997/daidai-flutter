@@ -361,16 +361,19 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
                                     label: lockState.hasPassword
                                         ? '密码已配置'
                                         : '密码未配置',
+                                    active: lockState.hasPassword,
                                   ),
                                   _StatusChip(
                                     label: lockState.hasPattern
                                         ? '图案已配置'
                                         : '图案未配置',
+                                    active: lockState.hasPattern,
                                   ),
                                   _StatusChip(
                                     label: lockState.hasBiometric
                                         ? '${lockState.biometricLabel}已开启'
                                         : '${lockState.biometricLabel}未开启',
+                                    active: lockState.hasBiometric,
                                   ),
                                 ],
                               ),
@@ -535,25 +538,26 @@ class _MethodCard extends ConsumerWidget {
 }
 
 class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.label});
+  const _StatusChip({required this.label, required this.active});
 
   final String label;
+  final bool active;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.primary.withAlpha(12),
+        color: (active ? AppColors.primary : AppColors.slate500).withAlpha(12),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.primary.withAlpha(24)),
+        border: Border.all(color: (active ? AppColors.primary : AppColors.slate500).withAlpha(24)),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: AppColors.primary,
+          color: active ? AppColors.primary : AppColors.slate500,
         ),
       ),
     );

@@ -3471,9 +3471,9 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
         ? '${widget.taskName} 运行日志'
         : '运行日志';
     final logTheme = resolveLogSurfaceTheme(_logBackgroundColor);
-    final chipBackground = logTheme.brightness == Brightness.dark
-        ? AppColors.slate800
-        : AppColors.slate100;
+    final chipBackground = logTheme.foreground.withAlpha(
+      logTheme.brightness == Brightness.dark ? 24 : 14,
+    );
 
     return Scaffold(
       backgroundColor: logTheme.background,
@@ -3486,6 +3486,8 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
             padding: const EdgeInsets.only(right: 4),
             child: Chip(
               backgroundColor: chipBackground,
+              side: BorderSide(color: logTheme.foreground.withAlpha(32)),
+              surfaceTintColor: Colors.transparent,
               label: Text(
                 _statusText,
                 style: TextStyle(fontSize: 11, color: logTheme.foreground),

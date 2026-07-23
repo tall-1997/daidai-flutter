@@ -109,7 +109,7 @@ class _LocalNotificationSettingsPageState
             _ChannelTile(
               icon: Icons.schedule,
               iconColor: AppColors.blue500,
-              iconBg: AppColors.blue100,
+               iconBg: AppColors.blue500.withAlpha(20),
               iconBgDark: AppColors.blue500.withAlpha(25),
               title: '任务通知',
               subtitle: '任务执行完成或失败时推送本地通知',

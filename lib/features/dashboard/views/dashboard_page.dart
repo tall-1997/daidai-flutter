@@ -262,7 +262,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       Expanded(
                         child: _StatCard(
                           icon: Icons.memory,
-                          iconBg: AppColors.blue100,
+                           iconBg: AppColors.blue500.withAlpha(20),
                           iconBgDark: AppColors.blue500.withAlpha(25),
                           iconColor: AppColors.blue600,
                           iconColorDark: AppColors.blue500,
@@ -277,7 +277,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       Expanded(
                         child: _StatCard(
                           icon: Icons.storage,
-                          iconBg: AppColors.primaryLight,
+                           iconBg: AppColors.primary.withAlpha(20),
                           iconBgDark: AppColors.primary.withAlpha(25),
                           iconColor: AppColors.primary,
                           iconColorDark: AppColors.primary,
@@ -301,7 +301,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   // Disk (full width)
                   _StatCard(
                     icon: Icons.disc_full_outlined,
-                    iconBg: AppColors.purple100,
+                     iconBg: AppColors.purple500.withAlpha(20),
                     iconBgDark: AppColors.purple500.withAlpha(25),
                     iconColor: AppColors.purple600,
                     iconColorDark: AppColors.purple500,
