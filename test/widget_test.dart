@@ -1,4 +1,5 @@
 import 'package:daidai_app/features/dashboard/providers/dashboard_provider.dart';
+import 'package:daidai_app/core/services/android_update_manifest.dart';
 import 'package:daidai_app/shared/models/subscription.dart';
 import 'package:daidai_app/shared/utils/api_utils.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -75,5 +76,40 @@ void main() {
     expect(data.totalTasks, 8);
     expect(data.disabledTasks, 3);
     expect(data.todaySuccess, 11);
+  });
+
+  test('AndroidUpdateManifest parses full and patch assets', () {
+    final manifest = AndroidUpdateManifest.fromJson({
+      'schemaVersion': 1,
+      'packageName': 'com.daidai.daidai_app',
+      'version': '0.1.43',
+      'versionCode': 43,
+      'releaseNotes': 'Delta update',
+      'full': {
+        'url': 'https://github.com/example/app.apk',
+        'name': 'app.apk',
+        'size': 100,
+        'md5': 'full-md5',
+        'sha256': 'full-sha',
+      },
+      'patches': [
+        {
+          'fromVersion': '0.1.42',
+          'fromVersionCode': 42,
+          'oldApkMd5': 'old-md5',
+          'oldApkSha256': 'old-sha',
+          'url': 'https://github.com/example/update.patch',
+          'name': 'update.patch',
+          'size': 10,
+          'md5': 'patch-md5',
+          'sha256': 'patch-sha',
+        },
+      ],
+    });
+
+    expect(manifest.version, '0.1.43');
+    expect(manifest.full.name, 'app.apk');
+    expect(manifest.patches.single.fromVersionCode, 42);
+    expect(manifest.patches.single.oldApkSha256, 'old-sha');
   });
 }

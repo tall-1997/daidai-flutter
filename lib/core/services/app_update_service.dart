@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../network/app_user_agent.dart';
 import '../theme/app_theme.dart';
+import 'android_update_manifest.dart';
 
 const _kGitHubRepo = 'tall-1997/daidai-flutter';
 const _kGitHubDownloadHost = 'github.com';
@@ -16,6 +17,8 @@ const _kGitHubReleaseHost = 'objects.githubusercontent.com';
 const _kGitHubAssetHost = 'githubusercontent.com';
 const _kGitHubMirrorHost = 'gh.301.ee';
 const _kGitHubMirrorPrefix = 'https://$_kGitHubMirrorHost/';
+const _kAndroidUpdateManifestUrl =
+    'https://github.com/$_kGitHubRepo/releases/latest/download/android-update.json';
 
 bool _isTrustedDownloadUrl(String rawUrl) {
   final uri = Uri.tryParse(rawUrl);
@@ -55,6 +58,7 @@ class AppUpdateInfo {
   final String assetDigest;
   final bool hasUpdate;
   final DateTime? publishedAt;
+  final AndroidUpdateManifest? androidManifest;
 
   const AppUpdateInfo({
     required this.latestVersion,
@@ -66,6 +70,7 @@ class AppUpdateInfo {
     required this.assetDigest,
     required this.hasUpdate,
     this.publishedAt,
+    this.androidManifest,
   });
 }
 
@@ -82,6 +87,10 @@ class AppUpdateService {
 
   /// Check GitHub Releases for new version.
   static Future<AppUpdateInfo?> checkUpdate() async {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      final manifestInfo = await _checkAndroidManifest();
+      if (manifestInfo != null) return manifestInfo;
+    }
     try {
       final resp = await _dio.get(
         'https://api.github.com/repos/$_kGitHubRepo/releases/latest',
@@ -142,6 +151,41 @@ class AppUpdateService {
     }
   }
 
+  static Future<AppUpdateInfo?> _checkAndroidManifest() async {
+    try {
+      final response = await _dio.get(
+        _kAndroidUpdateManifestUrl,
+        options: Options(headers: AppUserAgent.defaultHeaders),
+      );
+      final raw = response.data;
+      if (raw is! Map) return null;
+      final manifest = AndroidUpdateManifest.fromJson(
+        Map<String, dynamic>.from(raw),
+      );
+      if (manifest.schemaVersion != 1 ||
+          manifest.packageName != 'com.daidai.daidai_app' ||
+          !_isTrustedDownloadUrl(manifest.full.url) ||
+          manifest.full.md5.isEmpty ||
+          manifest.full.sha256.isEmpty) {
+        return null;
+      }
+      final currentVersion = AppUserAgent.versionLabel;
+      return AppUpdateInfo(
+        latestVersion: manifest.version,
+        currentVersion: currentVersion,
+        releaseNotes: manifest.releaseNotes,
+        downloadUrl: manifest.full.url,
+        assetName: manifest.full.name,
+        assetSize: manifest.full.size,
+        assetDigest: 'sha256:${manifest.full.sha256}',
+        hasUpdate: _isNewer(manifest.version, currentVersion),
+        androidManifest: manifest,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Compare semantic versions: returns true if remote > local.
   static bool _isNewer(String remote, String local) {
     final rParts = remote.split('+');
@@ -165,6 +209,130 @@ class AppUpdateService {
     return false;
   }
 
+  static Future<void> downloadUpdateAndInstall(
+    AppUpdateInfo info,
+    ValueChanged<double> onProgress,
+    VoidCallback onDone,
+    ValueChanged<String> onError,
+  ) async {
+    final manifest = info.androidManifest;
+    if (Platform.isAndroid && manifest != null) {
+      try {
+        final rawInfo = await _platform.invokeMapMethod<String, dynamic>(
+          'getInstalledApkInfo',
+        );
+        final installed = rawInfo ?? const <String, dynamic>{};
+        final currentVersion = installed['versionName']?.toString() ?? '';
+        final currentVersionCode = _toInt(installed['versionCode']) ?? 0;
+        final currentMd5 = installed['md5']?.toString().toLowerCase() ?? '';
+        final currentSha256 =
+            installed['sha256']?.toString().toLowerCase() ?? '';
+        AndroidUpdatePatch? selectedPatch;
+        for (final patch in manifest.patches) {
+          final versionMatches = patch.fromVersion == currentVersion;
+          final codeMatches = patch.fromVersionCode <= 0 ||
+              patch.fromVersionCode == currentVersionCode;
+          final md5Matches = patch.oldApkMd5.isEmpty ||
+              patch.oldApkMd5 == currentMd5;
+          final shaMatches = patch.oldApkSha256 == currentSha256;
+          if (versionMatches && codeMatches && md5Matches && shaMatches) {
+            selectedPatch = patch;
+            break;
+          }
+        }
+        if (selectedPatch != null &&
+            selectedPatch.size > 0 &&
+            selectedPatch.size < manifest.full.size) {
+          final patchFile = await _downloadArtifact(
+            selectedPatch,
+            onProgress: (progress) => onProgress(progress * 0.8),
+          );
+          final outputName = 'daidai-v${manifest.version}-patched.apk';
+          final result = await _platform.invokeMapMethod<String, dynamic>(
+            'applyPatch',
+            {'patchPath': patchFile.path, 'outputName': outputName},
+          );
+          final outputPath = result?['path']?.toString() ?? '';
+          final output = File(outputPath);
+          if (!await _matchesAsset(output, manifest.full)) {
+            throw StateError('差分合并后的 APK 校验失败');
+          }
+          onProgress(1.0);
+          onDone();
+          await _platform.invokeMethod('installApk', {'path': output.path});
+          return;
+        }
+      } catch (_) {
+        // 基线、下载或合并失败时使用完整 APK，保证更新仍可完成。
+      }
+    }
+    await downloadAndInstall(
+      info.downloadUrl,
+      info.assetName,
+      onProgress,
+      onDone,
+      onError,
+      expectedSize: info.assetSize,
+      expectedDigest: info.assetDigest,
+      expectedMd5: manifest?.full.md5 ?? '',
+    );
+  }
+
+  static Future<File> _downloadArtifact(
+    AndroidUpdateAsset asset, {
+    required ValueChanged<double> onProgress,
+  }) async {
+    if (!_isTrustedDownloadUrl(asset.url)) {
+      throw const FormatException('差分更新地址不可信');
+    }
+    final root = await getTemporaryDirectory();
+    final dir = Directory('${root.path}/updates');
+    await dir.create(recursive: true);
+    final safeName = asset.name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    final file = File('${dir.path}/$safeName');
+    final temp = File('${file.path}.download');
+    if (await file.exists() && await _matchesAsset(file, asset)) {
+      onProgress(1.0);
+      return file;
+    }
+    if (await temp.exists()) await temp.delete();
+    await _dio.download(
+      _applyGitHubMirror(asset.url),
+      temp.path,
+      onReceiveProgress: (received, total) {
+        if (total > 0) onProgress(received / total);
+      },
+      options: Options(receiveTimeout: const Duration(minutes: 10)),
+    );
+    if (!await _matchesAsset(temp, asset)) {
+      if (await temp.exists()) await temp.delete();
+      throw StateError('差分包校验失败');
+    }
+    if (await file.exists()) await file.delete();
+    return temp.rename(file.path);
+  }
+
+  static Future<bool> _matchesAsset(
+    File file,
+    AndroidUpdateAsset asset,
+  ) async {
+    if (!await file.exists()) return false;
+    if (asset.size > 0 && await file.length() != asset.size) return false;
+    if (!await _matchesHash(file, asset.md5, md5)) return false;
+    return _matchesHash(file, asset.sha256, sha256);
+  }
+
+  static Future<bool> _matchesHash(
+    File file,
+    String expected,
+    Hash algorithm,
+  ) async {
+    final normalized = expected.trim().toLowerCase();
+    if (normalized.isEmpty) return false;
+    final actual = await algorithm.bind(file.openRead()).first;
+    return actual.toString().toLowerCase() == normalized;
+  }
+
   /// Download APK and install it.
   /// Uses GitHub mirror for acceleration and reuses existing downloads.
   static Future<void> downloadAndInstall(
@@ -175,13 +343,16 @@ class AppUpdateService {
     ValueChanged<String> onError, {
     int expectedSize = 0,
     String expectedDigest = '',
+    String expectedMd5 = '',
   }) async {
     try {
       if (!_isTrustedDownloadUrl(url)) {
         throw const FormatException('更新地址不可信，已拒绝下载');
       }
 
-      final dir = await getTemporaryDirectory();
+      final root = await getTemporaryDirectory();
+      final dir = Directory('${root.path}/updates');
+      await dir.create(recursive: true);
       final safeName = assetName.trim().isEmpty
           ? 'daidai_update.apk'
           : assetName.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
@@ -196,6 +367,7 @@ class AppUpdateService {
           existingFile,
           expectedSize: expectedSize,
           expectedDigest: expectedDigest,
+          expectedMd5: expectedMd5,
         )) {
           needsDownload = false;
           onProgress(1.0);
@@ -229,6 +401,7 @@ class AppUpdateService {
           tempFile,
           expectedSize: expectedSize,
           expectedDigest: expectedDigest,
+          expectedMd5: expectedMd5,
         )) {
           await tempFile.delete();
           throw StateError('安装包校验失败，请重新下载');
@@ -243,6 +416,7 @@ class AppUpdateService {
         existingFile,
         expectedSize: expectedSize,
         expectedDigest: expectedDigest,
+        expectedMd5: expectedMd5,
       )) {
         throw StateError('安装包校验失败，请重新下载');
       }
@@ -265,6 +439,7 @@ class AppUpdateService {
     File file, {
     required int expectedSize,
     required String expectedDigest,
+    String expectedMd5 = '',
   }) async {
     if (!await file.exists()) {
       return false;
@@ -274,6 +449,10 @@ class AppUpdateService {
       return false;
     }
     if (expectedSize <= 0 && size <= 1024 * 1024) {
+      return false;
+    }
+    if (expectedMd5.isNotEmpty &&
+        !await _matchesHash(file, expectedMd5, md5)) {
       return false;
     }
     return _matchesDigest(file, expectedDigest);
@@ -338,9 +517,8 @@ class _UpdateDialogState extends State<_UpdateDialog> {
       _error = null;
     });
 
-    AppUpdateService.downloadAndInstall(
-      widget.info.downloadUrl,
-      widget.info.assetName,
+    AppUpdateService.downloadUpdateAndInstall(
+      widget.info,
       (p) {
         if (mounted) setState(() => _progress = p);
       },
@@ -355,8 +533,6 @@ class _UpdateDialogState extends State<_UpdateDialog> {
           });
         }
       },
-      expectedSize: widget.info.assetSize,
-      expectedDigest: widget.info.assetDigest,
     );
   }
 

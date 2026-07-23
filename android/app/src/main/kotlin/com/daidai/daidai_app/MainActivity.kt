@@ -6,11 +6,15 @@ import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import com.yzq.bsdiff.BsDiffTool
 import java.io.File
+import java.security.MessageDigest
+import java.util.concurrent.Executors
 
 class MainActivity : FlutterActivity() {
     private val ROOT_CHANNEL = "com.daidai.app/root"
     private val INSTALL_CHANNEL = "com.daidai.panel/app_install"
+    private val updateExecutor = Executors.newSingleThreadExecutor()
 
     private var isRootChecked = false
     private var isRootAvailable = false
@@ -83,6 +87,57 @@ class MainActivity : FlutterActivity() {
                         result.error("INVALID_ARGS", "Path is required", null)
                     }
                 }
+                "getInstalledApkInfo" -> {
+                    updateExecutor.execute {
+                        try {
+                            val sourceApk = File(applicationInfo.sourceDir)
+                            val info = mapOf(
+                                "packageName" to packageName,
+                                "versionName" to packageManager.getPackageInfo(packageName, 0).versionName,
+                                "versionCode" to packageManager.getPackageInfo(packageName, 0).longVersionCode,
+                                "size" to sourceApk.length(),
+                                "md5" to digest(sourceApk, "MD5"),
+                                "sha256" to digest(sourceApk, "SHA-256")
+                            )
+                            runOnUiThread { result.success(info) }
+                        } catch (e: Exception) {
+                            runOnUiThread { result.error("APK_INFO_ERROR", e.message, null) }
+                        }
+                    }
+                }
+                "applyPatch" -> {
+                    val patchPath = call.argument<String>("patchPath")
+                    val outputName = call.argument<String>("outputName")
+                    if (patchPath.isNullOrBlank() || outputName.isNullOrBlank()) {
+                        result.error("INVALID_ARGS", "Patch path and output name are required", null)
+                        return@setMethodCallHandler
+                    }
+                    updateExecutor.execute {
+                        try {
+                            val updateDir = File(cacheDir, "updates").apply { mkdirs() }.canonicalFile
+                            val patchFile = File(patchPath).canonicalFile
+                            if (patchFile.parentFile != updateDir || !patchFile.exists()) {
+                                throw SecurityException("Patch file is outside the update directory")
+                            }
+                            val outputFile = File(updateDir, outputName).canonicalFile
+                            if (outputFile.parentFile != updateDir || !outputFile.name.endsWith(".apk")) {
+                                throw SecurityException("Output file is invalid")
+                            }
+                            if (outputFile.exists()) outputFile.delete()
+                            val status = BsDiffTool.patch(
+                                applicationInfo.sourceDir,
+                                patchFile.absolutePath,
+                                outputFile.absolutePath
+                            )
+                            if (status != 0 || !outputFile.exists()) {
+                                throw IllegalStateException("bspatch failed with status $status")
+                            }
+                            runOnUiThread { result.success(mapOf("path" to outputFile.absolutePath)) }
+                        } catch (e: Exception) {
+                            runOnUiThread { result.error("PATCH_ERROR", e.message, null) }
+                        }
+                    }
+                }
                 else -> {
                     result.notImplemented()
                 }
@@ -95,9 +150,14 @@ class MainActivity : FlutterActivity() {
         if (!apkFile.exists()) {
             throw Exception("APK file not found: $path")
         }
+        val updateDir = File(cacheDir, "updates").canonicalFile
+        val canonicalApk = apkFile.canonicalFile
+        if (canonicalApk.parentFile != updateDir || !canonicalApk.name.endsWith(".apk")) {
+            throw SecurityException("APK file is outside the update directory")
+        }
 
         val authority = "${applicationContext.packageName}.fileProvider"
-        val apkUri = FileProvider.getUriForFile(this, authority, apkFile)
+        val apkUri = FileProvider.getUriForFile(this, authority, canonicalApk)
 
         val intent = Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
             data = apkUri
@@ -106,6 +166,19 @@ class MainActivity : FlutterActivity() {
             putExtra(Intent.EXTRA_RETURN_RESULT, true)
         }
         startActivity(intent)
+    }
+
+    private fun digest(file: File, algorithm: String): String {
+        val digest = MessageDigest.getInstance(algorithm)
+        file.inputStream().buffered().use { input ->
+            val buffer = ByteArray(1024 * 1024)
+            while (true) {
+                val read = input.read(buffer)
+                if (read <= 0) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
     private fun isRooted(): Boolean {
