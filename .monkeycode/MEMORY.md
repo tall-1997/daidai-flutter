@@ -43,3 +43,5 @@
   - 搜索、Toggle、Slider、主按钮和交互 Chip 优先使用项目共享的 `liquid_glass_easy` 封装。
   - 滚动卡片内部的纯展示徽标保持轻量绘制，控制 Lens 嵌套数量。
   - 高价值取消/确认对话框使用 `AppLiquidGlassDialogActions`，窄屏自动纵向排列。
+  - toast 使用 `AppGlassNotice`，显示在底部导航上方并清理旧提示队列。
+  - Dialog、BottomSheet 和 PopupMenu 统一使用玻璃主题的表面、圆角、描边与遮罩。

@@ -675,32 +675,15 @@ class _LogItem extends ConsumerWidget {
     final color = _statusColor();
     return GestureDetector(
       onLongPress: onLongPress,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: selected
-              ? (isLight
-                    ? AppColors.primary.withAlpha(12)
-                    : AppColors.primary.withAlpha(20))
-              : glassCardColor(isLight: isLight),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: selected
-                ? AppColors.primary.withAlpha(80)
-                : (isLight ? AppColors.slate200 : AppColors.slate800),
-          ),
-          boxShadow: isLight
-              ? [
-                  BoxShadow(
-                    color: AppColors.slate900.withAlpha(8),
-                    blurRadius: 18,
-                    offset: const Offset(0, 6),
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: AppLiquidGlassSurface(
+          borderRadius: 18,
+          accentColor: AppColors.primary,
+          selected: selected,
+          performanceMode: true,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (selectionMode) ...[
@@ -772,6 +755,7 @@ class _LogItem extends ConsumerWidget {
               color: AppColors.red500,
             ),
           ],
+          ),
         ),
       ),
     );

@@ -28,6 +28,7 @@ UI 基于 `liquid_glass_easy 3.3.1` 重构。主 Shell 使用 `LiquidGlassScaffo
 - `AppLiquidGlassInputChip`：可删除标签 Chip。
 - `LiquidGlassSlider`：主题背景模糊强度滑块。
 - `AppLiquidGlassDialogActions`：1–3 个响应式对话框动作按钮，支持窄屏纵向排列。
+- `AppGlassNotice`：统一 SnackBar 队列、图标、语义色和持续时间。
 - `InputDecorationTheme`：搜索框和表单输入。
 - `FilledButtonThemeData`：主要操作按钮。
 - `OutlinedButtonThemeData`：次要操作按钮。
@@ -52,6 +53,7 @@ UI 基于 `liquid_glass_easy 3.3.1` 重构。主 Shell 使用 `LiquidGlassScaffo
 - 检查页头按钮、搜索框、Chip、主题模式和批量按钮。
 - 检查 Toggle 滑动动画、Slider 拖动和禁用状态。
 - 检查危险确认对话框的取消、确认和返回值。
+- 检查 toast 位于底部导航上方、横向可关闭且不会队列堆积。
 - 检查 320dp 窄屏和较大字体。
 - 构建 Android Release APK。
 - 构建 iOS Release IPA。

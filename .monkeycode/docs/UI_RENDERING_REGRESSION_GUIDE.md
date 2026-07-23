@@ -113,3 +113,6 @@ flutter build ios --release --no-codesign
 - 纯展示状态徽标保留轻量绘制，避免无收益的 Lens 嵌套。
 - 高价值确认对话框使用 `AppLiquidGlassDialogActions`。
 - 卡片内部辅助链接、分页、编辑器工具和纯关闭按钮可保留 Material，控制 Lens 嵌套数量。
+- SnackBar 使用悬浮玻璃主题，底部保留 92px 导航安全距离。
+- 高频反馈通过 `AppGlassNotice` 显示，先隐藏当前提示再展示新提示。
+- Dialog、BottomSheet 和 PopupMenu 使用统一半透明表面、描边、圆角和遮罩。
