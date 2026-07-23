@@ -681,13 +681,11 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                             _cronC.text = template.expression;
                             setState(() => _cronPreview = null);
                           },
-                          visualDensity: VisualDensity.compact,
                         ),
                        AppLiquidGlassActionChip(
                          icon: Icons.manage_search,
                          label: _loadingCronTemplates ? '模板加载中' : '解析预览',
                         onPressed: _parsingCron ? null : _parseCronExpression,
-                        visualDensity: VisualDensity.compact,
                       ),
                     ],
                   ),
