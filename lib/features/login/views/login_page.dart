@@ -258,7 +258,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
   }
 
-  void _switchPanel(PanelConfig panel) {
+  Future<void> _switchPanel(PanelConfig panel) async {
+    await SecureStorage.saveServerUrl(panel.url);
+    if (!mounted) return;
     setState(() {
       _selectedPanel = panel;
       _currentUrl = panel.url;
@@ -273,7 +275,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
     });
     DioClient.instance.setBaseUrl(panel.url);
-    SecureStorage.saveServerUrl(panel.url);
   }
 
   @override
@@ -409,11 +410,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   ),
                                 );
                               }).toList(),
-                              onChanged: (url) {
+                              onChanged: (url) async {
                                 final panel = _panels
                                     .where((p) => p.url == url)
                                     .first;
-                                _switchPanel(panel);
+                                await _switchPanel(panel);
                               },
                             ),
                           ),
