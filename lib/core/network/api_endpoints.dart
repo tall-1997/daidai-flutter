@@ -9,6 +9,9 @@ class ApiEndpoints {
   static const String logout = '$baseApi/auth/logout';
   static const String refresh = '$baseApi/auth/refresh';
   static const String user = '$baseApi/auth/user';
+  static const String authUsername = '$baseApi/auth/username';
+  static const String authPassword = '$baseApi/auth/password';
+  static const String authAvatar = '$baseApi/auth/avatar';
   static const String captchaConfig = '$baseApi/auth/captcha-config';
 
   // System
@@ -27,6 +30,10 @@ class ApiEndpoints {
       '$baseApi/system/backup/download?filename=${Uri.encodeQueryComponent(filename)}';
   static const String restore = '$baseApi/system/restore';
   static const String restoreProgress = '$baseApi/system/restore/progress';
+  static const String systemHealthCheck = '$baseApi/system/health-check';
+  static const String taskViews = '$baseApi/tasks/views';
+  static const String taskViewsReorder = '$baseApi/tasks/views/reorder';
+  static String taskViewById(int id) => '$baseApi/tasks/views/$id';
 
   // Tasks
   static const String tasks = '$baseApi/tasks';

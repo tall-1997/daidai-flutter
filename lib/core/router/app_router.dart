@@ -28,6 +28,7 @@ import '../../features/system/views/backup_page.dart';
 import '../../features/openapi/views/open_api_page.dart';
 import '../../features/app_lock/views/app_lock_settings_page.dart';
 import '../../features/settings/views/theme_settings_page.dart';
+import '../../features/profile/views/profile_page.dart';
 import '../../shared/widgets/app_background.dart';
 import '../../shared/widgets/main_scaffold.dart';
 import '../../shared/models/task.dart';
@@ -139,6 +140,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 const NoTransitionPage(child: MorePage()),
           ),
         ],
+      ),
+      GoRoute(
+        path: '/profile',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (_, state) => _rootPage(const ProfilePage()),
       ),
       GoRoute(
         path: '/tasks/new',

@@ -129,9 +129,36 @@ class AuthService {
   Future<User> getUser() async {
     final response = await _dio.get(ApiEndpoints.user);
     final data = _extractData(response.data);
-    final user = User.fromJson(data as Map<String, dynamic>);
+    final userData = data is Map && data['user'] is Map
+        ? Map<String, dynamic>.from(data['user'] as Map)
+        : Map<String, dynamic>.from(data as Map);
+    final user = User.fromJson(userData);
     await SecureStorage.saveUser(user);
     return user;
+  }
+
+  Future<void> changeUsername(String username) async {
+    await _dio.put(ApiEndpoints.authUsername, data: {'username': username});
+    await SecureStorage.clearAuthSession();
+  }
+
+  Future<void> changePassword(String oldPassword, String newPassword) async {
+    await _dio.put(
+      ApiEndpoints.authPassword,
+      data: {'old_password': oldPassword, 'new_password': newPassword},
+    );
+    await SecureStorage.clearAuthSession();
+  }
+
+  Future<void> uploadAvatar(MultipartFile avatar) async {
+    await _dio.post(
+      ApiEndpoints.authAvatar,
+      data: FormData.fromMap({'avatar': avatar}),
+    );
+  }
+
+  Future<void> deleteAvatar() async {
+    await _dio.delete(ApiEndpoints.authAvatar);
   }
 
   Future<bool> checkHealth(String serverUrl) async {

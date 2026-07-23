@@ -188,6 +188,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (_) {}
   }
 
+  Future<void> changeUsername(String username) async {
+    await _authService.changeUsername(username);
+    state = const AuthState(status: AuthStatus.unauthenticated);
+  }
+
+  Future<void> changePassword(String oldPassword, String newPassword) async {
+    await _authService.changePassword(oldPassword, newPassword);
+    state = const AuthState(status: AuthStatus.unauthenticated);
+  }
+
+  Future<void> uploadAvatar(MultipartFile avatar) async {
+    await _authService.uploadAvatar(avatar);
+    final user = await _authService.getUser();
+    state = state.copyWith(user: user);
+  }
+
+  Future<void> deleteAvatar() async {
+    await _authService.deleteAvatar();
+    final user = await _authService.getUser();
+    state = state.copyWith(user: user);
+  }
+
   void setUnauthenticated() {
     state = const AuthState(status: AuthStatus.unauthenticated);
   }

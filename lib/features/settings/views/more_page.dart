@@ -102,6 +102,7 @@ class _MorePageState extends ConsumerState<MorePage> {
           if (user != null)
             AppCard(
               padding: const EdgeInsets.all(16),
+              onTap: () => context.push('/profile'),
               child: _buildUserCardContent(user, isLight),
             ),
           const SizedBox(height: 24),
