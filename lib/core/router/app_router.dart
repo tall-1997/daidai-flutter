@@ -19,6 +19,7 @@ import '../../features/scripts/views/script_list_page.dart';
 import '../../features/notifications/views/notification_list_page.dart';
 import '../../features/notifications/views/local_notification_settings_page.dart';
 import '../../features/deps/views/dep_list_page.dart';
+import '../../features/deps/views/android_runtime_page.dart';
 import '../../features/users/views/user_list_page.dart';
 import '../../features/security/views/security_page.dart';
 import '../../features/security/views/ssh_keys_page.dart';
@@ -102,6 +103,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           '/panel-settings','/panel-log','/backup','/open-api','/health-check',
           '/platform-tokens',
           '/config-script',
+          '/android-runtime',
         };
         const operatorRoutes = <String>{'/scripts','/subscriptions'};
         final user = authState.user;
@@ -169,6 +171,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/profile',
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (_, state) => _rootPage(const ProfilePage()),
+      ),
+      GoRoute(
+        path:'/android-runtime',parentNavigatorKey:_rootNavigatorKey,pageBuilder:(_,state)=>_rootPage(const AndroidRuntimePage()),
       ),
       GoRoute(
         path:'/config-script',parentNavigatorKey:_rootNavigatorKey,pageBuilder:(_,state)=>_rootPage(const ConfigScriptPage()),

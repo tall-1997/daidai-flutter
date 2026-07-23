@@ -183,6 +183,7 @@ class _MorePageState extends ConsumerState<MorePage> {
             ),
             _SettingsItem(icon: Icons.token_outlined,title:'平台令牌',isLight:isLight,onTap:()=>context.push('/platform-tokens')),
             _SettingsItem(icon:Icons.terminal_outlined,title:'高级配置脚本',isLight:isLight,onTap:()=>context.push('/config-script')),
+            _SettingsItem(icon:Icons.android_outlined,title:'Android 运行时',isLight:isLight,onTap:()=>context.push('/android-runtime')),
             _SettingsItem(
               icon: Icons.settings,
               title: '系统设置',
