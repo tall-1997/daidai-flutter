@@ -21,10 +21,12 @@ class AppBackground extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final blur = settings.blurIntensity.clamp(0.0, 50.0);
+    final baseColor = Theme.of(context).scaffoldBackgroundColor;
     final Widget background = hasBg
         ? Stack(
             fit: StackFit.expand,
             children: [
+              ColoredBox(color: baseColor),
               Image.file(
                 File(settings.backgroundImagePath!),
                 fit: BoxFit.cover,
@@ -43,12 +45,12 @@ class AppBackground extends ConsumerWidget {
                 ),
             ],
           )
-        : ColoredBox(color: Theme.of(context).scaffoldBackgroundColor);
+        : ColoredBox(color: baseColor);
 
     return LiquidGlassView(
       pixelRatio: 0.7,
       realTimeCapture: false,
-      useSync: false,
+      useSync: true,
       backgroundWidget: background,
       child: Material(
         type: MaterialType.transparency,
