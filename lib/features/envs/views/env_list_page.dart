@@ -1457,17 +1457,23 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
               onDone: () => setSheetState(() => valueEditorOpen = false),
             );
           }
-          return Padding(
+          return AnimatedPadding(
+            duration: const Duration(milliseconds: 180),
             padding: EdgeInsets.fromLTRB(
               20,
               0,
               20,
               MediaQuery.of(ctx).viewInsets.bottom + 20,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(ctx).size.height * 0.82,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                 Row(
                   children: [
                     Container(
@@ -1645,7 +1651,9 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                     ),
                   ],
                 ),
-              ],
+                  ],
+                ),
+              ),
             ),
           );
         },
@@ -1682,17 +1690,23 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
               onDone: () => setSheetState(() => valueEditorOpen = false),
             );
           }
-          return Padding(
+          return AnimatedPadding(
+            duration: const Duration(milliseconds: 180),
             padding: EdgeInsets.fromLTRB(
               20,
               0,
               20,
               MediaQuery.of(ctx).viewInsets.bottom + 20,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(ctx).size.height * 0.82,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                 Text(
                   '新建环境变量',
                   style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
@@ -1780,7 +1794,9 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                   style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
                   child: const Text('创建'),
                 ),
-              ],
+                  ],
+                ),
+              ),
             ),
           );
         },
