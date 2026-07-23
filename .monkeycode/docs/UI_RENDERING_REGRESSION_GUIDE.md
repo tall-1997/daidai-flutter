@@ -120,3 +120,5 @@ flutter build ios --release --no-codesign
 - 终端、编辑器、状态点和纯展示徽标继续使用轻量绘制。
 - 完整卡片、菜单入口、排序条目和可点击信息表面统一使用 `AppCard` 或 `AppLiquidGlassSurface`。
 - 全仓业务代码通过 `AppGlassNotice` 显示反馈，直接 `showSnackBar` 仅保留在共享实现内部。
+- 任务展开结构保持一张主 Lens、一个共享侧滑 Lens，内部摘要使用透明分区和轻量徽标。
+- 应用锁核心面板使用 `AppCard`，外层遮罩与背景模糊继续保留。
