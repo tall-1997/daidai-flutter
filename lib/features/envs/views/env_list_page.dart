@@ -847,14 +847,10 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    '环境变量',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-                  ),
-                  Row(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final actions = Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       if (!_sortMode)
                         _HeaderChipButton(
@@ -913,8 +909,26 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                         ),
                       ],
                     ],
-                  ),
-                ],
+                  );
+                  final title = const Text(
+                    '环境变量',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+                  );
+                  if (constraints.maxWidth < 360) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        title,
+                        const SizedBox(height: 10),
+                        Align(alignment: Alignment.centerRight, child: actions),
+                      ],
+                    );
+                  }
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [title, actions],
+                  );
+                },
               ),
             ),
             const SizedBox(height: 16),
