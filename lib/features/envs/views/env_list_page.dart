@@ -2007,14 +2007,15 @@ class _BatchActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final foregroundColor = enabled ? color : AppColors.slate400;
 
-    return AppLiquidGlassSurface(
-      onTap: enabled ? onTap : null,
-      borderRadius: 12,
-      accentColor: color,
-      selected: enabled,
-      performanceMode: true,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
+    return Material(
+      color: enabled ? color.withAlpha(16) : Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 16, color: foregroundColor),
@@ -2028,7 +2029,9 @@ class _BatchActionButton extends StatelessWidget {
               ),
             ),
           ],
+          ),
         ),
+      ),
     );
   }
 }
@@ -2191,15 +2194,17 @@ class _MiniBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLight = Theme.of(context).brightness == Brightness.light;
-    return AppLiquidGlassSurface(
-      onTap: onTap,
-      borderRadius: 8,
-      performanceMode: true,
-      child: SizedBox(
-        width: 30,
-        height: 30,
-        child: Icon(icon, size: 14, color: AppColors.slate400),
+    return Material(
+      color: Theme.of(context).colorScheme.surface.withAlpha(36),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: SizedBox(
+          width: 30,
+          height: 30,
+          child: Icon(icon, size: 14, color: AppColors.slate400),
+        ),
       ),
     );
   }
