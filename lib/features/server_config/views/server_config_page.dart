@@ -151,9 +151,15 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
     String finalUrl, {
     required bool skipAutoLogin,
   }) async {
-    await SecureStorage.clearAuthSession();
-    DioClient.instance.setBaseUrl(finalUrl);
+    final previousUrl = DioClient.instance.baseUrl;
     await SecureStorage.saveServerUrl(finalUrl);
+    try {
+      await SecureStorage.clearAuthSession();
+    } catch (_) {
+      await SecureStorage.saveServerUrl(previousUrl);
+      rethrow;
+    }
+    DioClient.instance.setBaseUrl(finalUrl);
     ref.invalidate(dashboardProvider);
 
     if (!mounted) return;
