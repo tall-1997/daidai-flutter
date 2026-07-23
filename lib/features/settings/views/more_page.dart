@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -45,14 +46,23 @@ class _MorePageState extends ConsumerState<MorePage> {
     if (_checking) return;
     setState(() => _checking = true);
     try {
-      final info = await AppUpdateService.checkUpdate();
+      final info = await AppUpdateService.checkUpdate(throwOnError: true);
       if (mounted) {
         setState(() {
           _updateInfo = info;
           _checking = false;
         });
-        if (info != null && info.hasUpdate && !silent) {
-          AppUpdateService.showUpdateDialog(context, info);
+        final availability = info == null
+            ? null
+            : classifyAppUpdate(info);
+        if (availability == AppUpdateAvailability.updateAvailable && !silent) {
+          AppUpdateService.showUpdateDialog(context, info!);
+        } else if (availability == AppUpdateAvailability.installerMissing && !silent) {
+          AppGlassNotice.show(
+            context,
+            '发现新版本，但 Release 缺少可用的 Android 安装包',
+            type: AppGlassNoticeType.error,
+          );
         } else if (!silent) {
           AppGlassNotice.show(
             context,
@@ -61,13 +71,15 @@ class _MorePageState extends ConsumerState<MorePage> {
           );
         }
       }
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
         setState(() => _checking = false);
         if (!silent) {
           AppGlassNotice.show(
             context,
-            '检查更新失败，请稍后重试',
+            error is DioException && error.response?.statusCode == 403
+                ? 'GitHub API 请求受限，请稍后重试'
+                : '检查更新失败，请检查网络后重试',
             type: AppGlassNoticeType.error,
           );
         }

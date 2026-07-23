@@ -74,6 +74,16 @@ class AppUpdateInfo {
   });
 }
 
+enum AppUpdateAvailability { upToDate, updateAvailable, installerMissing }
+
+AppUpdateAvailability classifyAppUpdate(AppUpdateInfo info) {
+  if (!info.hasUpdate) return AppUpdateAvailability.upToDate;
+  if (info.downloadUrl.isEmpty || info.assetName.isEmpty) {
+    return AppUpdateAvailability.installerMissing;
+  }
+  return AppUpdateAvailability.updateAvailable;
+}
+
 class AppUpdateService {
   AppUpdateService._();
 
@@ -86,7 +96,7 @@ class AppUpdateService {
   static const _platform = MethodChannel('com.daidai.panel/app_install');
 
   /// Check GitHub Releases for new version.
-  static Future<AppUpdateInfo?> checkUpdate() async {
+  static Future<AppUpdateInfo?> checkUpdate({bool throwOnError = false}) async {
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       final manifestInfo = await _checkAndroidManifest();
       if (manifestInfo != null) return manifestInfo;
@@ -97,7 +107,9 @@ class AppUpdateService {
         options: Options(headers: {'Accept': 'application/vnd.github.v3+json'}),
       );
       final data = resp.data;
-      if (data is! Map<String, dynamic>) return null;
+      if (data is! Map<String, dynamic>) {
+        throw const FormatException('GitHub Release 响应格式无效');
+      }
 
       final rawTagName = data['tag_name']?.toString() ?? '';
       final tagName = rawTagName.replaceFirst(RegExp(r'^[vV]'), '');
@@ -147,6 +159,7 @@ class AppUpdateService {
         publishedAt: publishedAt,
       );
     } catch (_) {
+      if (throwOnError) rethrow;
       return null;
     }
   }

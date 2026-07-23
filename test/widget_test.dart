@@ -1,6 +1,7 @@
 import 'package:daidai_app/features/dashboard/providers/dashboard_provider.dart';
 import 'package:daidai_app/core/services/android_update_manifest.dart';
 import 'package:daidai_app/core/services/local_notification_service.dart';
+import 'package:daidai_app/core/services/app_update_service.dart';
 import 'package:daidai_app/shared/models/subscription.dart';
 import 'package:daidai_app/shared/utils/api_utils.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -123,6 +124,20 @@ void main() {
     test('ignores malformed payloads', () {
       expect(notificationPayloadRoute('invalid'), isNull);
       expect(notificationPayloadRoute('{"type":"task","id":0}'), isNull);
+    });
+  });
+
+  group('update availability', () {
+    AppUpdateInfo info({required bool hasUpdate, String url = 'https://github.com/a.apk'}) => AppUpdateInfo(
+      latestVersion: '1.1.0', currentVersion: '1.0.0', releaseNotes: '',
+      downloadUrl: url, assetName: url.isEmpty ? '' : 'a.apk', assetSize: 1,
+      assetDigest: '', hasUpdate: hasUpdate,
+    );
+
+    test('distinguishes current, available, and missing installer', () {
+      expect(classifyAppUpdate(info(hasUpdate: false)), AppUpdateAvailability.upToDate);
+      expect(classifyAppUpdate(info(hasUpdate: true)), AppUpdateAvailability.updateAvailable);
+      expect(classifyAppUpdate(info(hasUpdate: true, url: '')), AppUpdateAvailability.installerMissing);
     });
   });
 }

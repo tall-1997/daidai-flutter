@@ -47,7 +47,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Future<void> _silentUpdateCheck() async {
     try {
       final info = await AppUpdateService.checkUpdate();
-      if (info != null && info.hasUpdate && mounted) {
+      if (info != null &&
+          classifyAppUpdate(info) == AppUpdateAvailability.updateAvailable &&
+          mounted) {
         AppUpdateService.showUpdateDialog(context, info);
       }
     } catch (_) {
