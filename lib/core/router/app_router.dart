@@ -25,6 +25,7 @@ import '../../features/system/views/system_settings_page.dart';
 import '../../features/system/views/panel_settings_page.dart';
 import '../../features/system/views/panel_log_page.dart';
 import '../../features/system/views/backup_page.dart';
+import '../../features/system/views/health_check_page.dart';
 import '../../features/openapi/views/open_api_page.dart';
 import '../../features/app_lock/views/app_lock_settings_page.dart';
 import '../../features/settings/views/theme_settings_page.dart';
@@ -145,6 +146,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/profile',
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (_, state) => _rootPage(const ProfilePage()),
+      ),
+      GoRoute(
+        path: '/health-check',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (_, state) => _rootPage(const HealthCheckPage()),
       ),
       GoRoute(
         path: '/tasks/new',

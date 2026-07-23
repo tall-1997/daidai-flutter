@@ -188,6 +188,12 @@ class _MorePageState extends ConsumerState<MorePage> {
               onTap: () => context.push('/system-settings'),
             ),
             _SettingsItem(
+              icon: Icons.health_and_safety_outlined,
+              title: '系统健康诊断',
+              isLight: isLight,
+              onTap: () => context.push('/health-check'),
+            ),
+            _SettingsItem(
               icon: Icons.palette_outlined,
               title: '面板设置',
               isLight: isLight,
