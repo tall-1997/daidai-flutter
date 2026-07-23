@@ -541,13 +541,9 @@ class _DepListPageState extends ConsumerState<DepListPage> {
               ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogCtx).pop(),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () {
+          actions: [AppLiquidGlassDialogActions(actions: [
+            AppGlassDialogAction(label: '取消', onPressed: () => Navigator.of(dialogCtx).pop()),
+            AppGlassDialogAction(label: '安装', variant: AppLiquidGlassButtonVariant.primary, onPressed: () {
                 final names = _parseNames(namesController.text, autoSplit);
                 if (names.isEmpty) {
                   messenger.showSnackBar(
@@ -558,10 +554,8 @@ class _DepListPageState extends ConsumerState<DepListPage> {
                 Navigator.of(
                   dialogCtx,
                 ).pop(_CreateDepRequest(type: createType, names: names));
-              },
-              child: const Text('安装'),
-            ),
-          ],
+              }),
+          ])],
         ),
       ),
     );
@@ -576,17 +570,10 @@ class _DepListPageState extends ConsumerState<DepListPage> {
       builder: (dialogCtx) => AlertDialog(
         title: const Text('批量卸载'),
         content: Text('确定要批量卸载选中的 ${_selectedIds.length} 个依赖吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogCtx, true),
-            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
-            child: const Text('批量卸载'),
-          ),
-        ],
+        actions: [AppLiquidGlassDialogActions(actions: [
+          AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(dialogCtx, false)),
+          AppGlassDialogAction(label: '批量卸载', onPressed: () => Navigator.pop(dialogCtx, true), variant: AppLiquidGlassButtonVariant.danger),
+        ])],
       ),
     );
     if (confirmed != true) {
@@ -618,17 +605,10 @@ class _DepListPageState extends ConsumerState<DepListPage> {
               ? '确定要强制卸载「${dep.name}」吗？这会跳过依赖检查直接删除。'
               : '确定要卸载「${dep.name}」吗？',
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogCtx, true),
-            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
-            child: Text(force ? '强制卸载' : '卸载'),
-          ),
-        ],
+        actions: [AppLiquidGlassDialogActions(actions: [
+          AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(dialogCtx, false)),
+          AppGlassDialogAction(label: force ? '强制卸载' : '卸载', onPressed: () => Navigator.pop(dialogCtx, true), variant: AppLiquidGlassButtonVariant.danger),
+        ])],
       ),
     );
     if (confirmed != true) {

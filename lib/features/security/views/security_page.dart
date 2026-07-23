@@ -176,17 +176,10 @@ class _LoginLogsTabState extends ConsumerState<_LoginLogsTab>
       builder: (dialogCtx) => AlertDialog(
         title: const Text('清理登录日志'),
         content: const Text('确定要清理全部登录日志吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogCtx, true),
-            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
-            child: const Text('清理'),
-          ),
-        ],
+        actions: [AppLiquidGlassDialogActions(actions: [
+          AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(dialogCtx, false)),
+          AppGlassDialogAction(label: '清理', onPressed: () => Navigator.pop(dialogCtx, true), variant: AppLiquidGlassButtonVariant.danger),
+        ])],
       ),
     );
     if (confirmed != true) {
@@ -410,17 +403,10 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
       builder: (dialogCtx) => AlertDialog(
         title: const Text('撤销其他会话'),
         content: const Text('确定要撤销当前账号的所有其他活跃会话吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogCtx, true),
-            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
-            child: const Text('撤销'),
-          ),
-        ],
+        actions: [AppLiquidGlassDialogActions(actions: [
+          AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(dialogCtx, false)),
+          AppGlassDialogAction(label: '撤销', onPressed: () => Navigator.pop(dialogCtx, true), variant: AppLiquidGlassButtonVariant.danger),
+        ])],
       ),
     );
     if (confirmed != true) {
@@ -451,17 +437,10 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
       builder: (dialogCtx) => AlertDialog(
         title: const Text('撤销会话'),
         content: const Text('确定要撤销这个活跃会话吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogCtx, true),
-            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
-            child: const Text('撤销'),
-          ),
-        ],
+        actions: [AppLiquidGlassDialogActions(actions: [
+          AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(dialogCtx, false)),
+          AppGlassDialogAction(label: '撤销', onPressed: () => Navigator.pop(dialogCtx, true), variant: AppLiquidGlassButtonVariant.danger),
+        ])],
       ),
     );
     if (confirmed != true) {

@@ -276,16 +276,10 @@ class _UserListPageState extends ConsumerState<UserListPage> {
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogCtx, role),
-              child: const Text('保存'),
-            ),
-          ],
+          actions: [AppLiquidGlassDialogActions(actions: [
+            AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(dialogCtx)),
+            AppGlassDialogAction(label: '保存', onPressed: () => Navigator.pop(dialogCtx, role), variant: AppLiquidGlassButtonVariant.primary),
+          ])],
         ),
       ),
     );
@@ -491,34 +485,10 @@ class _UserListPageState extends ConsumerState<UserListPage> {
       builder: (dialogCtx) => AlertDialog(
         title: const Text('删除用户'),
         content: Text('确定要删除「${user.username}」吗？'),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(dialogCtx, false),
-                    child: const Text('取消'),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: FilledButton(
-                    onPressed: () => Navigator.pop(dialogCtx, true),
-                    style: FilledButton.styleFrom(
-                      foregroundColor: AppColors.red500,
-                    ),
-                    child: const Text('删除'),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+        actions: [AppLiquidGlassDialogActions(actions: [
+          AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(dialogCtx, false)),
+          AppGlassDialogAction(label: '删除', onPressed: () => Navigator.pop(dialogCtx, true), variant: AppLiquidGlassButtonVariant.danger),
+        ])],
       ),
     );
     if (confirm == true) {

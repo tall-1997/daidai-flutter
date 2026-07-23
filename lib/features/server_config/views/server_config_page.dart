@@ -207,16 +207,10 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
         builder: (dialogCtx) => AlertDialog(
           title: const Text('安全提示'),
           content: const Text('当前使用 HTTP 连接，数据传输未加密。\n建议仅在可信网络中使用，确认继续？'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx, false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogCtx, true),
-              child: const Text('继续连接'),
-            ),
-          ],
+          actions: [AppLiquidGlassDialogActions(actions: [
+            AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(dialogCtx, false)),
+            AppGlassDialogAction(label: '继续连接', onPressed: () => Navigator.pop(dialogCtx, true), variant: AppLiquidGlassButtonVariant.warning),
+          ])],
         ),
       );
       if (confirm != true) {
@@ -282,16 +276,10 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
       builder: (dialogCtx) => AlertDialog(
         title: const Text('删除服务器'),
         content: Text('确定删除“$panelLabel”吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogCtx, true),
-            child: const Text('删除'),
-          ),
-        ],
+        actions: [AppLiquidGlassDialogActions(actions: [
+          AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(dialogCtx, false)),
+          AppGlassDialogAction(label: '删除', onPressed: () => Navigator.pop(dialogCtx, true), variant: AppLiquidGlassButtonVariant.danger),
+        ])],
       ),
     );
 
