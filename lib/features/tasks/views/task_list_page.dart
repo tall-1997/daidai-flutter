@@ -2939,6 +2939,7 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
   String _statusText = '连接中...';
   Timer? _pollTimer;
   int _pollAttempts = 0;
+  bool _pollRequestRunning = false;
   Color? _logBackgroundColor;
 
   @override
@@ -3037,10 +3038,13 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
     }
     _pollAttempts = 0;
     _pollTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      if (_pollRequestRunning) return;
+      _pollRequestRunning = true;
       _pollAttempts++;
       if (!mounted) {
         _pollTimer?.cancel();
         _pollTimer = null;
+        _pollRequestRunning = false;
         return;
       }
       try {
@@ -3051,7 +3055,10 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
         if (data is Map<String, dynamic>) {
           _applyLiveSnapshot(data);
         }
-      } catch (_) {}
+      } catch (_) {
+      } finally {
+        _pollRequestRunning = false;
+      }
 
       if (_pollAttempts >= 15 && mounted && _statusText == '等待日志...') {
         _pollTimer?.cancel();

@@ -2749,6 +2749,7 @@ class _ScriptDebugRunSheetState extends State<_ScriptDebugRunSheet> {
   bool _autoScroll = true;
   String _statusText = '启动中...';
   Timer? _pollTimer;
+  bool _pollRequestRunning = false;
   Color? _logBackgroundColor;
 
   @override
@@ -2772,6 +2773,8 @@ class _ScriptDebugRunSheetState extends State<_ScriptDebugRunSheet> {
   }
 
   Future<void> _loadLogs() async {
+    if (_pollRequestRunning) return;
+    _pollRequestRunning = true;
     try {
       final resp = await DioClient.instance.dio.get(
         ApiEndpoints.scriptsRunLogs(widget.runId),
@@ -2820,6 +2823,8 @@ class _ScriptDebugRunSheetState extends State<_ScriptDebugRunSheet> {
         _loading = false;
         _statusText = '日志读取失败';
       });
+    } finally {
+      _pollRequestRunning = false;
     }
   }
 

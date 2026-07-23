@@ -253,6 +253,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
   bool _hideRestoreProgress = false;
   _RestoreProgressState _restoreProgress = const _RestoreProgressState();
   Timer? _progressTimer;
+  bool _progressRequestRunning = false;
 
   @override
   void initState() {
@@ -326,6 +327,8 @@ class _BackupPageState extends ConsumerState<BackupPage> {
   }
 
   Future<void> _loadRestoreProgress() async {
+    if (_progressRequestRunning) return;
+    _progressRequestRunning = true;
     try {
       final resp = await DioClient.instance.dio.get(
         ApiEndpoints.restoreProgress,
@@ -354,6 +357,8 @@ class _BackupPageState extends ConsumerState<BackupPage> {
       } else {
         _stopProgressPolling();
       }
+    } finally {
+      _progressRequestRunning = false;
     }
   }
 
