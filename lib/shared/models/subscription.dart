@@ -98,7 +98,7 @@ class Subscription {
       alias: json['alias']?.toString() ?? '',
       dependOn: json['depend_on']?.toString() ?? '',
       hookScript: json['hook_script']?.toString() ?? '',
-      forceOverwrite: json['force_overwrite'] as bool?,
+      forceOverwrite: _boolOrNull(json['force_overwrite']),
       createdAt: _date(json['created_at']) ?? DateTime.now(),
       updatedAt: _date(json['updated_at']) ?? DateTime.now(),
     );
@@ -127,6 +127,17 @@ class Subscription {
 int _int(dynamic v) => (v is num) ? v.toInt() : 0;
 int? _intOrNull(dynamic v) => (v is num) ? v.toInt() : null;
 double _double(dynamic v) => (v is num) ? v.toDouble() : 0.0;
+bool? _boolOrNull(dynamic value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  if (value is String) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized == 'true' || normalized == '1') return true;
+    if (normalized == 'false' || normalized == '0') return false;
+  }
+  return null;
+}
+
 DateTime? _date(dynamic v) {
   if (v is String && v.isNotEmpty) return DateTime.tryParse(v);
   return null;
