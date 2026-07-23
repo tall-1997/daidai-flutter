@@ -17,14 +17,18 @@ class TrendChart extends ConsumerWidget {
 
     final successSpots = <FlSpot>[];
     final failSpots = <FlSpot>[];
+    final chartData = data
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
 
-    for (int i = 0; i < data.length; i++) {
-      final item = data[i] as Map<String, dynamic>;
+    for (int i = 0; i < chartData.length; i++) {
+      final item = chartData[i];
       successSpots.add(
-        FlSpot(i.toDouble(), (item['success'] as num? ?? 0).toDouble()),
+        FlSpot(i.toDouble(), _number(item['success'])),
       );
       failSpots.add(
-        FlSpot(i.toDouble(), (item['failed'] as num? ?? 0).toDouble()),
+        FlSpot(i.toDouble(), _number(item['failed'])),
       );
     }
 
@@ -81,16 +85,16 @@ class TrendChart extends ConsumerWidget {
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    interval: (data.length / 5).ceilToDouble().clamp(
+                    interval: (chartData.length / 5).ceilToDouble().clamp(
                       1,
                       double.infinity,
                     ),
                     getTitlesWidget: (value, meta) {
                       final idx = value.toInt();
-                      if (idx < 0 || idx >= data.length) {
+                      if (idx < 0 || idx >= chartData.length) {
                         return const SizedBox();
                       }
-                      final item = data[idx] as Map<String, dynamic>;
+                      final item = chartData[idx];
                       final date = item['date']?.toString() ?? '';
                       return Padding(
                         padding: const EdgeInsets.only(top: 6),
@@ -140,6 +144,12 @@ class TrendChart extends ConsumerWidget {
       dotData: const FlDotData(show: false),
       belowBarData: BarAreaData(show: true, color: color.withAlpha(20)),
     );
+  }
+
+  double _number(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value.trim()) ?? 0;
+    return 0;
   }
 }
 

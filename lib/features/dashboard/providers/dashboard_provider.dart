@@ -4,10 +4,10 @@ import '../../../core/network/api_endpoints.dart';
 import '../../../shared/utils/api_utils.dart';
 
 String _formatBytes(dynamic bytes) {
-  if (bytes == null) {
+  final b = _number(bytes);
+  if (b == null) {
     return '-';
   }
-  final b = (bytes as num).toDouble();
   if (b < 1024) return '${b.toStringAsFixed(0)}B';
   if (b < 1024 * 1024) return '${(b / 1024).toStringAsFixed(1)}KB';
   if (b < 1024 * 1024 * 1024) {
@@ -17,10 +17,17 @@ String _formatBytes(dynamic bytes) {
 }
 
 bool _resourceUnavailable(dynamic total) {
-  if (total == null) return true;
-  if (total is num) return total <= 0;
-  return false;
+  final value = _number(total);
+  return value == null || value <= 0;
 }
+
+double? _number(dynamic value) {
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value.trim());
+  return null;
+}
+
+int _integer(dynamic value) => _number(value)?.toInt() ?? 0;
 
 class DashboardData {
   final Map<String, dynamic> system;
@@ -36,9 +43,9 @@ class DashboardData {
   });
 
   // 系统资源
-  double get cpuUsage => (system['cpu_usage'] as num?)?.toDouble() ?? 0;
-  double get memoryUsage => (system['memory_usage'] as num?)?.toDouble() ?? 0;
-  double get diskUsage => (system['disk_usage'] as num?)?.toDouble() ?? 0;
+  double get cpuUsage => _number(system['cpu_usage']) ?? 0;
+  double get memoryUsage => _number(system['memory_usage']) ?? 0;
+  double get diskUsage => _number(system['disk_usage']) ?? 0;
   bool get memoryUnavailable => _resourceUnavailable(system['memory_total']);
   String get memoryTotal => _formatBytes(system['memory_total']);
   String get memoryUsed => _formatBytes(system['memory_used']);
@@ -51,12 +58,12 @@ class DashboardData {
   String get panelVersion => system['panel_version']?.toString() ?? '';
 
   // 仪表盘数据 — 字段名匹配后端实际返回
-  int get totalTasks => (dashboard['task_count'] as num?)?.toInt() ?? 0;
-  int get enabledTasks => (dashboard['enabled_tasks'] as num?)?.toInt() ?? 0;
-  int get runningTasks => (dashboard['running_tasks'] as num?)?.toInt() ?? 0;
+  int get totalTasks => _integer(dashboard['task_count']);
+  int get enabledTasks => _integer(dashboard['enabled_tasks']);
+  int get runningTasks => _integer(dashboard['running_tasks']);
   int get disabledTasks => totalTasks - enabledTasks;
-  int get todaySuccess => (dashboard['success_logs'] as num?)?.toInt() ?? 0;
-  int get todayFailed => (dashboard['failed_logs'] as num?)?.toInt() ?? 0;
+  int get todaySuccess => _integer(dashboard['success_logs']);
+  int get todayFailed => _integer(dashboard['failed_logs']);
   List<dynamic> get recentLogs => dashboard['recent_logs'] as List? ?? [];
   List<dynamic> get executionTrend => dashboard['daily_stats'] as List? ?? [];
 
@@ -88,7 +95,7 @@ class DashboardNotifier extends StateNotifier<DashboardData> {
       ]);
       final sysData = extractData(coreResults[0].data);
       final dashData = extractData(coreResults[1].data);
-      final sysMap = sysData is Map<String, dynamic>
+      final sysMap = sysData is Map
           ? Map<String, dynamic>.from(sysData)
           : <String, dynamic>{};
 
@@ -117,7 +124,9 @@ class DashboardNotifier extends StateNotifier<DashboardData> {
       }
       state = state.copyWith(
         system: sysMap,
-        dashboard: dashData is Map<String, dynamic> ? dashData : {},
+        dashboard: dashData is Map
+            ? Map<String, dynamic>.from(dashData)
+            : const {},
         loading: false,
       );
     } catch (e) {
