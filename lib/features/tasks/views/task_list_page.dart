@@ -1720,6 +1720,31 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       onSelectedChanged: () => _toggleTaskSelection(task.id),
       onRun: () => _runTask(task),
       onStop: () => _stopTask(task),
+      onAction: (action) {
+        switch (action) {
+          case _TaskItemAction.toggleEnabled:
+            _toggleTaskEnabled(task);
+            return;
+          case _TaskItemAction.togglePinned:
+            _togglePinned(task);
+            return;
+          case _TaskItemAction.copy:
+            _copyTask(task);
+            return;
+          case _TaskItemAction.stats:
+            _showTaskStats(task);
+            return;
+          case _TaskItemAction.logFiles:
+            _showTaskLogFiles(task);
+            return;
+          case _TaskItemAction.edit:
+            context.push('/tasks/edit', extra: task);
+            return;
+          case _TaskItemAction.delete:
+            _confirmDelete(task);
+            return;
+        }
+      },
     );
   }
 
@@ -1833,6 +1858,16 @@ class _TaskInfoDialogContent extends StatelessWidget {
   }
 }
 
+enum _TaskItemAction {
+  toggleEnabled,
+  togglePinned,
+  copy,
+  stats,
+  logFiles,
+  edit,
+  delete,
+}
+
 class _TaskCard extends StatelessWidget {
   final Task task;
   final bool isLight;
@@ -1843,6 +1878,7 @@ class _TaskCard extends StatelessWidget {
   final VoidCallback onSelectedChanged;
   final VoidCallback onRun;
   final VoidCallback onStop;
+  final ValueChanged<_TaskItemAction> onAction;
 
   const _TaskCard({
     super.key,
@@ -1855,6 +1891,7 @@ class _TaskCard extends StatelessWidget {
     required this.onSelectedChanged,
     required this.onRun,
     required this.onStop,
+    required this.onAction,
   });
 
   Color _dotColor() {
@@ -2014,6 +2051,45 @@ class _TaskCard extends StatelessWidget {
                             : null,
                       ),
                     ),
+                    if (!selectionMode)
+                      PopupMenuButton<_TaskItemAction>(
+                        tooltip: '任务操作',
+                        icon: const Icon(Icons.more_vert, size: 20),
+                        onSelected: onAction,
+                        itemBuilder: (_) => [
+                          PopupMenuItem(
+                            value: _TaskItemAction.toggleEnabled,
+                            child: Text(task.isDisabled ? '启用' : '禁用'),
+                          ),
+                          PopupMenuItem(
+                            value: _TaskItemAction.togglePinned,
+                            child: Text(task.isPinned ? '取消置顶' : '置顶'),
+                          ),
+                          const PopupMenuItem(
+                            value: _TaskItemAction.copy,
+                            child: Text('复制任务'),
+                          ),
+                          const PopupMenuItem(
+                            value: _TaskItemAction.stats,
+                            child: Text('任务统计'),
+                          ),
+                          const PopupMenuItem(
+                            value: _TaskItemAction.logFiles,
+                            child: Text('日志文件'),
+                          ),
+                          const PopupMenuItem(
+                            value: _TaskItemAction.edit,
+                            child: Text('编辑任务'),
+                          ),
+                          const PopupMenuItem(
+                            value: _TaskItemAction.delete,
+                            child: Text(
+                              '删除任务',
+                              style: TextStyle(color: AppColors.red500),
+                            ),
+                          ),
+                        ],
+                      ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
