@@ -54,8 +54,10 @@ class TaskListState {
 
 class TaskNotifier extends StateNotifier<TaskListState> {
   TaskNotifier() : super(const TaskListState());
+  int _loadRequestId = 0;
 
   Future<void> load({bool refresh = false}) async {
+    final requestId = ++_loadRequestId;
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = DioClient.instance.dio;
@@ -76,10 +78,12 @@ class TaskNotifier extends StateNotifier<TaskListState> {
       );
       final paginated = extractPaginated(response.data);
       final items = paginated.items.map((e) => Task.fromJson(e)).toList();
+      if (requestId != _loadRequestId) return;
       final total = paginated.total;
 
       state = state.copyWith(tasks: items, total: total, loading: false);
     } catch (e) {
+      if (requestId != _loadRequestId) return;
       state = state.copyWith(loading: false, error: '加载失败');
     }
   }

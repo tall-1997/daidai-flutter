@@ -128,6 +128,7 @@ class DepMirrorConfig {
 
 class DepListNotifier extends StateNotifier<DepListState> {
   DepListNotifier() : super(const DepListState());
+  int _loadRequestId = 0;
 
   Future<List<Dependency>> fetchByType(
     String type, {
@@ -146,6 +147,7 @@ class DepListNotifier extends StateNotifier<DepListState> {
   }
 
   Future<void> load({String? type, String? pythonVersion}) async {
+    final requestId = ++_loadRequestId;
     final nextType = type ?? state.selectedType;
     final nextPythonVersion = pythonVersion ?? state.selectedPythonVersion;
     state = state.copyWith(
@@ -158,8 +160,10 @@ class DepListNotifier extends StateNotifier<DepListState> {
         nextType,
         pythonVersion: nextType == 'python' ? nextPythonVersion : null,
       );
+      if (requestId != _loadRequestId) return;
       state = state.copyWith(items: items, loading: false);
     } catch (_) {
+      if (requestId != _loadRequestId) return;
       state = state.copyWith(loading: false);
     }
   }

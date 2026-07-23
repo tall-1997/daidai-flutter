@@ -59,6 +59,7 @@ class LogListState {
 class LogListNotifier extends StateNotifier<LogListState> {
   LogListNotifier() : super(const LogListState());
   int _page = 1;
+  int _loadRequestId = 0;
 
   Map<String, dynamic> _currentQueryParams({
     required int page,
@@ -78,6 +79,7 @@ class LogListNotifier extends StateNotifier<LogListState> {
   }
 
   Future<void> load({bool refresh = false}) async {
+    final requestId = ++_loadRequestId;
     if (refresh) _page = 1;
     state = state.copyWith(loading: true);
     try {
@@ -87,12 +89,14 @@ class LogListNotifier extends StateNotifier<LogListState> {
       );
       final paginated = extractPaginated(response.data);
       final items = paginated.items.map((e) => TaskLog.fromJson(e)).toList();
+      if (requestId != _loadRequestId) return;
       state = state.copyWith(
         logs: refresh ? items : [...state.logs, ...items],
         total: paginated.total,
         loading: false,
       );
     } catch (_) {
+      if (requestId != _loadRequestId) return;
       state = state.copyWith(loading: false);
     }
   }

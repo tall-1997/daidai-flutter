@@ -54,8 +54,10 @@ class SubscriptionListState {
 
 class SubscriptionListNotifier extends StateNotifier<SubscriptionListState> {
   SubscriptionListNotifier() : super(const SubscriptionListState());
+  int _loadRequestId = 0;
 
   Future<void> load() async {
+    final requestId = ++_loadRequestId;
     state = state.copyWith(loading: true);
     try {
       final dio = DioClient.instance.dio;
@@ -69,8 +71,10 @@ class SubscriptionListNotifier extends StateNotifier<SubscriptionListState> {
       final items = paginated.items
           .map((e) => Subscription.fromJson(e))
           .toList();
+      if (requestId != _loadRequestId) return;
       state = state.copyWith(items: items, loading: false, error: null);
     } catch (_) {
+      if (requestId != _loadRequestId) return;
       state = state.copyWith(loading: false, error: '加载订阅失败');
     }
   }

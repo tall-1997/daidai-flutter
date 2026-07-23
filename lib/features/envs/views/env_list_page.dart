@@ -70,8 +70,10 @@ class EnvListState {
 
 class EnvListNotifier extends StateNotifier<EnvListState> {
   EnvListNotifier() : super(const EnvListState());
+  int _loadRequestId = 0;
 
   Future<void> load() async {
+    final requestId = ++_loadRequestId;
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = DioClient.instance.dio;
@@ -120,6 +122,7 @@ class EnvListNotifier extends StateNotifier<EnvListState> {
         groupsList = [];
       }
       final groups = groupsList.map((e) => e.toString()).toList();
+      if (requestId != _loadRequestId) return;
       state = state.copyWith(
         envs: items,
         total: paginated.total > items.length ? paginated.total : items.length,
@@ -127,6 +130,7 @@ class EnvListNotifier extends StateNotifier<EnvListState> {
         groups: groups,
       );
     } catch (error) {
+      if (requestId != _loadRequestId) return;
       state = state.copyWith(
         loading: false,
         error: extractErrorMessage(error, '加载环境变量失败'),
