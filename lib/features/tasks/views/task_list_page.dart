@@ -23,6 +23,7 @@ import '../../../shared/utils/log_background.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/task_cron_list.dart';
 import '../providers/task_provider.dart';
+import '../providers/task_view_provider.dart';
 
 class TaskListPage extends ConsumerStatefulWidget {
   const TaskListPage({super.key});
@@ -74,6 +75,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   void initState() {
     super.initState();
     Future.microtask(() async {
+      await ref.read(taskViewProvider.notifier).load();
       await _restoreTaskUiState();
       if (!mounted) {
         return;
@@ -813,6 +815,21 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   const SizedBox(width: 8),
                   Row(
                     children: [
+                      PopupMenuButton<int?>(
+                        tooltip: '任务视图',
+                        onSelected: (id) {
+                          final views = ref.read(taskViewProvider);
+                          final view = views.where((item) => item.id == id).firstOrNull;
+                          ref.read(taskProvider.notifier).setView(view?.filters, view?.sortRules);
+                        },
+                        itemBuilder: (_) => [
+                          const PopupMenuItem<int?>(value: null, child: Text('全部任务')),
+                          ...ref.watch(taskViewProvider).where((v) => !v.hidden).map((v) => PopupMenuItem<int?>(value: v.id, child: Text(v.name))),
+                          const PopupMenuDivider(),
+                          PopupMenuItem<int?>(value: -1, onTap: () => Future.microtask(() => context.push('/task-views')), child: const Text('管理视图')),
+                        ],
+                        child: const _TaskGlassIconTarget(icon: Icons.view_list_outlined),
+                      ),
                       if (!_taskSortMode)
                         _TaskHeaderChipButton(
                           label: _selectionMode ? '取消' : '批量',

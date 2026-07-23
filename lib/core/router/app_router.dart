@@ -8,6 +8,7 @@ import '../../features/server_config/views/server_config_page.dart';
 import '../../features/dashboard/views/dashboard_page.dart';
 import '../../features/tasks/views/task_list_page.dart';
 import '../../features/tasks/views/task_form_page.dart';
+import '../../features/tasks/views/task_views_page.dart';
 import '../../features/logs/views/log_list_page.dart';
 import '../../features/logs/views/log_stream_page.dart';
 import '../../features/envs/views/env_list_page.dart';
@@ -141,6 +142,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 const NoTransitionPage(child: MorePage()),
           ),
         ],
+      ),
+      GoRoute(
+        path: '/task-views',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (_, state) => _rootPage(const TaskViewsPage()),
       ),
       GoRoute(
         path: '/profile',

@@ -16,6 +16,8 @@ class TaskListState {
   final String keyword;
   final String? statusFilter;
   final String? labelFilter;
+  final String? viewFilters;
+  final String? viewSortRules;
 
   const TaskListState({
     this.tasks = const [],
@@ -25,6 +27,8 @@ class TaskListState {
     this.keyword = '',
     this.statusFilter,
     this.labelFilter,
+    this.viewFilters,
+    this.viewSortRules,
   });
 
   TaskListState copyWith({
@@ -35,6 +39,8 @@ class TaskListState {
     String? keyword,
     Object? statusFilter = _unset,
     Object? labelFilter = _unset,
+    Object? viewFilters = _unset,
+    Object? viewSortRules = _unset,
   }) {
     return TaskListState(
       tasks: tasks ?? this.tasks,
@@ -48,6 +54,8 @@ class TaskListState {
       labelFilter: identical(labelFilter, _unset)
           ? this.labelFilter
           : labelFilter as String?,
+      viewFilters: identical(viewFilters,_unset)?this.viewFilters:viewFilters as String?,
+      viewSortRules: identical(viewSortRules,_unset)?this.viewSortRules:viewSortRules as String?,
     );
   }
 }
@@ -71,6 +79,8 @@ class TaskNotifier extends StateNotifier<TaskListState> {
       if (state.labelFilter != null) {
         queryParams['label'] = state.labelFilter;
       }
+      if(state.viewFilters?.isNotEmpty==true) queryParams['filters']=state.viewFilters;
+      if(state.viewSortRules?.isNotEmpty==true) queryParams['sort_rules']=state.viewSortRules;
 
       final response = await dio.get(
         ApiEndpoints.tasks,
@@ -106,6 +116,7 @@ class TaskNotifier extends StateNotifier<TaskListState> {
     state = state.copyWith(labelFilter: label);
     load(refresh: true);
   }
+  void setView(String? filters,String? sortRules){state=state.copyWith(viewFilters:filters,viewSortRules:sortRules);load(refresh:true);}
 
   Future<void> runTask(int id) async {
     await DioClient.instance.dio.put(ApiEndpoints.taskRun(id));
