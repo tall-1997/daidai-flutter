@@ -177,6 +177,10 @@ class SseClient {
       );
       final token = _extractAccessToken(response.data);
       await SecureStorage.saveAccessToken(token);
+      final rotatedRefreshToken = _extractRefreshToken(response.data);
+      if (rotatedRefreshToken != null) {
+        await SecureStorage.saveRefreshToken(rotatedRefreshToken);
+      }
       return true;
     } catch (_) {
       await SecureStorage.clearAuthSession();
@@ -204,5 +208,18 @@ class SseClient {
   void close() {
     _closed = true;
     _disposeConnection();
+  }
+
+  String? _extractRefreshToken(dynamic responseData) {
+    if (responseData is Map) {
+      final directToken = responseData['refresh_token']?.toString();
+      if (directToken != null && directToken.isNotEmpty) return directToken;
+      final nestedData = responseData['data'];
+      if (nestedData is Map) {
+        final nestedToken = nestedData['refresh_token']?.toString();
+        if (nestedToken != null && nestedToken.isNotEmpty) return nestedToken;
+      }
+    }
+    return null;
   }
 }

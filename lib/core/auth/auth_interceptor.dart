@@ -22,6 +22,19 @@ String _extractAccessToken(dynamic responseData) {
   throw StateError('Missing access_token in refresh response');
 }
 
+String? _extractRefreshToken(dynamic responseData) {
+  if (responseData is Map) {
+    final directToken = responseData['refresh_token']?.toString();
+    if (directToken != null && directToken.isNotEmpty) return directToken;
+    final nestedData = responseData['data'];
+    if (nestedData is Map) {
+      final nestedToken = nestedData['refresh_token']?.toString();
+      if (nestedToken != null && nestedToken.isNotEmpty) return nestedToken;
+    }
+  }
+  return null;
+}
+
 class AuthInterceptor extends Interceptor {
   bool _isRefreshing = false;
   final List<({RequestOptions options, ErrorInterceptorHandler handler})>
@@ -74,6 +87,10 @@ class AuthInterceptor extends Interceptor {
 
       final newAccessToken = _extractAccessToken(response.data);
       await SecureStorage.saveAccessToken(newAccessToken);
+      final newRefreshToken = _extractRefreshToken(response.data);
+      if (newRefreshToken != null) {
+        await SecureStorage.saveRefreshToken(newRefreshToken);
+      }
 
       // 重发原始请求
       err.requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
