@@ -113,6 +113,9 @@ class AppTheme {
     final pressedControlColor = isLight
         ? AppColors.lightControlPressed
         : AppColors.darkControlPressed;
+    final overlayGlassColor = isLight
+        ? Colors.white.withAlpha(188)
+        : AppColors.slate900.withAlpha(196);
 
     Color resolveControlColor(Set<WidgetState> states) {
       if (states.contains(WidgetState.disabled)) {
@@ -315,7 +318,7 @@ class AppTheme {
         space: 0,
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: controlColor,
+        backgroundColor: overlayGlassColor,
         selectedColor: pressedControlColor,
         disabledColor: isLight ? AppColors.slate100 : AppColors.slate800,
         side: BorderSide(color: borderColor),
@@ -363,7 +366,7 @@ class AppTheme {
         ),
       ),
       popupMenuTheme: PopupMenuThemeData(
-        color: controlColor,
+        color: overlayGlassColor,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         shadowColor: Colors.transparent,
@@ -373,7 +376,7 @@ class AppTheme {
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: controlColor,
+        backgroundColor: overlayGlassColor,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         shadowColor: Colors.transparent,
@@ -386,7 +389,6 @@ class AppTheme {
         ),
         actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
       ),
-      dialogBackgroundColor: controlColor,
       snackBarTheme: SnackBarThemeData(
         backgroundColor: isLight
             ? AppColors.lightControlPressed

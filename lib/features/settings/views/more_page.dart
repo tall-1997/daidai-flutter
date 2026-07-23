@@ -491,17 +491,13 @@ class _MorePageState extends ConsumerState<MorePage> {
                 ),
               ),
               const SizedBox(height: 16),
-              Container(
+              SizedBox(
                 width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isLight ? AppColors.slate50 : AppColors.slate900,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isLight ? AppColors.slate200 : AppColors.slate800,
-                  ),
-                ),
-                child: Column(
+                child: AppLiquidGlassSurface(
+                  padding: const EdgeInsets.all(12),
+                  borderRadius: 10,
+                  performanceMode: true,
+                  child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -533,7 +529,8 @@ class _MorePageState extends ConsumerState<MorePage> {
                       isLight: isLight,
                       icon: Icons.dns_outlined,
                     ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 10),

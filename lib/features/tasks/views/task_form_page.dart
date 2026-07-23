@@ -695,23 +695,18 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                   ),
                   if (_cronPreview != null) ...[
                     const SizedBox(height: 8),
-                    Container(
+                    SizedBox(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: isLight
-                            ? AppColors.slate50
-                            : AppColors.slate900,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: theme.colorScheme.outlineVariant,
-                        ),
-                      ),
-                      child: Text(
+                      child: AppLiquidGlassSurface(
+                        padding: const EdgeInsets.all(10),
+                        borderRadius: 10,
+                        performanceMode: true,
+                        child: Text(
                         _cronPreview!,
                         style: TextStyle(
                           fontSize: 12,
                           color: theme.colorScheme.onSurfaceVariant,
+                        ),
                         ),
                       ),
                     ),

@@ -1624,15 +1624,12 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Container(
+                  ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 160),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).brightness == Brightness.light
-                          ? AppColors.slate50
-                          : AppColors.slate900,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: ListView.separated(
+                    child: AppLiquidGlassSurface(
+                      borderRadius: 12,
+                      performanceMode: true,
+                      child: ListView.separated(
                       shrinkWrap: true,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -1646,6 +1643,7 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                         style: const TextStyle(fontSize: 12),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                      ),
                       ),
                     ),
                   ),

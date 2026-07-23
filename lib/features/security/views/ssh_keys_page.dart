@@ -204,16 +204,16 @@ class _SshKeysPageState extends ConsumerState<SshKeysPage> {
                   ],
                 ),
                 const SizedBox(height: 4),
-                Container(
+                SizedBox(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withAlpha(25),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: SelectableText(
+                  child: AppLiquidGlassSurface(
+                    padding: const EdgeInsets.all(8),
+                    borderRadius: 6,
+                    performanceMode: true,
+                    child: SelectableText(
                     publicKey,
                     style: const TextStyle(fontFamily: 'monospace', fontSize: 10),
+                    ),
                   ),
                 ),
               ],

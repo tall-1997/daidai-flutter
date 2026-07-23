@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class PatternPad extends StatelessWidget {
   const PatternPad({
@@ -23,7 +24,6 @@ class PatternPad extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isLight = theme.brightness == Brightness.light;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -62,22 +62,14 @@ class PatternPad extends StatelessWidget {
               final selectedIndex = selectedPoints.indexOf(point);
               final isSelected = selectedIndex >= 0;
 
-              return InkWell(
-                borderRadius: BorderRadius.circular(999),
+              return AppLiquidGlassSurface(
+                borderRadius: 999,
                 onTap: () => onPointTap(point),
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSelected
-                        ? AppColors.primary.withAlpha(isLight ? 26 : 48)
-                        : (isLight ? AppColors.slate50 : AppColors.slate900),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary
-                          : (isLight ? AppColors.slate300 : AppColors.slate700),
-                      width: isSelected ? 2 : 1.2,
-                    ),
-                  ),
+                accentColor: AppColors.primary,
+                selected: isSelected,
+                performanceMode: true,
+                child: AspectRatio(
+                  aspectRatio: 1,
                   child: Center(
                     child: Text(
                       isSelected ? '${selectedIndex + 1}' : '',
