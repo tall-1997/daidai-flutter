@@ -725,6 +725,9 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
     final compactLayout = MediaQuery.sizeOf(context).width < 380;
+    final hasActiveFilters = state.keyword.trim().isNotEmpty ||
+        state.statusFilter != null ||
+        state.labelFilter != null;
     
     _collectKnownGroups(state.tasks);
     final groupedTasks = _sortGroupsByOrder(_groupTasks(state.tasks));
@@ -772,7 +775,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                           compact: compactLayout,
                           onTap: () => _setSelectionMode(!_selectionMode),
                         ),
-                      if (!_selectionMode) ...[
+                      if (!_selectionMode && !hasActiveFilters) ...[
                         const SizedBox(width: 8),
                         _TaskHeaderChipButton(
                           label: _taskSortMode ? '完成' : '排序',
@@ -1635,6 +1638,13 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
               _persistCollapsedGroups();
             },
             onLongPress: () {
+              final current = ref.read(taskProvider);
+              if (current.keyword.trim().isNotEmpty ||
+                  current.statusFilter != null ||
+                  current.labelFilter != null) {
+                _showMessage('请先清除筛选后再调整分组顺序');
+                return;
+              }
               HapticFeedback.mediumImpact();
               setState(() => _groupReorderMode = true);
             },
