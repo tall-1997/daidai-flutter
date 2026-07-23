@@ -27,38 +27,15 @@ const _apiScopeOptions = [
   _ApiScopeOption('system', '系统信息', '读取系统信息和状态数据'),
 ];
 
-Future<List<Map<String, dynamic>>> _loadAllOpenApiLogs(int appId) async {
-  const pageSize = 100;
-  const maxPages = 20;
-  final allItems = <Map<String, dynamic>>[];
-  final seenIds = <String>{};
-  var page = 1;
-  var total = 0;
-  do {
-    final resp = await DioClient.instance.dio.get(
-      ApiEndpoints.openApiAppLogs(appId),
-      queryParameters: {'page': page, 'page_size': pageSize},
-    );
-    final paginated = extractPaginated(resp.data);
-    if (page == 1) {
-      total = paginated.total;
-    }
-    if (paginated.items.isEmpty) {
-      break;
-    }
-    final before = seenIds.length;
-    for (final item in paginated.items) {
-      final key = item['id']?.toString() ?? item.toString();
-      if (seenIds.add(key)) {
-        allItems.add(item);
-      }
-    }
-    if (seenIds.length == before) {
-      break;
-    }
-    page++;
-  } while (allItems.length < total && page <= maxPages);
-  return allItems;
+Future<({List<Map<String, dynamic>> items, int total})> _loadOpenApiLogPage(
+  int appId,
+  int page,
+) async {
+  final resp = await DioClient.instance.dio.get(
+    ApiEndpoints.openApiAppLogs(appId),
+    queryParameters: {'page': page, 'page_size': 100},
+  );
+  return extractPaginated(resp.data);
 }
 
 class OpenApiPage extends ConsumerStatefulWidget {
@@ -731,7 +708,7 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                       }
                       break;
                     case 'logs':
-                      _showLogsDialog(id, name);
+                      context.push('/open-api/$id/logs');
                       break;
                     case 'delete':
                       final confirm = await showDialog<bool>(
@@ -998,137 +975,6 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
     );
   }
 
-  void _showLogsDialog(int appId, String appName) async {
-    List<Map<String, dynamic>> logs = [];
-    try {
-      logs = await _loadAllOpenApiLogs(appId);
-    } catch (error) {
-      if (mounted) {
-        AppGlassNotice.show(
-          context,
-          extractErrorMessage(error, '加载调用日志失败'),
-          type: AppGlassNoticeType.error,
-        );
-      }
-    }
-
-    if (!mounted) return;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      useRootNavigator: true,
-      builder: (ctx) => SizedBox(
-        height: MediaQuery.of(ctx).size.height * 0.6,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                '$appName 调用日志',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: logs.isEmpty
-                  ? const Center(
-                      child: Text(
-                        '暂无日志',
-                        style: TextStyle(color: AppColors.slate400),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: logs.length,
-                      itemBuilder: (_, i) {
-                        final log = logs[i];
-                        final status = (log['status'] as num?)?.toInt() ?? 0;
-                        final ok = status >= 200 && status < 300;
-                        final time = DateTime.tryParse(
-                          log['created_at']?.toString() ?? '',
-                        );
-                        final duration =
-                            (log['duration'] as num?)?.toDouble() ?? 0;
-                        return AppCard(
-                          margin: const EdgeInsets.only(bottom: 6),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
-                          borderRadius: 10,
-                          stableForScrolling: true,
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: ok
-                                      ? AppColors.primary.withAlpha(25)
-                                      : AppColors.red500.withAlpha(25),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  '$status',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    fontFamily: 'monospace',
-                                    color: ok
-                                        ? AppColors.primary
-                                        : AppColors.red500,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${log['method'] ?? ''} ${log['endpoint'] ?? ''}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontFamily: 'monospace',
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Text(
-                                      '${log['ip'] ?? ''} · ${duration.toStringAsFixed(1)}ms',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: AppColors.slate400,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Text(
-                                formatTimeCn(time),
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: AppColors.slate400,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _CopyableField extends StatelessWidget {
@@ -1198,6 +1044,8 @@ class OpenApiLogsPage extends ConsumerStatefulWidget {
 class _OpenApiLogsPageState extends ConsumerState<OpenApiLogsPage> {
   List<Map<String, dynamic>> _logs = [];
   bool _loading = true;
+  int _page = 1;
+  int _total = 0;
 
   @override
   void initState() {
@@ -1205,19 +1053,28 @@ class _OpenApiLogsPageState extends ConsumerState<OpenApiLogsPage> {
     _load();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool refresh = true}) async {
+    if (_loading && !refresh) return;
+    if (refresh) _page = 1;
     setState(() => _loading = true);
     try {
-      final logs = await _loadAllOpenApiLogs(widget.appId);
+      final result = await _loadOpenApiLogPage(widget.appId, _page);
       if (!mounted) return;
       setState(() {
-        _logs = logs;
+        _logs = refresh ? result.items : [..._logs, ...result.items];
+        _total = result.total;
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
     }
+  }
+
+  void _loadMore() {
+    if (_loading || _logs.length >= _total) return;
+    _page++;
+    _load(refresh: false);
   }
 
   @override
@@ -1253,10 +1110,15 @@ class _OpenApiLogsPageState extends ConsumerState<OpenApiLogsPage> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: RefreshIndicator(
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (notification.metrics.extentAfter < 240) _loadMore();
+                  return false;
+                },
+                child: RefreshIndicator(
                 color: AppColors.primary,
                 onRefresh: _load,
-                child: _loading
+                child: _loading && _logs.isEmpty
                     ? ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         children: const [
@@ -1283,8 +1145,19 @@ class _OpenApiLogsPageState extends ConsumerState<OpenApiLogsPage> {
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                        itemCount: _logs.length,
-                        itemBuilder: (_, i) {
+                         itemCount:
+                             _logs.length + (_logs.length < _total ? 1 : 0),
+                         itemBuilder: (_, i) {
+                           if (i == _logs.length) {
+                             return const Padding(
+                               padding: EdgeInsets.all(16),
+                               child: Center(
+                                 child: CircularProgressIndicator(
+                                   color: AppColors.primary,
+                                 ),
+                               ),
+                             );
+                           }
                           final log = _logs[i];
                           final status = (log['status'] as num?)?.toInt() ?? 0;
                           final ok = status >= 200 && status < 300;
@@ -1368,6 +1241,7 @@ class _OpenApiLogsPageState extends ConsumerState<OpenApiLogsPage> {
                           );
                         },
                       ),
+                ),
               ),
             ),
           ],
