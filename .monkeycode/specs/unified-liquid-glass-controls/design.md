@@ -29,6 +29,7 @@ UI 基于 `liquid_glass_easy 3.3.1` 重构。主 Shell 使用 `LiquidGlassScaffo
 - `LiquidGlassSlider`：主题背景模糊强度滑块。
 - `AppLiquidGlassDialogActions`：1–3 个响应式对话框动作按钮，支持窄屏纵向排列。
 - `AppGlassNotice`：统一 SnackBar 队列、图标、语义色和持续时间。
+- 高频设置菜单、系统操作、订阅日志和脚本版本历史使用低成本 Lens 整卡。
 - `InputDecorationTheme`：搜索框和表单输入。
 - `FilledButtonThemeData`：主要操作按钮。
 - `OutlinedButtonThemeData`：次要操作按钮。
