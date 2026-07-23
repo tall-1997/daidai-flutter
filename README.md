@@ -11,11 +11,17 @@
 
 ## 版本
 
-- App 版本：`v0.1.43`
+- App 版本：`v0.1.44`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.44
+
+- 完成 Android bsdiff 差分升级正式发布，并兼容 Android 23–27 的已安装 APK版本信息读取。
+- Release 自动发布完整 APK、差分 patch 和固定地址 `android-update.json`。
+- 补充 XeonBsDiff 第三方开源声明。
 
 ### v0.1.43
 

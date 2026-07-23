@@ -34,6 +34,12 @@
 | flutter_local_notifications | 本地通知 | BSD-3-Clause | https://pub.dev/packages/flutter_local_notifications |
 | liquid_glass_easy | 实时折射 Liquid Glass UI | MIT | https://github.com/AhmeedGamil/liquid_glass_easy |
 
+## Android 原生依赖
+
+| 依赖 | 用途 | 许可证 | 来源 |
+|---|---|---|---|
+| XeonBsDiff | Android bsdiff/bspatch 差分合并 | Apache-2.0 | https://github.com/yuzhiqiang1993/XeonBsDiff |
+
 ## 开发工具
 
 | 依赖 | 用途 | 许可证 | 来源 |
