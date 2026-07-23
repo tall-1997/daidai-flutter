@@ -158,6 +158,8 @@ class ScriptState {
 class ScriptNotifier extends StateNotifier<ScriptState> {
   ScriptNotifier() : super(const ScriptState());
 
+  int _contentRequestId = 0;
+
   void setKeyword(String keyword) {
     state = state.copyWith(keyword: keyword);
   }
@@ -183,6 +185,7 @@ class ScriptNotifier extends StateNotifier<ScriptState> {
   }
 
   Future<void> loadContent(String path) async {
+    final requestId = ++_contentRequestId;
     state = state.copyWith(selectedPath: path, loadingContent: true);
     try {
       final resp = await DioClient.instance.dio.get(
@@ -190,6 +193,9 @@ class ScriptNotifier extends StateNotifier<ScriptState> {
         queryParameters: {'path': path},
       );
       final data = extractData(resp.data);
+      if (requestId != _contentRequestId || state.selectedPath != path) {
+        return;
+      }
       if (data is Map) {
         final isBinary = data['binary'] == true || data['is_binary'] == true;
         state = state.copyWith(
@@ -207,6 +213,9 @@ class ScriptNotifier extends StateNotifier<ScriptState> {
         loadingContent: false,
       );
     } catch (_) {
+      if (requestId != _contentRequestId || state.selectedPath != path) {
+        return;
+      }
       state = state.copyWith(
         selectedPath: path,
         content: '加载失败',
