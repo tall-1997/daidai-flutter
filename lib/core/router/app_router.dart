@@ -28,6 +28,7 @@ import '../../features/system/views/panel_settings_page.dart';
 import '../../features/system/views/panel_log_page.dart';
 import '../../features/system/views/backup_page.dart';
 import '../../features/system/views/health_check_page.dart';
+import '../../features/system/views/config_script_page.dart';
 import '../../features/openapi/views/open_api_page.dart';
 import '../../features/app_lock/views/app_lock_settings_page.dart';
 import '../../features/settings/views/theme_settings_page.dart';
@@ -100,6 +101,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           '/deps','/users','/security','/ssh-keys','/system-settings',
           '/panel-settings','/panel-log','/backup','/open-api','/health-check',
           '/platform-tokens',
+          '/config-script',
         };
         const operatorRoutes = <String>{'/scripts','/subscriptions'};
         final user = authState.user;
@@ -167,6 +169,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/profile',
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (_, state) => _rootPage(const ProfilePage()),
+      ),
+      GoRoute(
+        path:'/config-script',parentNavigatorKey:_rootNavigatorKey,pageBuilder:(_,state)=>_rootPage(const ConfigScriptPage()),
       ),
       GoRoute(
         path: '/platform-tokens',parentNavigatorKey:_rootNavigatorKey,pageBuilder:(_,state)=>_rootPage(const PlatformTokensPage()),
