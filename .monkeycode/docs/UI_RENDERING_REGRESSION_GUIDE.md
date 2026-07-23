@@ -122,3 +122,5 @@ flutter build ios --release --no-codesign
 - 全仓业务代码通过 `AppGlassNotice` 显示反馈，直接 `showSnackBar` 仅保留在共享实现内部。
 - 任务展开结构保持一张主 Lens、一个共享侧滑 Lens，内部摘要使用透明分区和轻量徽标。
 - 应用锁核心面板使用 `AppCard`，外层遮罩与背景模糊继续保留。
+- 取消、确认、保存、删除和流程切换动作统一使用 `AppLiquidGlassDialogActions` 或 `AppLiquidGlassButton`。
+- 自动完成弹出选项使用低成本 `AppLiquidGlassSurface`。

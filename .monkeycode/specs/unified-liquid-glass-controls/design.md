@@ -32,6 +32,7 @@ UI 基于 `liquid_glass_easy 3.3.1` 重构。主 Shell 使用 `LiquidGlassScaffo
 - 高频设置菜单、系统操作、订阅日志和脚本版本历史使用低成本 Lens 整卡。
 - Security、OpenAPI、任务/变量排序、依赖概览、服务器、赞助和备份完整表面已统一为 Lens。
 - 任务主卡、侧滑操作条和应用锁面板已统一为真实 Lens；Cron 与订阅摘要改为主卡内部透明分区。
+- 高价值 Dialog、BottomSheet 主动作和自动完成选项面板已完成 Lens 迁移。
 - `InputDecorationTheme`：搜索框和表单输入。
 - `FilledButtonThemeData`：主要操作按钮。
 - `OutlinedButtonThemeData`：次要操作按钮。

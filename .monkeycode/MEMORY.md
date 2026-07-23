@@ -49,3 +49,4 @@
   - 完整卡片和可点击信息表面统一使用 `AppCard` 或 `AppLiquidGlassSurface`。
   - 业务提示统一使用 `AppGlassNotice`，避免直接调用 `showSnackBar`。
   - 任务卡保持一张主 Lens 和一个共享侧滑 Lens，Cron/订阅摘要使用透明内容分区。
+  - 高价值对话框和 BottomSheet 主动作统一使用共享液态玻璃动作组件。
