@@ -124,3 +124,5 @@ flutter build ios --release --no-codesign
 - 应用锁核心面板使用 `AppCard`，外层遮罩与背景模糊继续保留。
 - 取消、确认、保存、删除和流程切换动作统一使用 `AppLiquidGlassDialogActions` 或 `AppLiquidGlassButton`。
 - 自动完成弹出选项使用低成本 `AppLiquidGlassSurface`。
+- 任务卡不再提供侧滑动作层，点击查看日志、长按选择，运行/停止按钮保留在卡片内部。
+- 环境变量卡保持至少 12px 外间距、16px 圆角裁剪，变量值最多 6 行，备注最多 2 行。

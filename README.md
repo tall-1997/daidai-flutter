@@ -11,11 +11,17 @@
 
 ## 版本
 
-- App 版本：`v0.1.38`
+- App 版本：`v0.1.39`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.39
+
+- 移除任务展开卡片中无效的“禁用 / 更多 / 删除”模糊侧滑按钮和整套侧滑手势状态。
+- 任务卡恢复为单一点击/长按 Lens，保留运行/停止、状态、Cron 和订阅信息。
+- 环境变量卡增加稳定间距和圆角裁剪，限制长值与备注行数，修复卡片紧贴和视觉重叠。
 
 ### v0.1.38
 
@@ -238,8 +244,8 @@ Material 3 主题 + `liquid_glass_easy 3.3.1` 实时折射液态玻璃风格。�
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.1.38-android.apk](https://github.com/tall-1997/daidai-flutter/releases/download/v0.1.38/daidai-flutter-v0.1.38-android.apk) |
-| iOS | [daidai-flutter-v0.1.38-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/download/v0.1.38/daidai-flutter-v0.1.38-ios.ipa) |
+| Android | [daidai-flutter-v0.1.39-android.apk](https://github.com/tall-1997/daidai-flutter/releases/download/v0.1.39/daidai-flutter-v0.1.39-android.apk) |
+| iOS | [daidai-flutter-v0.1.39-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/download/v0.1.39/daidai-flutter-v0.1.39-ios.ipa) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 
