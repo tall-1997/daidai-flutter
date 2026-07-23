@@ -686,25 +686,16 @@ class _BackupPageState extends ConsumerState<BackupPage> {
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () {
+        actions: [AppLiquidGlassDialogActions(actions: [
+          AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(dialogContext)),
+          AppGlassDialogAction(label: '确认恢复', variant: AppLiquidGlassButtonVariant.danger, onPressed: () {
               if (needsPassword && passwordController.text.trim().isEmpty) {
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('请输入备份密码')),
-                );
+                messenger.showSnackBar(const SnackBar(content: Text('请输入备份密码')));
                 return;
               }
               Navigator.pop(dialogContext, passwordController.text.trim());
-            },
-            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
-            child: const Text('确认恢复'),
-          ),
-        ],
+            }),
+        ])],
       ),
     );
   }
@@ -715,17 +706,10 @@ class _BackupPageState extends ConsumerState<BackupPage> {
       builder: (dialogContext) => AlertDialog(
         title: const Text('删除备份'),
         content: Text('确定要删除备份「$filename」吗？删除后将无法恢复。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
-            child: const Text('删除'),
-          ),
-        ],
+        actions: [AppLiquidGlassDialogActions(actions: [
+          AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(dialogContext, false)),
+          AppGlassDialogAction(label: '删除', onPressed: () => Navigator.pop(dialogContext, true), variant: AppLiquidGlassButtonVariant.danger),
+        ])],
       ),
     );
     if (confirm != true || _deleting.contains(filename)) {

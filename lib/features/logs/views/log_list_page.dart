@@ -297,17 +297,10 @@ class _LogListPageState extends ConsumerState<LogListPage> {
       builder: (ctx) => AlertDialog(
         title: const Text('批量删除'),
         content: Text('确定要删除选中的 $count 条日志吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
-            child: const Text('删除'),
-          ),
-        ],
+        actions: [AppLiquidGlassDialogActions(actions: [
+          AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(ctx, false)),
+          AppGlassDialogAction(label: '删除', onPressed: () => Navigator.pop(ctx, true), variant: AppLiquidGlassButtonVariant.danger),
+        ])],
       ),
     );
     if (confirmed != true) return;
@@ -358,17 +351,10 @@ class _LogListPageState extends ConsumerState<LogListPage> {
         builder: (ctx) => AlertDialog(
           title: const Text('清理全部日志'),
           content: const Text('确定要清理当前筛选条件下的全部日志吗？此操作不可恢复。'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
-              child: const Text('清理'),
-            ),
-          ],
+          actions: [AppLiquidGlassDialogActions(actions: [
+            AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(ctx, false)),
+            AppGlassDialogAction(label: '清理', onPressed: () => Navigator.pop(ctx, true), variant: AppLiquidGlassButtonVariant.danger),
+          ])],
         ),
       );
       if (confirmed != true) return;
@@ -400,17 +386,10 @@ class _LogListPageState extends ConsumerState<LogListPage> {
       builder: (dialogCtx) => AlertDialog(
         title: const Text('删除日志'),
         content: Text('确定要删除日志 #${log.id} 吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogCtx, true),
-            style: FilledButton.styleFrom(foregroundColor: AppColors.red500),
-            child: const Text('删除'),
-          ),
-        ],
+        actions: [AppLiquidGlassDialogActions(actions: [
+          AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(dialogCtx, false)),
+          AppGlassDialogAction(label: '删除', onPressed: () => Navigator.pop(dialogCtx, true), variant: AppLiquidGlassButtonVariant.danger),
+        ])],
       ),
     );
     if (confirmed != true) {

@@ -456,6 +456,75 @@ class AppLiquidGlassInputChip extends StatelessWidget {
   }
 }
 
+class AppGlassDialogAction {
+  final String label;
+  final VoidCallback? onPressed;
+  final AppLiquidGlassButtonVariant variant;
+  final IconData? icon;
+  final bool loading;
+
+  const AppGlassDialogAction({
+    required this.label,
+    required this.onPressed,
+    this.variant = AppLiquidGlassButtonVariant.secondary,
+    this.icon,
+    this.loading = false,
+  });
+}
+
+class AppLiquidGlassDialogActions extends StatelessWidget {
+  final List<AppGlassDialogAction> actions;
+  final double height;
+
+  const AppLiquidGlassDialogActions({
+    super.key,
+    required this.actions,
+    this.height = 44,
+  }) : assert(actions.length > 0 && actions.length <= 3);
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final vertical = constraints.maxWidth < 280 && actions.length > 1;
+        final buttons = actions
+            .map(
+              (action) => AppLiquidGlassButton(
+                label: action.label,
+                icon: action.icon,
+                onPressed: action.onPressed,
+                height: height,
+                loading: action.loading,
+                variant: action.variant,
+                performanceMode: true,
+              ),
+            )
+            .toList();
+        if (vertical) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var index = 0; index < buttons.length; index++) ...[
+                SizedBox(width: double.infinity, child: buttons[index]),
+                if (index < buttons.length - 1) const SizedBox(height: 8),
+              ],
+            ],
+          );
+        }
+        return Row(
+          children: [
+            for (var index = 0; index < buttons.length; index++) ...[
+              Expanded(child: buttons[index]),
+              if (index < buttons.length - 1) const SizedBox(width: 10),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
 LiquidGlassStyle appLiquidGlassStyle({
   required bool isLight,
   double borderRadius = 16,

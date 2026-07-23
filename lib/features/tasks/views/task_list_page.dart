@@ -284,34 +284,10 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       builder: (dialogContext) => AlertDialog(
         title: const Text('批量删除任务'),
         content: Text('确定要删除选中的 $count 个任务吗？此操作不可恢复。'),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(dialogContext, false),
-                    child: const Text('取消'),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 44,
-                  child: FilledButton(
-                    onPressed: () => Navigator.pop(dialogContext, true),
-                    style: FilledButton.styleFrom(
-                      foregroundColor: AppColors.red500,
-                    ),
-                    child: const Text('删除'),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+        actions: [AppLiquidGlassDialogActions(actions: [
+          AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(dialogContext, false)),
+          AppGlassDialogAction(label: '删除', onPressed: () => Navigator.pop(dialogContext, true), variant: AppLiquidGlassButtonVariant.danger),
+        ])],
       ),
     );
     return confirmed == true;
