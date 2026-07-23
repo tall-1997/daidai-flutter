@@ -20,6 +20,13 @@ UI 基于 `liquid_glass_easy 3.3.1` 重构。主 Shell 使用 `LiquidGlassScaffo
 - `AppCard`：基于 `LiquidGlassLens` 的内容卡片和选项卡片。
 - `AppLiquidGlassSurface`：基于 `LiquidGlassLens` 的筛选和操作表面。
 - `AppGlassIconButton`：基于 `LiquidGlassLens` 的页头按钮。
+- `AppLiquidGlassInput`：固定搜索框和筛选输入的低成本 Lens 外壳。
+- `AppLiquidGlassToggle`：统一 `LiquidGlassToggle` 的主题、禁用态和像素比。
+- `AppLiquidGlassButton`：统一 `LiquidGlassButton` 的主要、次要、危险、警告和加载状态。
+- `AppLiquidGlassChoiceChip`：交互型 ChoiceChip 与 FilterChip。
+- `AppLiquidGlassActionChip`：快捷操作 Chip。
+- `AppLiquidGlassInputChip`：可删除标签 Chip。
+- `LiquidGlassSlider`：主题背景模糊强度滑块。
 - `InputDecorationTheme`：搜索框和表单输入。
 - `FilledButtonThemeData`：主要操作按钮。
 - `OutlinedButtonThemeData`：次要操作按钮。
@@ -42,6 +49,7 @@ UI 基于 `liquid_glass_easy 3.3.1` 重构。主 Shell 使用 `LiquidGlassScaffo
 - 浅色和深色模式逐页检查。
 - 快速滚动任务、日志、变量、依赖、用户和通知列表。
 - 检查页头按钮、搜索框、Chip、主题模式和批量按钮。
+- 检查 Toggle 滑动动画、Slider 拖动和禁用状态。
 - 检查 320dp 窄屏和较大字体。
 - 构建 Android Release APK。
 - 构建 iOS Release IPA。

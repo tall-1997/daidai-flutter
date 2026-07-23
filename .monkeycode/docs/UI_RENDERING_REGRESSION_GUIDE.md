@@ -105,3 +105,9 @@ flutter build ios --release --no-codesign
 - 所有包引用通过 `package:liquid_glass_easy/liquid_glass_easy.dart` 公共入口。
 - 全局关闭 Stretch Overscroll，防止 Android 滚动边缘 Lens 变黑。
 - 滚动卡片采用低失真、低模糊、零色散配置。
+- 搜索框使用 `AppLiquidGlassInput`。
+- 独立开关使用 `AppLiquidGlassToggle`。
+- 模糊强度使用 `LiquidGlassSlider`。
+- 高曝光主按钮使用 `AppLiquidGlassButton`。
+- 交互型 Chip 使用 `AppLiquidGlassChoiceChip`、`AppLiquidGlassActionChip` 或 `AppLiquidGlassInputChip`。
+- 纯展示状态徽标保留轻量绘制，避免无收益的 Lens 嵌套。

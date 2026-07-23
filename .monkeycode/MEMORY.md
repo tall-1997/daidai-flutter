@@ -40,3 +40,5 @@
   - 禁止引用 `liquid_glass_easy/src/` 私有实现。
   - 滚动 Lens 使用低失真、低模糊和零色散性能配置。
   - Android 全局关闭 Stretch Overscroll，避免滚动边缘玻璃变黑。
+  - 搜索、Toggle、Slider、主按钮和交互 Chip 优先使用项目共享的 `liquid_glass_easy` 封装。
+  - 滚动卡片内部的纯展示徽标保持轻量绘制，控制 Lens 嵌套数量。
