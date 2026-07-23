@@ -2071,9 +2071,6 @@ class _TaskCardState extends State<_TaskCard> {
   @override
   Widget build(BuildContext context) {
     final dotColor = _dotColor();
-    final borderColor = widget.isLight
-        ? AppColors.slate200
-        : AppColors.darkBorder;
     final labels = task.userLabelsForDisplay;
     final hasFailure = task.lastRunStatus == 1;
     final primaryColor = task.isRunning ? AppColors.red500 : AppColors.primary;
@@ -2096,40 +2093,43 @@ class _TaskCardState extends State<_TaskCard> {
           clipBehavior: Clip.hardEdge,
           children: [
             Positioned.fill(
-              child: ColoredBox(
-                color: widget.isLight
-                    ? AppColors.lightSurfaceMuted
-                    : AppColors.darkSurfaceMuted,
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _TaskSwipeActionButton(
-                      label: task.isDisabled ? '启用' : '禁用',
-                      icon: task.isDisabled
-                          ? Icons.play_circle_outline
-                          : Icons.pause_circle_outline,
-                      color: task.isDisabled
-                          ? AppColors.primary
-                          : AppColors.slate500,
-                      onTap: () => _runSwipeAction(widget.onToggleEnabled),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: SizedBox(
+                  width: _actionsWidth,
+                  child: AppLiquidGlassSurface(
+                    borderRadius: 16,
+                    performanceMode: true,
+                    padding: const EdgeInsets.all(4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        _TaskSwipeActionButton(
+                          label: task.isDisabled ? '启用' : '禁用',
+                          icon: task.isDisabled
+                              ? Icons.play_circle_outline
+                              : Icons.pause_circle_outline,
+                          color: task.isDisabled
+                              ? AppColors.primary
+                              : AppColors.slate500,
+                          onTap: () => _runSwipeAction(widget.onToggleEnabled),
+                        ),
+                        const SizedBox(width: _actionGap),
+                        _TaskSwipeActionButton(
+                          label: '更多',
+                          icon: Icons.more_horiz,
+                          color: AppColors.blue500,
+                          onTap: _showMoreActions,
+                        ),
+                        const SizedBox(width: _actionGap),
+                        _TaskSwipeActionButton(
+                          label: '删除',
+                          icon: Icons.delete_outline,
+                          color: AppColors.red500,
+                          onTap: () => _runSwipeAction(widget.onDelete),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: _actionGap),
-                    _TaskSwipeActionButton(
-                      label: '更多',
-                      icon: Icons.more_horiz,
-                      color: AppColors.blue500,
-                      onTap: _showMoreActions,
-                    ),
-                    const SizedBox(width: _actionGap),
-                    _TaskSwipeActionButton(
-                      label: '删除',
-                      icon: Icons.delete_outline,
-                      color: AppColors.red500,
-                      onTap: () => _runSwipeAction(widget.onDelete),
-                    ),
-                  ],
                   ),
                 ),
               ),
@@ -2182,35 +2182,16 @@ class _TaskCardState extends State<_TaskCard> {
                     : const Duration(milliseconds: 160),
                 curve: Curves.easeOutCubic,
                 transform: Matrix4.translationValues(_dragOffset, 0, 0),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: widget.isLight
-                          ? const [Color(0xEFFFFFFF), Color(0xD9F4F7FA)]
-                          : const [Color(0xE61A2638), Color(0xDD111C2D)],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: widget.isLight
-                            ? Colors.white.withAlpha(90)
-                            : Colors.black.withAlpha(32),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                    border: Border.all(
-                      color: widget.selected
-                          ? AppColors.primary
-                          : hasFailure
-                          ? AppColors.red500.withAlpha(90)
-                          : borderColor,
-                      width: widget.selected ? 1.4 : 1,
-                    ),
-                  ),
-                  child: Padding(
+                child: RepaintBoundary(
+                  child: AppLiquidGlassSurface(
+                    borderRadius: 16,
+                    performanceMode: true,
+                    selected: widget.selected || hasFailure,
+                    accentColor: widget.selected
+                        ? AppColors.primary
+                        : hasFailure
+                        ? AppColors.red500
+                        : null,
                     padding: const EdgeInsets.all(14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2340,7 +2321,6 @@ fontSize: 11,
                       ],
                     ),
                       ],
-                  ),
                 ),
               ),
             ),
@@ -2413,13 +2393,12 @@ class _TaskSwipeActionButton extends StatelessWidget {
     final isLight = Theme.of(context).brightness == Brightness.light;
     return SizedBox(
       width: _TaskCardState._actionWidth,
-      child: AppLiquidGlassSurface(
-        onTap: onTap,
-        borderRadius: 8,
-        accentColor: color,
-        selected: true,
-        performanceMode: true,
-        child: Column(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 15, color: color),
@@ -2435,6 +2414,7 @@ class _TaskSwipeActionButton extends StatelessWidget {
                 ),
               ),
             ],
+          ),
         ),
       ),
     );
@@ -2480,18 +2460,8 @@ class _TaskScheduleSummary extends StatelessWidget {
         ? AppColors.blue500
         : AppColors.amber500;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-      decoration: BoxDecoration(
-        color: isLight
-            ? AppColors.lightSurfaceMuted
-            : AppColors.darkSurfaceMuted,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isLight ? AppColors.slate200 : AppColors.darkBorder,
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
       child: Row(
         children: [
           Container(
@@ -2558,18 +2528,8 @@ class _TaskSubscriptionSummary extends ConsumerWidget {
     
     final visibleLabels = labels.take(3).toList();
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: isLight
-            ? AppColors.lightSurfaceMuted
-            : AppColors.darkSurfaceMuted,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isLight ? AppColors.slate200 : AppColors.darkBorder,
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

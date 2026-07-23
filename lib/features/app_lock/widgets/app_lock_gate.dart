@@ -243,23 +243,11 @@ class _AppLockOverlayState extends State<_AppLockOverlay> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: Container(
-                margin: const EdgeInsets.all(20),
+              child: Padding(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: isLight ? Colors.white : AppColors.slate950,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: isLight ? AppColors.slate200 : AppColors.slate800,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(35),
-                      blurRadius: 24,
-                      offset: const Offset(0, 14),
-                    ),
-                  ],
-                ),
+                child: AppCard(
+                borderRadius: 24,
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -350,6 +338,7 @@ class _AppLockOverlayState extends State<_AppLockOverlay> {
                       ),
                     ],
                   ],
+                ),
                 ),
               ),
             ),
