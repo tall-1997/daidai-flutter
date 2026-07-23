@@ -131,6 +131,8 @@ class _LoginLogsTabState extends ConsumerState<_LoginLogsTab>
     with AutomaticKeepAliveClientMixin {
   List<Map<String, dynamic>> _logs = [];
   bool _loading = true;
+  int _page = 1;
+  int _total = 0;
   final TextEditingController _usernameController = TextEditingController();
 
   @override
@@ -148,13 +150,15 @@ class _LoginLogsTabState extends ConsumerState<_LoginLogsTab>
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool refresh = true}) async {
+    if (_loading && !refresh) return;
+    if (refresh) _page = 1;
     setState(() => _loading = true);
     try {
       final resp = await DioClient.instance.dio.get(
         ApiEndpoints.loginLogs,
         queryParameters: {
-          'page': 1,
+          'page': _page,
           'page_size': 100,
           if (_usernameController.text.trim().isNotEmpty)
             'username': _usernameController.text.trim(),
@@ -163,13 +167,20 @@ class _LoginLogsTabState extends ConsumerState<_LoginLogsTab>
       final paginated = extractPaginated(resp.data);
       if (!mounted) return;
       setState(() {
-        _logs = paginated.items;
+        _logs = refresh ? paginated.items : [..._logs, ...paginated.items];
+        _total = paginated.total;
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
     }
+  }
+
+  void _loadMore() {
+    if (_loading || _logs.length >= _total) return;
+    _page++;
+    _load(refresh: false);
   }
 
   Future<void> _clearLogs() async {
@@ -213,10 +224,15 @@ class _LoginLogsTabState extends ConsumerState<_LoginLogsTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return RefreshIndicator(
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification.metrics.extentAfter < 240) _loadMore();
+        return false;
+      },
+      child: RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _load,
-      child: _loading
+      child: _loading && _logs.isEmpty
           ? ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               children: const [
@@ -357,8 +373,16 @@ class _LoginLogsTabState extends ConsumerState<_LoginLogsTab>
                       ),
                     );
                   }),
+                if (_loading && _logs.isNotEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    ),
+                  ),
               ],
             ),
+      ),
     );
   }
 }
@@ -489,7 +513,7 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _load,
-      child: _loading
+      child: _loading && _logs.isEmpty
           ? ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               children: const [
@@ -1339,6 +1363,8 @@ class _AuditLogsTabState extends ConsumerState<_AuditLogsTab>
     with AutomaticKeepAliveClientMixin {
   List<Map<String, dynamic>> _logs = [];
   bool _loading = true;
+  int _page = 1;
+  int _total = 0;
 
   @override
   bool get wantKeepAlive => true;
@@ -1349,17 +1375,20 @@ class _AuditLogsTabState extends ConsumerState<_AuditLogsTab>
     _load();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool refresh = true}) async {
+    if (_loading && !refresh) return;
+    if (refresh) _page = 1;
     setState(() => _loading = true);
     try {
       final resp = await DioClient.instance.dio.get(
         ApiEndpoints.auditLogs,
-        queryParameters: {'page': 1, 'page_size': 100},
+        queryParameters: {'page': _page, 'page_size': 100},
       );
       final paginated = extractPaginated(resp.data);
       if (!mounted) return;
       setState(() {
-        _logs = paginated.items;
+        _logs = refresh ? paginated.items : [..._logs, ...paginated.items];
+        _total = paginated.total;
         _loading = false;
       });
     } catch (_) {
@@ -1368,11 +1397,22 @@ class _AuditLogsTabState extends ConsumerState<_AuditLogsTab>
     }
   }
 
+  void _loadMore() {
+    if (_loading || _logs.length >= _total) return;
+    _page++;
+    _load(refresh: false);
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
 
-    return RefreshIndicator(
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification.metrics.extentAfter < 240) _loadMore();
+        return false;
+      },
+      child: RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _load,
       child: _loading
@@ -1401,8 +1441,16 @@ class _AuditLogsTabState extends ConsumerState<_AuditLogsTab>
           : ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-              itemCount: _logs.length,
+              itemCount: _logs.length + (_logs.length < _total ? 1 : 0),
               itemBuilder: (_, i) {
+                if (i == _logs.length) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    ),
+                  );
+                }
                 final log = _logs[i];
                 final time = DateTime.tryParse(
                   log['created_at']?.toString() ?? '',
@@ -1477,6 +1525,7 @@ class _AuditLogsTabState extends ConsumerState<_AuditLogsTab>
                 );
               },
             ),
+      ),
     );
   }
 }
