@@ -183,4 +183,22 @@ class ApiEndpoints {
   static String openApiAppViewSecret(int id) =>
       '$baseApi/open-api/apps/$id/view-secret';
   static String openApiAppLogs(int id) => '$baseApi/open-api/apps/$id/logs';
+  static const String platforms = '$baseApi/platform-tokens/platforms';
+  static String platformById(int id) => '$baseApi/platform-tokens/platforms/$id';
+  static const String platformTokens = '$baseApi/platform-tokens';
+  static String platformTokenById(int id) => '$baseApi/platform-tokens/$id';
+  static String platformTokenEnable(int id) => '$baseApi/platform-tokens/$id/enable';
+  static String platformTokenDisable(int id) => '$baseApi/platform-tokens/$id/disable';
+  static const String configScript = '$baseApi/system/config-script';
+  static const String androidRuntimeStatus = '$baseApi/android-runtime/status';
+  static const String androidRuntimeInstall = '$baseApi/android-runtime/install';
+  static const String androidRuntimeUninstall = '$baseApi/android-runtime/uninstall';
+  static const String depsPip = '$baseApi/deps/pip';
+  static const String depsNpm = '$baseApi/deps/npm';
+  static const String depsExport = '$baseApi/deps/export';
+  static const String depsBatchReinstall = '$baseApi/deps/batch-reinstall';
+  static const String envsBatchRename = '$baseApi/envs/batch/rename';
+  static String envMoveTop(int id) => '$baseApi/envs/$id/move-top';
+  static String envCancelTop(int id) => '$baseApi/envs/$id/cancel-top';
+  static const String envsExportFiles = '$baseApi/envs/export-files';
 }

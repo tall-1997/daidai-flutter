@@ -22,6 +22,7 @@ import '../../features/deps/views/dep_list_page.dart';
 import '../../features/users/views/user_list_page.dart';
 import '../../features/security/views/security_page.dart';
 import '../../features/security/views/ssh_keys_page.dart';
+import '../../features/security/views/platform_tokens_page.dart';
 import '../../features/system/views/system_settings_page.dart';
 import '../../features/system/views/panel_settings_page.dart';
 import '../../features/system/views/panel_log_page.dart';
@@ -98,6 +99,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         const adminRoutes = <String>{
           '/deps','/users','/security','/ssh-keys','/system-settings',
           '/panel-settings','/panel-log','/backup','/open-api','/health-check',
+          '/platform-tokens',
         };
         const operatorRoutes = <String>{'/scripts','/subscriptions'};
         final user = authState.user;
@@ -165,6 +167,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/profile',
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (_, state) => _rootPage(const ProfilePage()),
+      ),
+      GoRoute(
+        path: '/platform-tokens',parentNavigatorKey:_rootNavigatorKey,pageBuilder:(_,state)=>_rootPage(const PlatformTokensPage()),
       ),
       GoRoute(
         path: '/health-check',

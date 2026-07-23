@@ -181,6 +181,7 @@ class _MorePageState extends ConsumerState<MorePage> {
               isLight: isLight,
               onTap: () => context.push('/ssh-keys'),
             ),
+            _SettingsItem(icon: Icons.token_outlined,title:'平台令牌',isLight:isLight,onTap:()=>context.push('/platform-tokens')),
             _SettingsItem(
               icon: Icons.settings,
               title: '系统设置',
