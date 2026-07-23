@@ -310,6 +310,7 @@ class _LogListPageState extends ConsumerState<LogListPage> {
       await ref
           .read(logListProvider.notifier)
           .batchDelete(_selectedIds.toList());
+      if (!mounted) return;
       _exitSelectionMode();
       _showMessage('已删除 $count 条日志');
     } catch (e) {
@@ -369,12 +370,14 @@ class _LogListPageState extends ConsumerState<LogListPage> {
         final count = await ref
             .read(logListProvider.notifier)
             .deleteAllMatching();
+        if (!mounted) return;
         _exitSelectionMode();
         _showMessage(count == 0 ? '暂无可清理日志' : '已清理 $count 条日志');
         return;
       }
 
       await ref.read(logListProvider.notifier).clean(days: days);
+      if (!mounted) return;
       _exitSelectionMode();
       _showMessage('已清理 $days 天前的日志');
     } catch (e) {
