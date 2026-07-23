@@ -54,18 +54,22 @@ class _MorePageState extends ConsumerState<MorePage> {
         if (info != null && info.hasUpdate && !silent) {
           AppUpdateService.showUpdateDialog(context, info);
         } else if (!silent) {
-          ScaffoldMessenger.of(
+          AppGlassNotice.show(
             context,
-          ).showSnackBar(const SnackBar(content: Text('当前已是最新版本')));
+            '当前已是最新版本',
+            type: AppGlassNoticeType.info,
+          );
         }
       }
     } catch (_) {
       if (mounted) {
         setState(() => _checking = false);
         if (!silent) {
-          ScaffoldMessenger.of(
+          AppGlassNotice.show(
             context,
-          ).showSnackBar(const SnackBar(content: Text('检查更新失败，请稍后重试')));
+            '检查更新失败，请稍后重试',
+            type: AppGlassNoticeType.error,
+          );
         }
       }
     }

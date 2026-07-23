@@ -57,11 +57,12 @@ class _LocalNotificationSettingsPageState
     final granted = await _service.requestPermissions();
     if (!mounted) return;
     setState(() {});
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(granted ? '通知权限已开启' : '通知权限未开启，请在系统设置中打开'),
-        duration: const Duration(seconds: 2),
-      ),
+    AppGlassNotice.show(
+      context,
+      granted ? '通知权限已开启' : '通知权限未开启，请在系统设置中打开',
+      type: granted
+          ? AppGlassNoticeType.success
+          : AppGlassNoticeType.warning,
     );
   }
 

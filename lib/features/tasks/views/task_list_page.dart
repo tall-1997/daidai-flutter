@@ -1082,9 +1082,9 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                         children: [_buildEmpty()],
                       )
                     : _taskSortMode
-                    ? _buildTaskReorderView(state.tasks, isLight)
+                    ? _buildTaskReorderView(state.tasks)
                     : _groupReorderMode
-                    ? _buildGroupReorderView(groupedTasks, isLight)
+                    ? _buildGroupReorderView(groupedTasks)
                     : ListView.builder(
                         controller: _scrollController,
                         clipBehavior: Clip.hardEdge,
@@ -1094,7 +1094,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                         itemBuilder: (context, index) {
                           final row = taskRows[index];
                           if (row.group != null) {
-                            return _buildTaskGroupHeader(row.group!, isLight);
+                            return _buildTaskGroupHeader(row.group!);
                           }
                           return _buildTaskCard(row.task!, isLight);
                         },
@@ -1183,15 +1183,19 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
             newGroupName: newName,
           );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('已将分组 "$oldName" 重命名为 "$newName"')),
+        AppGlassNotice.show(
+          context,
+          '已将分组 "$oldName" 重命名为 "$newName"',
+          type: AppGlassNoticeType.success,
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        AppGlassNotice.show(
           context,
-        ).showSnackBar(const SnackBar(content: Text('重命名分组失败')));
+          '重命名分组失败',
+          type: AppGlassNoticeType.error,
+        );
       }
     }
   }
@@ -1224,15 +1228,19 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
             newGroupName: null,
           );
       if (mounted) {
-        ScaffoldMessenger.of(
+        AppGlassNotice.show(
           context,
-        ).showSnackBar(SnackBar(content: Text('已删除分组 "$groupName"')));
+          '已删除分组 "$groupName"',
+          type: AppGlassNoticeType.success,
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        AppGlassNotice.show(
           context,
-        ).showSnackBar(const SnackBar(content: Text('删除分组失败')));
+          '删除分组失败',
+          type: AppGlassNoticeType.error,
+        );
       }
     }
   }
@@ -1242,9 +1250,11 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     List<Task> ungroupedTasks,
   ) async {
     if (ungroupedTasks.isEmpty) {
-      ScaffoldMessenger.of(
+      AppGlassNotice.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('没有未分组的任务可添加')));
+        '没有未分组的任务可添加',
+        type: AppGlassNoticeType.info,
+      );
       return;
     }
     final selected = <int>{};
@@ -1303,19 +1313,19 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                         newGroupName: targetGroup,
                       );
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '已将 ${tasksToMove.length} 个任务添加到 "$targetGroup"',
-                        ),
-                      ),
+                    AppGlassNotice.show(
+                      this.context,
+                      '已将 ${tasksToMove.length} 个任务添加到 "$targetGroup"',
+                      type: AppGlassNoticeType.success,
                     );
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(const SnackBar(content: Text('添加任务到分组失败')));
+                    AppGlassNotice.show(
+                      this.context,
+                      '添加任务到分组失败',
+                      type: AppGlassNoticeType.error,
+                    );
                   }
                 }
               },
@@ -1409,19 +1419,19 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                         newGroupName: groupName,
                       );
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '已创建分组 "$groupName" 并添加 ${tasksToMove.length} 个任务',
-                        ),
-                      ),
+                    AppGlassNotice.show(
+                      this.context,
+                      '已创建分组 "$groupName" 并添加 ${tasksToMove.length} 个任务',
+                      type: AppGlassNoticeType.success,
                     );
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(const SnackBar(content: Text('创建分组失败')));
+                    AppGlassNotice.show(
+                      this.context,
+                      '创建分组失败',
+                      type: AppGlassNoticeType.error,
+                    );
                   }
                 }
               },
@@ -1434,7 +1444,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     nameController.dispose();
   }
 
-  Widget _buildGroupReorderView(List<_TaskGroup> groups, bool isLight) {
+  Widget _buildGroupReorderView(List<_TaskGroup> groups) {
     return Column(
       children: [
         Padding(
@@ -1472,20 +1482,15 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
             },
             itemBuilder: (ctx, i) {
               final group = groups[i];
-              return Container(
+              return AppCard(
                 key: ValueKey(group.key),
                 margin: const EdgeInsets.only(bottom: 8),
+                stableForScrolling: true,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 14,
                 ),
-                decoration: BoxDecoration(
-                  color: glassCardColor(isLight: isLight),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: isLight ? AppColors.slate200 : AppColors.darkBorder,
-                  ),
-                ),
+                borderRadius: 14,
                 child: Row(
                   children: [
                     const Icon(
@@ -1520,7 +1525,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     );
   }
 
-  Widget _buildTaskReorderView(List<Task> tasks, bool isLight) {
+  Widget _buildTaskReorderView(List<Task> tasks) {
     return ReorderableListView.builder(
       clipBehavior: Clip.hardEdge,
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
@@ -1534,55 +1539,47 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
         final task = tasks[index];
         return RepaintBoundary(
           key: ValueKey('task-sort-${task.id}'),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              decoration: BoxDecoration(
-                color: glassCardColor(isLight: isLight),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: isLight ? AppColors.slate200 : AppColors.darkBorder,
+          child: AppCard(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            borderRadius: 14,
+            stableForScrolling: true,
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.drag_handle,
+                  size: 20,
+                  color: AppColors.slate400,
                 ),
-              ),
-              child: Row(
-            children: [
-              const Icon(
-                Icons.drag_handle,
-                size: 20,
-                color: AppColors.slate400,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      task.name,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        task.name,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      task.groupName?.isNotEmpty == true
-                          ? '分组：${task.groupName}'
-                          : '未分组',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.slate400,
+                      const SizedBox(height: 4),
+                      Text(
+                        task.groupName?.isNotEmpty == true
+                            ? '分组：${task.groupName}'
+                            : '未分组',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.slate400,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              _MetaChip(label: task.statusText, active: !task.isDisabled),
-            ],
-              ),
+                _MetaChip(label: task.statusText, active: !task.isDisabled),
+              ],
             ),
           ),
         );
@@ -1590,7 +1587,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     );
   }
 
-  Widget _buildTaskGroupHeader(_TaskGroup group, bool isLight) {
+  Widget _buildTaskGroupHeader(_TaskGroup group) {
     final collapsed = _collapsedGroups.contains(group.key);
     final enabledCount = group.tasks.where((task) => task.isEnabled).length;
     final runningCount = group.tasks.where((task) => task.isRunning).length;
@@ -1599,19 +1596,9 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 340;
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            decoration: BoxDecoration(
-              color: glassCardColor(isLight: isLight),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: isLight ? AppColors.slate200 : AppColors.darkBorder,
-              ),
-            ),
-            child: InkWell(
-            borderRadius: BorderRadius.circular(14),
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: GestureDetector(
             onTap: () {
               setState(() {
                 if (collapsed) {
@@ -1626,7 +1613,9 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
               HapticFeedback.mediumImpact();
               setState(() => _groupReorderMode = true);
             },
-            child: Padding(
+            child: AppLiquidGlassSurface(
+              borderRadius: 14,
+              performanceMode: true,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Row(
                 children: [
@@ -1687,7 +1676,6 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   ),
                 ],
               ),
-            ),
             ),
           ),
         );
@@ -3481,11 +3469,10 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
               tooltip: '复制全部',
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: _lines.join('\n')));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('日志已复制到剪贴板'),
-                    duration: Duration(seconds: 2),
-                  ),
+                AppGlassNotice.show(
+                  context,
+                  '日志已复制到剪贴板',
+                  type: AppGlassNoticeType.success,
                 );
               },
             ),

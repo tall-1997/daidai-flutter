@@ -113,17 +113,9 @@ class _SponsorPageState extends State<SponsorPage> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 children: [
-                  Container(
+                  AppCard(
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-color: glassCardColor(isLight: isLight),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isLight
-                            ? AppColors.slate200
-                            : AppColors.slate800,
-                      ),
-                    ),
+                    stableForScrolling: true,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -159,17 +151,9 @@ color: glassCardColor(isLight: isLight),
                   ),
                   const SizedBox(height: 16),
                   if (_sponsors.isEmpty)
-                    Container(
+                    AppCard(
                       padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-color: glassCardColor(isLight: isLight),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isLight
-                              ? AppColors.slate200
-                              : AppColors.slate800,
-                        ),
-                      ),
+                      stableForScrolling: true,
                       child: Column(
                         children: [
                           Icon(
@@ -205,7 +189,6 @@ color: glassCardColor(isLight: isLight),
                       (sponsor) => _SponsorCard(
                         sponsor: sponsor,
                         currencyFormat: _currencyFormat,
-                        isLight: isLight,
                       ),
                     ),
                 ],
@@ -248,27 +231,19 @@ class _SponsorRecord {
 class _SponsorCard extends StatelessWidget {
   final _SponsorRecord sponsor;
   final NumberFormat currencyFormat;
-  final bool isLight;
 
   const _SponsorCard({
     required this.sponsor,
     required this.currencyFormat,
-    required this.isLight,
   });
 
   @override
   Widget build(BuildContext context) {
     final avatarUrl = sponsor.avatarUrl.trim();
-    return Container(
+    return AppCard(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-color: glassCardColor(isLight: isLight),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isLight ? AppColors.slate200 : AppColors.slate800,
-          ),
-      ),
+      stableForScrolling: true,
       child: Row(
         children: [
           avatarUrl.isNotEmpty

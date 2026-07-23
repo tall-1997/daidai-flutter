@@ -343,7 +343,11 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
                 Text('已保存的面板', style: theme.textTheme.titleSmall),
                 const SizedBox(height: 8),
                 ..._panels.map(
-                  (panel) => Card(
+                  (panel) => AppLiquidGlassSurface(
+                    onTap: () => _connect(
+                      url: panel.url,
+                      skipAutoLogin: !panel.autoLogin,
+                    ),
                     child: ListTile(
                       leading: CircleAvatar(
                         backgroundColor: theme.colorScheme.primaryContainer,
@@ -393,10 +397,6 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
                             onPressed: () => _deletePanel(panel),
                           ),
                         ],
-                      ),
-                      onTap: () => _connect(
-                        url: panel.url,
-                        skipAutoLogin: !panel.autoLogin,
                       ),
                     ),
                   ),

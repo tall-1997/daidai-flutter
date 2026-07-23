@@ -70,12 +70,17 @@ class _SshKeysPageState extends ConsumerState<SshKeysPage> {
       await DioClient.instance.dio.delete(ApiEndpoints.sshKeyById(id));
       await _load();
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('SSH 密钥已删除')));
+      AppGlassNotice.show(
+        context,
+        'SSH 密钥已删除',
+        type: AppGlassNoticeType.success,
+      );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(extractErrorMessage(error, '删除 SSH 密钥失败'))),
+      AppGlassNotice.show(
+        context,
+        extractErrorMessage(error, '删除 SSH 密钥失败'),
+        type: AppGlassNoticeType.error,
       );
     }
   }
@@ -140,17 +145,17 @@ class _SshKeysPageState extends ConsumerState<SshKeysPage> {
                         Navigator.of(ctx).pop();
                         await _load();
                         if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('SSH 密钥已添加')),
+                        AppGlassNotice.show(
+                          context,
+                          'SSH 密钥已添加',
+                          type: AppGlassNoticeType.success,
                         );
                       } catch (error) {
                         if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              extractErrorMessage(error, '添加 SSH 密钥失败'),
-                            ),
-                          ),
+                        AppGlassNotice.show(
+                          context,
+                          extractErrorMessage(error, '添加 SSH 密钥失败'),
+                          type: AppGlassNoticeType.error,
                         );
                       }
                     },
@@ -194,8 +199,10 @@ class _SshKeysPageState extends ConsumerState<SshKeysPage> {
                     GestureDetector(
                       onTap: () {
                         Clipboard.setData(ClipboardData(text: publicKey));
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          const SnackBar(content: Text('公钥已复制')),
+                        AppGlassNotice.show(
+                          ctx,
+                          '公钥已复制',
+                          type: AppGlassNoticeType.success,
                         );
                       },
                       child: const Icon(Icons.copy, size: 16, color: AppColors.primary),

@@ -292,9 +292,11 @@ class _UserListPageState extends ConsumerState<UserListPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(
+    AppGlassNotice.show(
       context,
-    ).showSnackBar(const SnackBar(content: Text('角色更新成功')));
+      '角色更新成功',
+      type: AppGlassNoticeType.success,
+    );
   }
 
   void _showCreateDialog() {
@@ -309,7 +311,6 @@ class _UserListPageState extends ConsumerState<UserListPage> {
       useRootNavigator: true,
       builder: (ctx) {
         final navigator = Navigator.of(ctx);
-        final rootMessenger = ScaffoldMessenger.of(context);
         return StatefulBuilder(
           builder: (ctx, setSheetState) => Padding(
             padding: EdgeInsets.fromLTRB(
@@ -378,17 +379,19 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                           return;
                         }
                         navigator.pop();
-                        rootMessenger.showSnackBar(
-                          const SnackBar(content: Text('用户已创建')),
+                        AppGlassNotice.show(
+                          this.context,
+                          '用户已创建',
+                          type: AppGlassNoticeType.success,
                         );
                       } catch (error) {
                         if (!mounted) {
                           return;
                         }
-                        rootMessenger.showSnackBar(
-                          SnackBar(
-                            content: Text(extractErrorMessage(error, '创建用户失败')),
-                          ),
+                        AppGlassNotice.show(
+                          this.context,
+                          extractErrorMessage(error, '创建用户失败'),
+                          type: AppGlassNoticeType.error,
                         );
                       }
                     },
@@ -416,7 +419,6 @@ class _UserListPageState extends ConsumerState<UserListPage> {
     showDialog(
       context: context,
       builder: (dialogCtx) {
-        final rootMessenger = ScaffoldMessenger.of(context);
         return AlertDialog(
           title: Text('重置 ${user.username} 的密码'),
           content: TextField(
@@ -451,19 +453,19 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                             return;
                           }
                           Navigator.of(dialogCtx).pop();
-                          rootMessenger.showSnackBar(
-                            const SnackBar(content: Text('密码已重置')),
+                          AppGlassNotice.show(
+                            this.context,
+                            '密码已重置',
+                            type: AppGlassNoticeType.success,
                           );
                         } catch (error) {
                           if (!mounted) {
                             return;
                           }
-                          rootMessenger.showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                extractErrorMessage(error, '重置密码失败'),
-                              ),
-                            ),
+                          AppGlassNotice.show(
+                            this.context,
+                            extractErrorMessage(error, '重置密码失败'),
+                            type: AppGlassNoticeType.error,
                           );
                         }
                       },
@@ -497,15 +499,19 @@ class _UserListPageState extends ConsumerState<UserListPage> {
         if (!mounted) {
           return;
         }
-        ScaffoldMessenger.of(
+        AppGlassNotice.show(
           context,
-        ).showSnackBar(const SnackBar(content: Text('用户已删除')));
+          '用户已删除',
+          type: AppGlassNoticeType.success,
+        );
       } catch (error) {
         if (!mounted) {
           return;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(extractErrorMessage(error, '删除用户失败'))),
+        AppGlassNotice.show(
+          context,
+          extractErrorMessage(error, '删除用户失败'),
+          type: AppGlassNoticeType.error,
         );
       }
     }
@@ -665,22 +671,22 @@ class _UserCard extends ConsumerWidget {
                     if (!context.mounted) {
                       return;
                     }
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(user.enabled ? '用户已禁用' : '用户已启用')),
+                    AppGlassNotice.show(
+                      this.context,
+                      user.enabled ? '用户已禁用' : '用户已启用',
+                      type: AppGlassNoticeType.success,
                     );
                   } catch (error) {
                     if (!context.mounted) {
                       return;
                     }
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          extractErrorMessage(
-                            error,
-                            user.enabled ? '禁用用户失败' : '启用用户失败',
-                          ),
-                        ),
+                    AppGlassNotice.show(
+                      this.context,
+                      extractErrorMessage(
+                        error,
+                        user.enabled ? '禁用用户失败' : '启用用户失败',
                       ),
+                      type: AppGlassNoticeType.error,
                     );
                   }
                   break;

@@ -215,9 +215,11 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
         if (mounted) _showUpdateDialog();
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(
+          AppGlassNotice.show(
             context,
-          ).showSnackBar(const SnackBar(content: Text('已是最新版本')));
+            '已是最新版本',
+            type: AppGlassNoticeType.info,
+          );
         }
       }
     } catch (e) {
@@ -227,9 +229,11 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
         if (e is DioException && e.response?.data is Map) {
           msg = (e.response!.data as Map)['error']?.toString() ?? msg;
         }
-        ScaffoldMessenger.of(
+        AppGlassNotice.show(
           context,
-        ).showSnackBar(SnackBar(content: Text(msg)));
+          msg,
+          type: AppGlassNoticeType.error,
+        );
       }
     }
   }
@@ -409,14 +413,18 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
       }
       await _loadUpdateStatus();
       if (mounted) {
-        ScaffoldMessenger.of(
+        AppGlassNotice.show(
           context,
-        ).showSnackBar(SnackBar(content: Text(_updateSuccessHint())));
+          _updateSuccessHint(),
+          type: AppGlassNoticeType.success,
+        );
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(extractErrorMessage(error, '更新失败'))),
+        AppGlassNotice.show(
+          context,
+          extractErrorMessage(error, '更新失败'),
+          type: AppGlassNoticeType.error,
         );
       }
     } finally {
@@ -468,9 +476,11 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
           '${ApiEndpoints.baseApi}/system/restart',
         );
         if (mounted) {
-          ScaffoldMessenger.of(
+          AppGlassNotice.show(
             context,
-          ).showSnackBar(const SnackBar(content: Text('面板将在 2 秒后重启')));
+            '面板将在 2 秒后重启',
+            type: AppGlassNoticeType.info,
+          );
         }
       } catch (_) {}
     }
@@ -563,15 +573,19 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
         },
       );
       if (mounted) {
-        ScaffoldMessenger.of(
+        AppGlassNotice.show(
           context,
-        ).showSnackBar(const SnackBar(content: Text('配置已保存')));
+          '配置已保存',
+          type: AppGlassNoticeType.success,
+        );
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        AppGlassNotice.show(
           context,
-        ).showSnackBar(const SnackBar(content: Text('保存失败')));
+          '保存失败',
+          type: AppGlassNoticeType.error,
+        );
       }
     }
     setState(() => _savingConfigs = false);

@@ -615,17 +615,19 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(enabled ? '已启用 ${env.name}' : '已禁用 ${env.name}'),
-        ),
+      AppGlassNotice.show(
+        context,
+        enabled ? '已启用 ${env.name}' : '已禁用 ${env.name}',
+        type: AppGlassNoticeType.success,
       );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(extractErrorMessage(error, '修改环境变量状态失败'))),
+      AppGlassNotice.show(
+        context,
+        extractErrorMessage(error, '修改环境变量状态失败'),
+        type: AppGlassNoticeType.error,
       );
     }
   }
@@ -641,15 +643,19 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
+      AppGlassNotice.show(
         context,
-      ).showSnackBar(SnackBar(content: Text('已删除 ${env.name}')));
+        '已删除 ${env.name}',
+        type: AppGlassNoticeType.success,
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(extractErrorMessage(error, '删除环境变量失败'))),
+      AppGlassNotice.show(
+        context,
+        extractErrorMessage(error, '删除环境变量失败'),
+        type: AppGlassNoticeType.error,
       );
     }
   }
@@ -691,16 +697,20 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
         _EnvBatchAction.disable => '已批量禁用 ${ids.length} 个环境变量',
         _EnvBatchAction.delete => '已批量删除 ${ids.length} 个环境变量',
       };
-      ScaffoldMessenger.of(
+      AppGlassNotice.show(
         context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+        message,
+        type: AppGlassNoticeType.success,
+      );
     } catch (_) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
+      AppGlassNotice.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('批量操作失败，请稍后重试')));
+        '批量操作失败，请稍后重试',
+        type: AppGlassNoticeType.error,
+      );
     }
   }
 
@@ -720,16 +730,20 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
       final message = groups.isEmpty
           ? '已清空 ${ids.length} 个环境变量的分组'
           : '已将 ${ids.length} 个环境变量分组到“${groups.join(' / ')}”';
-      ScaffoldMessenger.of(
+      AppGlassNotice.show(
         context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+        message,
+        type: AppGlassNoticeType.success,
+      );
     } catch (_) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
+      AppGlassNotice.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('批量分组失败，请稍后重试')));
+        '批量分组失败，请稍后重试',
+        type: AppGlassNoticeType.error,
+      );
     }
   }
 
@@ -859,7 +873,6 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
     
-    final messenger = ScaffoldMessenger.of(context);
     final selectedCount = _selectedIds.length;
     final allSelected = _isAllSelected(state.envs);
 
@@ -905,18 +918,18 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                                       );
                                 }
                                 if (mounted) {
-                                  messenger.showSnackBar(
-                                    const SnackBar(content: Text('排序已保存')),
+                                  AppGlassNotice.show(
+                                    context,
+                                    '排序已保存',
+                                    type: AppGlassNoticeType.success,
                                   );
                                 }
                               } catch (error) {
                                 if (mounted) {
-                                  messenger.showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        extractErrorMessage(error, '保存排序失败'),
-                                      ),
-                                    ),
+                                  AppGlassNotice.show(
+                                    context,
+                                    extractErrorMessage(error, '保存排序失败'),
+                                    type: AppGlassNoticeType.error,
                                   );
                                 }
                               }
@@ -1032,43 +1045,38 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                         ),
                       ),
                     ],
-                    child: Container(
-                      height: 44,
+                    child: AppLiquidGlassSurface(
+                      borderRadius: 12,
+                      performanceMode: true,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: glassCardColor(isLight: isLight),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isLight
-                              ? AppColors.slate200
-                              : AppColors.slate800,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.label_outline,
-                            size: 18,
-                            color: AppColors.slate400,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            state.selectedGroups.isEmpty
-                                ? '全部'
-                                : state.selectedGroups.join(' / '),
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: theme.colorScheme.onSurface,
+                      child: SizedBox(
+                        height: 44,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.label_outline,
+                              size: 18,
+                              color: AppColors.slate400,
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.expand_more,
-                            size: 18,
-                            color: AppColors.slate400,
-                          ),
-                        ],
+                            const SizedBox(width: 6),
+                            Text(
+                              state.selectedGroups.isEmpty
+                                  ? '全部'
+                                  : state.selectedGroups.join(' / '),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.expand_more,
+                              size: 18,
+                              color: AppColors.slate400,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -1097,34 +1105,30 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                         ),
                       ),
                     ],
-                    child: Container(
-                      height: 44,
-                      width: 44,
-                      decoration: BoxDecoration(
-                        color: glassCardColor(isLight: isLight),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isLight
-                              ? AppColors.slate200
-                              : AppColors.slate800,
-                        ),
-                      ),
-                      child: Center(
-                        child: _transferBusy
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                    child: _transferBusy
+                        ? AppLiquidGlassSurface(
+                            borderRadius: 12,
+                            performanceMode: true,
+                            child: const SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: Center(
+                                child: SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 ),
-                              )
-                            : const Icon(
-                                Icons.more_horiz,
-                                size: 20,
-                                color: AppColors.slate400,
                               ),
-                      ),
-                    ),
+                            ),
+                          )
+                        : const AppGlassIconButton(
+                            icon: Icons.more_horiz,
+                            tooltip: '导入导出',
+                            onTap: null,
+                            accentColor: AppColors.slate400,
+                          ),
                   ),
                 ],
               ),
@@ -1133,77 +1137,73 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
               const SizedBox(height: 12),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
+                child: SizedBox(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: glassCardColor(isLight: isLight),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: isLight ? AppColors.slate200 : AppColors.slate800,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            '已选择 $selectedCount 项',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                  child: AppCard(
+                    padding: const EdgeInsets.all(12),
+                    borderRadius: 14,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              '已选择 $selectedCount 项',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                          const Spacer(),
-                          TextButton(
-                            onPressed: () => _toggleSelectAll(state.envs),
-                            child: Text(allSelected ? '取消全选' : '全选'),
-                          ),
-                        ],
-                      ),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _BatchActionButton(
-                            label: '批量分组',
-                            icon: Icons.label_outline,
-                            color: AppColors.blue500,
-                            isLight: isLight,
-                            enabled: selectedCount > 0,
-                            onTap: () => _showBatchGroupDialog(state.groups),
-                          ),
-                          _BatchActionButton(
-                            label: '批量启用',
-                            icon: Icons.play_circle_outline,
-                            color: AppColors.primary,
-                            isLight: isLight,
-                            enabled: selectedCount > 0,
-                            onTap: () =>
-                                _performBatchAction(_EnvBatchAction.enable),
-                          ),
-                          _BatchActionButton(
-                            label: '批量禁用',
-                            icon: Icons.pause_circle_outline,
-                            color: AppColors.slate500,
-                            isLight: isLight,
-                            enabled: selectedCount > 0,
-                            onTap: () =>
-                                _performBatchAction(_EnvBatchAction.disable),
-                          ),
-                          _BatchActionButton(
-                            label: '批量删除',
-                            icon: Icons.delete_outline,
-                            color: AppColors.red500,
-                            isLight: isLight,
-                            enabled: selectedCount > 0,
-                            onTap: () =>
-                                _performBatchAction(_EnvBatchAction.delete),
-                          ),
-                        ],
-                      ),
-                    ],
+                            const Spacer(),
+                            TextButton(
+                              onPressed: () => _toggleSelectAll(state.envs),
+                              child: Text(allSelected ? '取消全选' : '全选'),
+                            ),
+                          ],
+                        ),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _BatchActionButton(
+                              label: '批量分组',
+                              icon: Icons.label_outline,
+                              color: AppColors.blue500,
+                              isLight: isLight,
+                              enabled: selectedCount > 0,
+                              onTap: () => _showBatchGroupDialog(state.groups),
+                            ),
+                            _BatchActionButton(
+                              label: '批量启用',
+                              icon: Icons.play_circle_outline,
+                              color: AppColors.primary,
+                              isLight: isLight,
+                              enabled: selectedCount > 0,
+                              onTap: () =>
+                                  _performBatchAction(_EnvBatchAction.enable),
+                            ),
+                            _BatchActionButton(
+                              label: '批量禁用',
+                              icon: Icons.pause_circle_outline,
+                              color: AppColors.slate500,
+                              isLight: isLight,
+                              enabled: selectedCount > 0,
+                              onTap: () =>
+                                  _performBatchAction(_EnvBatchAction.disable),
+                            ),
+                            _BatchActionButton(
+                              label: '批量删除',
+                              icon: Icons.delete_outline,
+                              color: AppColors.red500,
+                              isLight: isLight,
+                              enabled: selectedCount > 0,
+                              onTap: () =>
+                                  _performBatchAction(_EnvBatchAction.delete),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1348,22 +1348,15 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                         },
                         itemBuilder: (_, i) {
                           final env = state.envs[i];
-                          return Container(
+                          return AppCard(
                             key: ValueKey(env.id),
                             margin: const EdgeInsets.only(bottom: 8),
+                            stableForScrolling: true,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 14,
                               vertical: 14,
                             ),
-                            decoration: BoxDecoration(
-                              color: glassCardColor(isLight: isLight),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: isLight
-                                    ? AppColors.slate200
-                                    : AppColors.slate800,
-                              ),
-                            ),
+                            borderRadius: 14,
                             child: Row(
                               children: [
                                 const Icon(
@@ -1438,8 +1431,10 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                             onSelectedChanged: () => _toggleSelection(env.id),
                             onCopy: () {
                               Clipboard.setData(ClipboardData(text: env.value));
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('已复制值')),
+                              AppGlassNotice.show(
+                                context,
+                                '已复制值',
+                                type: AppGlassNoticeType.info,
                               );
                             },
                           );
@@ -1454,7 +1449,6 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
   }
 
   void _showDetailSheet(EnvVar env) {
-    final messenger = ScaffoldMessenger.of(context);
     final nameC = TextEditingController(text: env.name);
     final valueC = TextEditingController(text: env.value);
     final remarksC = TextEditingController(text: env.remarks);
@@ -1525,14 +1519,12 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                           return;
                         }
                         navigator.pop();
-                        messenger.showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              env.enabled
-                                  ? '已禁用 ${env.name}'
-                                  : '已启用 ${env.name}',
-                            ),
-                          ),
+                        AppGlassNotice.show(
+                          this.context,
+                          env.enabled
+                              ? '已禁用 ${env.name}'
+                              : '已启用 ${env.name}',
+                          type: AppGlassNoticeType.success,
                         );
                       },
                       icon: Icon(
@@ -1608,9 +1600,11 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                       child: OutlinedButton.icon(
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: valueC.text));
-                          ScaffoldMessenger.of(
-                            ctx,
-                          ).showSnackBar(const SnackBar(content: Text('已复制值')));
+                          AppGlassNotice.show(
+                            this.context,
+                            '已复制值',
+                            type: AppGlassNoticeType.info,
+                          );
                         },
                         icon: const Icon(Icons.copy, size: 16),
                         label: const Text('复制'),
@@ -1625,7 +1619,6 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                     Expanded(
                       child: FilledButton.icon(
                         onPressed: () async {
-                          final rootMessenger = ScaffoldMessenger.of(context);
                           final navigator = Navigator.of(ctx);
                           try {
                             await ref
@@ -1641,19 +1634,19 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                               return;
                             }
                             navigator.pop();
-                            rootMessenger.showSnackBar(
-                              const SnackBar(content: Text('已保存')),
+                            AppGlassNotice.show(
+                              this.context,
+                              '已保存',
+                              type: AppGlassNoticeType.success,
                             );
                           } catch (error) {
                             if (!mounted) {
                               return;
                             }
-                            rootMessenger.showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  extractErrorMessage(error, '保存环境变量失败'),
-                                ),
-                              ),
+                            AppGlassNotice.show(
+                              this.context,
+                              extractErrorMessage(error, '保存环境变量失败'),
+                              type: AppGlassNoticeType.error,
                             );
                           }
                         },
@@ -1695,7 +1688,6 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) {
           final navigator = Navigator.of(ctx);
-          final rootMessenger = ScaffoldMessenger.of(context);
           if (valueEditorOpen) {
             return _EnvValueSheetEditor(
               title: '新建变量值',
@@ -1782,17 +1774,19 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                         return;
                       }
                       navigator.pop();
-                      rootMessenger.showSnackBar(
-                        const SnackBar(content: Text('环境变量已创建')),
+                      AppGlassNotice.show(
+                        this.context,
+                        '环境变量已创建',
+                        type: AppGlassNoticeType.success,
                       );
                     } catch (error) {
                       if (!mounted) {
                         return;
                       }
-                      rootMessenger.showSnackBar(
-                        SnackBar(
-                          content: Text(extractErrorMessage(error, '创建环境变量失败')),
-                        ),
+                      AppGlassNotice.show(
+                        this.context,
+                        extractErrorMessage(error, '创建环境变量失败'),
+                        type: AppGlassNoticeType.error,
                       );
                     }
                   },

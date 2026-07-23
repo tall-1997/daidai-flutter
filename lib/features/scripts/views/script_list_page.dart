@@ -475,11 +475,14 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
     super.dispose();
   }
 
-  void _showMessage(String message) {
+  void _showMessage(
+    String message, {
+    AppGlassNoticeType type = AppGlassNoticeType.info,
+  }) {
     if (!mounted) {
       return;
     }
-    AppGlassNotice.show(context, message);
+    AppGlassNotice.show(context, message, type: type);
   }
 
   String _extractScriptError(dynamic error, String fallback) =>
@@ -987,7 +990,6 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
   }
 
   Future<void> _showRenameDialog(ScriptFile file) async {
-    final messenger = ScaffoldMessenger.of(context);
     final controller = TextEditingController(text: file.name);
     final parent = _defaultScriptDirectory(file.path);
     await showDialog<void>(
@@ -1025,8 +1027,10 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
               onPressed: () async {
                 final newName = controller.text.trim();
                 if (newName.isEmpty) {
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('名称不能为空')),
+                  AppGlassNotice.show(
+                    this.context,
+                    '名称不能为空',
+                    type: AppGlassNoticeType.warning,
                   );
                   return;
                 }
@@ -1038,15 +1042,18 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                     return;
                   }
                   navigator.pop();
-                  _showMessage('已重命名为 ${newPath.split('/').last}');
+                  _showMessage(
+                    '已重命名为 ${newPath.split('/').last}',
+                    type: AppGlassNoticeType.success,
+                  );
                 } catch (error) {
                   if (!mounted) {
                     return;
                   }
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text(_extractRequestError(error, '重命名失败')),
-                    ),
+                  AppGlassNotice.show(
+                    this.context,
+                    _extractRequestError(error, '重命名失败'),
+                    type: AppGlassNoticeType.error,
                   );
                 }
               },
@@ -1088,9 +1095,15 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
       await ref
           .read(scriptProvider.notifier)
           .deletePath(file.path, isDirectory: file.isDirectory);
-      _showMessage(file.isDirectory ? '文件夹已删除' : '脚本已删除');
+      _showMessage(
+        file.isDirectory ? '文件夹已删除' : '脚本已删除',
+        type: AppGlassNoticeType.success,
+      );
     } catch (error) {
-      _showMessage(_extractRequestError(error, '删除失败'));
+      _showMessage(
+        _extractRequestError(error, '删除失败'),
+        type: AppGlassNoticeType.error,
+      );
     }
   }
 
@@ -1114,20 +1127,25 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
         bytes: bytes,
       );
       if (savedPath == null) {
-        _showMessage('已取消保存');
+        _showMessage('已取消保存', type: AppGlassNoticeType.warning);
         return;
       }
 
-      _showMessage('脚本已保存');
+      _showMessage('脚本已保存', type: AppGlassNoticeType.success);
     } on UnsupportedError {
-      _showMessage('当前平台暂不支持直接保存文件');
+      _showMessage(
+        '当前平台暂不支持直接保存文件',
+        type: AppGlassNoticeType.warning,
+      );
     } catch (error) {
-      _showMessage(_extractScriptError(error, '下载脚本失败'));
+      _showMessage(
+        _extractScriptError(error, '下载脚本失败'),
+        type: AppGlassNoticeType.error,
+      );
     }
   }
 
   Future<void> _showMoveDialog(ScriptFile file, ScriptState state) async {
-    final messenger = ScaffoldMessenger.of(context);
     final folders = _scriptFolders(
       state.tree,
     ).where((folder) => folder != file.path).toList();
@@ -1183,15 +1201,18 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                       return;
                     }
                     navigator.pop();
-                    _showMessage('已移动到 ${newPath.split('/').last}');
+                    _showMessage(
+                      '已移动到 ${newPath.split('/').last}',
+                      type: AppGlassNoticeType.success,
+                    );
                   } catch (error) {
                     if (!mounted) {
                       return;
                     }
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(_extractScriptError(error, '移动失败')),
-                      ),
+                    AppGlassNotice.show(
+                      this.context,
+                      _extractScriptError(error, '移动失败'),
+                      type: AppGlassNoticeType.error,
                     );
                   }
                 },
@@ -1205,7 +1226,6 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
   }
 
   Future<void> _showCopyDialog(ScriptFile file, ScriptState state) async {
-    final messenger = ScaffoldMessenger.of(context);
     final folders = _scriptFolders(state.tree);
     final nameController = TextEditingController(text: file.name);
     String targetDir = _defaultScriptDirectory(file.path);
@@ -1265,8 +1285,10 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                 onPressed: () async {
                   final newName = nameController.text.trim();
                   if (newName.isEmpty) {
-                    messenger.showSnackBar(
-                      const SnackBar(content: Text('名称不能为空')),
+                    AppGlassNotice.show(
+                      this.context,
+                      '名称不能为空',
+                      type: AppGlassNoticeType.warning,
                     );
                     return;
                   }
@@ -1282,15 +1304,18 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                       return;
                     }
                     navigator.pop();
-                    _showMessage('已复制到 ${newPath.split('/').last}');
+                    _showMessage(
+                      '已复制到 ${newPath.split('/').last}',
+                      type: AppGlassNoticeType.success,
+                    );
                   } catch (error) {
                     if (!mounted) {
                       return;
                     }
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(_extractScriptError(error, '复制失败')),
-                      ),
+                    AppGlassNotice.show(
+                      this.context,
+                      _extractScriptError(error, '复制失败'),
+                      type: AppGlassNoticeType.error,
                     );
                   }
                 },
@@ -1319,7 +1344,6 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
     ScriptState state, {
     String? initialParent,
   }) async {
-    final messenger = ScaffoldMessenger.of(context);
     final nameController = TextEditingController();
     final folders = _scriptFolders(state.tree);
     String parent =
@@ -1374,8 +1398,10 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                 onPressed: () async {
                   final fileName = nameController.text.trim();
                   if (fileName.isEmpty) {
-                    messenger.showSnackBar(
-                      const SnackBar(content: Text('文件名不能为空')),
+                    AppGlassNotice.show(
+                      this.context,
+                      '文件名不能为空',
+                      type: AppGlassNoticeType.warning,
                     );
                     return;
                   }
@@ -1393,10 +1419,10 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                     if (!mounted) {
                       return;
                     }
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(_extractRequestError(error, '创建脚本失败')),
-                      ),
+                    AppGlassNotice.show(
+                      this.context,
+                      _extractRequestError(error, '创建脚本失败'),
+                      type: AppGlassNoticeType.error,
                     );
                   }
                 },
@@ -1413,7 +1439,6 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
     ScriptState state, {
     String? initialParent,
   }) async {
-    final messenger = ScaffoldMessenger.of(context);
     final nameController = TextEditingController();
     final folders = _scriptFolders(state.tree);
     String parent =
@@ -1465,8 +1490,10 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                 onPressed: () async {
                   final name = nameController.text.trim();
                   if (name.isEmpty) {
-                    messenger.showSnackBar(
-                      const SnackBar(content: Text('文件夹名称不能为空')),
+                    AppGlassNotice.show(
+                      this.context,
+                      '文件夹名称不能为空',
+                      type: AppGlassNoticeType.warning,
                     );
                     return;
                   }
@@ -1478,15 +1505,18 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                       return;
                     }
                     navigator.pop();
-                    _showMessage('文件夹创建成功');
+                    _showMessage(
+                      '文件夹创建成功',
+                      type: AppGlassNoticeType.success,
+                    );
                   } catch (error) {
                     if (!mounted) {
                       return;
                     }
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(_extractRequestError(error, '创建文件夹失败')),
-                      ),
+                    AppGlassNotice.show(
+                      this.context,
+                      _extractRequestError(error, '创建文件夹失败'),
+                      type: AppGlassNoticeType.error,
                     );
                   }
                 },
@@ -1518,7 +1548,6 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
     List<PlatformFile> files, {
     String initialDir = '',
   }) async {
-    final messenger = ScaffoldMessenger.of(context);
     final folders = _scriptFolders(state.tree);
     String targetDir = initialDir.isNotEmpty
         ? initialDir
@@ -1607,6 +1636,7 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                     navigator.pop();
                     _showMessage(
                       paths.length > 1 ? '成功上传 ${paths.length} 个文件' : '上传成功',
+                      type: AppGlassNoticeType.success,
                     );
                     if (paths.length == 1) {
                       await _openScript(paths.first);
@@ -1619,10 +1649,10 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                     if (!mounted) {
                       return;
                     }
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(_extractScriptError(error, '上传失败')),
-                      ),
+                    AppGlassNotice.show(
+                      this.context,
+                      _extractScriptError(error, '上传失败'),
+                      type: AppGlassNoticeType.error,
                     );
                   }
                 },
@@ -1780,11 +1810,14 @@ class _ScriptViewPageState extends ConsumerState<ScriptViewPage> {
     super.dispose();
   }
 
-  void _showMessage(String message) {
+  void _showMessage(
+    String message, {
+    AppGlassNoticeType type = AppGlassNoticeType.info,
+  }) {
     if (!mounted) {
       return;
     }
-    AppGlassNotice.show(context, message);
+    AppGlassNotice.show(context, message, type: type);
   }
 
   String _extractScriptError(dynamic error, String fallback) =>
@@ -1805,9 +1838,12 @@ class _ScriptViewPageState extends ConsumerState<ScriptViewPage> {
         return;
       }
       setState(() => _editing = false);
-      _showMessage('保存成功');
+      _showMessage('保存成功', type: AppGlassNoticeType.success);
     } catch (error) {
-      _showMessage(_extractScriptError(error, '保存失败'));
+      _showMessage(
+        _extractScriptError(error, '保存失败'),
+        type: AppGlassNoticeType.error,
+      );
     }
   }
 
@@ -1823,12 +1859,12 @@ class _ScriptViewPageState extends ConsumerState<ScriptViewPage> {
       if (!_editing) {
         setState(() => _editing = true);
       }
-      _showMessage('格式化完成');
+      _showMessage('格式化完成', type: AppGlassNoticeType.success);
     } catch (error) {
       final message = error is StateError
           ? error.message
           : _extractRequestError(error, '格式化失败');
-      _showMessage(message);
+      _showMessage(message, type: AppGlassNoticeType.error);
     }
   }
 
@@ -1891,7 +1927,10 @@ class _ScriptViewPageState extends ConsumerState<ScriptViewPage> {
             _ScriptDebugRunSheet(path: widget.path, runId: runId!),
       );
     } catch (error) {
-      _showMessage(_extractScriptError(error, '调试运行失败'));
+      _showMessage(
+        _extractScriptError(error, '调试运行失败'),
+        type: AppGlassNoticeType.error,
+      );
     } finally {
       if (mounted) {
         setState(() => _debugRunning = false);
@@ -1933,7 +1972,10 @@ class _ScriptViewPageState extends ConsumerState<ScriptViewPage> {
             _ScriptDebugRunSheet(path: widget.path, runId: runId!),
       );
     } catch (error) {
-      _showMessage(_extractScriptError(error, '调试运行失败'));
+      _showMessage(
+        _extractScriptError(error, '调试运行失败'),
+        type: AppGlassNoticeType.error,
+      );
     } finally {
       if (mounted) {
         setState(() => _debugRunning = false);
@@ -2035,13 +2077,16 @@ class _ScriptViewPageState extends ConsumerState<ScriptViewPage> {
   bool _findInContent(String rawQuery, {required bool forward}) {
     final query = rawQuery.trim();
     if (query.isEmpty) {
-      _showMessage('请输入要查找的内容');
+      _showMessage('请输入要查找的内容', type: AppGlassNoticeType.warning);
       return false;
     }
 
     final content = _contentController.text;
     if (content.isEmpty) {
-      _showMessage('当前脚本暂无可搜索内容');
+      _showMessage(
+        '当前脚本暂无可搜索内容',
+        type: AppGlassNoticeType.warning,
+      );
       return false;
     }
 
@@ -2069,7 +2114,7 @@ class _ScriptViewPageState extends ConsumerState<ScriptViewPage> {
     }
 
     if (index == -1) {
-      _showMessage('未找到“$query”');
+      _showMessage('未找到“$query”', type: AppGlassNoticeType.warning);
       return false;
     }
 
@@ -2094,7 +2139,7 @@ class _ScriptViewPageState extends ConsumerState<ScriptViewPage> {
 
   Future<void> _showFindSheet() async {
     if (ref.read(scriptProvider).isBinary) {
-      _showMessage('当前文件暂不支持查找');
+      _showMessage('当前文件暂不支持查找', type: AppGlassNoticeType.warning);
       return;
     }
 
@@ -2418,15 +2463,19 @@ class _ScriptVersionSheetState extends ConsumerState<_ScriptVersionSheet> {
         return;
       }
       Navigator.pop(context);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('已回滚到 v${version.version}')));
+      AppGlassNotice.show(
+        this.context,
+        '已回滚到 v${version.version}',
+        type: AppGlassNoticeType.success,
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_extractRequestError(error, '回滚失败'))),
+      AppGlassNotice.show(
+        this.context,
+        _extractRequestError(error, '回滚失败'),
+        type: AppGlassNoticeType.error,
       );
     }
   }
@@ -2759,8 +2808,10 @@ class _ScriptDebugRunSheetState extends State<_ScriptDebugRunSheet> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(extractScriptSaveErrorMessage(error, '停止调试失败'))),
+      AppGlassNotice.show(
+        this.context,
+        extractScriptSaveErrorMessage(error, '停止调试失败'),
+        type: AppGlassNoticeType.error,
       );
     }
   }
@@ -2790,14 +2841,18 @@ class _ScriptDebugRunSheetState extends State<_ScriptDebugRunSheet> {
         ApiEndpoints.scriptsRunClear(widget.runId),
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('运行记录已清除')),
+      AppGlassNotice.show(
+        this.context,
+        '运行记录已清除',
+        type: AppGlassNoticeType.success,
       );
       Navigator.of(context).pop();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(extractScriptSaveErrorMessage(error, '清除运行记录失败'))),
+      AppGlassNotice.show(
+        this.context,
+        extractScriptSaveErrorMessage(error, '清除运行记录失败'),
+        type: AppGlassNoticeType.error,
       );
     }
   }
@@ -2847,8 +2902,10 @@ class _ScriptDebugRunSheetState extends State<_ScriptDebugRunSheet> {
                               ClipboardData(text: _logs.join('\n')),
                             );
                             if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('已复制调试日志')),
+                            AppGlassNotice.show(
+                              this.context,
+                              '已复制调试日志',
+                              type: AppGlassNoticeType.success,
                             );
                           },
                     icon: const Icon(Icons.copy_all_outlined),

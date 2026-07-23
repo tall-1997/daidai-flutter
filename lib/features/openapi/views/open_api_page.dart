@@ -212,7 +212,6 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) {
           final navigator = Navigator.of(ctx);
-          final rootMessenger = ScaffoldMessenger.of(context);
           return Padding(
             padding: EdgeInsets.fromLTRB(
               20,
@@ -306,12 +305,10 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                         if (!mounted) {
                           return;
                         }
-                        rootMessenger.showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              extractErrorMessage(error, '创建 API 应用失败'),
-                            ),
-                          ),
+                        AppGlassNotice.show(
+                          this.context,
+                          extractErrorMessage(error, '创建 API 应用失败'),
+                          type: AppGlassNoticeType.error,
                         );
                       }
                     },
@@ -349,9 +346,17 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
               style: TextStyle(fontSize: 12, color: AppColors.red500),
             ),
             const SizedBox(height: 12),
-            _CopyableField(label: 'App Key', value: appKey),
+            _CopyableField(
+              label: 'App Key',
+              value: appKey,
+              noticeContext: this.context,
+            ),
             const SizedBox(height: 8),
-            _CopyableField(label: 'App Secret', value: appSecret),
+            _CopyableField(
+              label: 'App Secret',
+              value: appSecret,
+              noticeContext: this.context,
+            ),
           ],
         ),
         actions: [
@@ -383,7 +388,11 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
               style: TextStyle(fontSize: 13),
             ),
             const SizedBox(height: 12),
-            _CopyableField(label: 'App Key', value: appKey),
+            _CopyableField(
+              label: 'App Key',
+              value: appKey,
+              noticeContext: this.context,
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: secretC,
@@ -427,12 +436,10 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                         }
                       } catch (error) {
                         if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              extractErrorMessage(error, '获取访问 Token 失败'),
-                            ),
-                          ),
+                        AppGlassNotice.show(
+                          this.context,
+                          extractErrorMessage(error, '获取访问 Token 失败'),
+                          type: AppGlassNoticeType.error,
                         );
                       }
                     },
@@ -464,7 +471,11 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
               style: const TextStyle(fontSize: 12, color: AppColors.slate500),
             ),
             const SizedBox(height: 12),
-            _CopyableField(label: 'Access Token', value: token),
+            _CopyableField(
+              label: 'Access Token',
+              value: token,
+              noticeContext: this.context,
+            ),
           ],
         ),
         actions: [
@@ -544,8 +555,10 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                     GestureDetector(
                       onTap: () {
                         Clipboard.setData(ClipboardData(text: appKey));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('App Key 已复制')),
+                        AppGlassNotice.show(
+                          context,
+                          'App Key 已复制',
+                          type: AppGlassNoticeType.success,
                         );
                       },
                       child: Row(
@@ -668,24 +681,22 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                           if (!mounted) {
                             return;
                           }
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(enabled ? '应用已禁用' : '应用已启用'),
-                            ),
+                          AppGlassNotice.show(
+                            context,
+                            enabled ? '应用已禁用' : '应用已启用',
+                            type: AppGlassNoticeType.success,
                           );
                         } catch (error) {
                           if (!mounted) {
                             return;
                           }
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                extractErrorMessage(
-                                  error,
-                                  enabled ? '禁用应用失败' : '启用应用失败',
-                                ),
-                              ),
+                          AppGlassNotice.show(
+                            context,
+                            extractErrorMessage(
+                              error,
+                              enabled ? '禁用应用失败' : '启用应用失败',
                             ),
+                            type: AppGlassNoticeType.error,
                           );
                         }
                       }
@@ -706,10 +717,10 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                         if (!mounted) {
                           return;
                         }
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(extractErrorMessage(error, '重置密钥失败')),
-                          ),
+                        AppGlassNotice.show(
+                          context,
+                          extractErrorMessage(error, '重置密钥失败'),
+                          type: AppGlassNoticeType.error,
                         );
                       }
                       break;
@@ -764,19 +775,19 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                           if (!mounted) {
                             return;
                           }
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('应用已删除')),
+                          AppGlassNotice.show(
+                            context,
+                            '应用已删除',
+                            type: AppGlassNoticeType.success,
                           );
                         } catch (error) {
                           if (!mounted) {
                             return;
                           }
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                extractErrorMessage(error, '删除应用失败'),
-                              ),
-                            ),
+                          AppGlassNotice.show(
+                            context,
+                            extractErrorMessage(error, '删除应用失败'),
+                            type: AppGlassNoticeType.error,
                           );
                         }
                       }
@@ -812,7 +823,6 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) {
           final navigator = Navigator.of(ctx);
-          final rootMessenger = ScaffoldMessenger.of(context);
           return Padding(
             padding: EdgeInsets.fromLTRB(
               20,
@@ -887,17 +897,19 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                         }
                         navigator.pop();
                         await _load();
-                        rootMessenger.showSnackBar(
-                          const SnackBar(content: Text('应用已保存')),
+                        AppGlassNotice.show(
+                          this.context,
+                          '应用已保存',
+                          type: AppGlassNoticeType.success,
                         );
                       } catch (error) {
                         if (!mounted) {
                           return;
                         }
-                        rootMessenger.showSnackBar(
-                          SnackBar(
-                            content: Text(extractErrorMessage(error, '保存应用失败')),
-                          ),
+                        AppGlassNotice.show(
+                          this.context,
+                          extractErrorMessage(error, '保存应用失败'),
+                          type: AppGlassNoticeType.error,
                         );
                       }
                     },
@@ -978,12 +990,10 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                         }
                       } catch (error) {
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                extractErrorMessage(error, '查看密钥失败'),
-                              ),
-                            ),
+                          AppGlassNotice.show(
+                            this.context,
+                            extractErrorMessage(error, '查看密钥失败'),
+                            type: AppGlassNoticeType.error,
                           );
                         }
                       }
@@ -1005,8 +1015,10 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
       logs = await _loadAllOpenApiLogs(appId);
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(extractErrorMessage(error, '加载调用日志失败'))),
+        AppGlassNotice.show(
+          context,
+          extractErrorMessage(error, '加载调用日志失败'),
+          type: AppGlassNoticeType.error,
         );
       }
     }
@@ -1053,23 +1065,14 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
                         );
                         final duration =
                             (log['duration'] as num?)?.toDouble() ?? 0;
-                        final logIsLight =
-                            Theme.of(ctx).brightness == Brightness.light;
-                        return Container(
+                        return AppCard(
                           margin: const EdgeInsets.only(bottom: 6),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
                             vertical: 10,
                           ),
-                          decoration: BoxDecoration(
-                            color: glassCardColor(isLight: logIsLight),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: logIsLight
-                                  ? AppColors.slate200
-                                  : AppColors.slate800,
-                            ),
-                          ),
+                          borderRadius: 10,
+                          stableForScrolling: true,
                           child: Row(
                             children: [
                               Container(
@@ -1142,7 +1145,12 @@ class _OpenApiPageState extends ConsumerState<OpenApiPage> {
 class _CopyableField extends StatelessWidget {
   final String label;
   final String value;
-  const _CopyableField({required this.label, required this.value});
+  final BuildContext noticeContext;
+  const _CopyableField({
+    required this.label,
+    required this.value,
+    required this.noticeContext,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1154,20 +1162,19 @@ class _CopyableField extends StatelessWidget {
           style: const TextStyle(fontSize: 11, color: AppColors.slate400),
         ),
         const SizedBox(height: 4),
-        GestureDetector(
+        AppLiquidGlassSurface(
+          borderRadius: 8,
+          padding: const EdgeInsets.all(10),
           onTap: () {
             Clipboard.setData(ClipboardData(text: value));
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('已复制 $label')));
+            AppGlassNotice.show(
+              noticeContext,
+              '已复制 $label',
+              type: AppGlassNoticeType.success,
+            );
           },
-          child: Container(
+          child: SizedBox(
             width: double.infinity,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
-            ),
             child: Row(
               children: [
                 Expanded(
@@ -1295,21 +1302,14 @@ class _OpenApiLogsPageState extends ConsumerState<OpenApiLogsPage> {
                           );
                           final duration =
                               (log['duration'] as num?)?.toDouble() ?? 0;
-                          return Container(
+                          return AppCard(
                             margin: const EdgeInsets.only(bottom: 8),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 14,
                               vertical: 12,
                             ),
-                            decoration: BoxDecoration(
-                              color: glassCardColor(isLight: isLight),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isLight
-                                    ? AppColors.slate200
-                                    : AppColors.slate800,
-                              ),
-                            ),
+                            borderRadius: 12,
+                            stableForScrolling: true,
                             child: Row(
                               children: [
                                 Container(

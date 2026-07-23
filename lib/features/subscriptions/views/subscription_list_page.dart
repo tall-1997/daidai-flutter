@@ -311,9 +311,11 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
+      AppGlassNotice.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('已触发拉取')));
+        '已触发拉取',
+        type: AppGlassNoticeType.info,
+      );
       context.push('/subscriptions/${sub.id}/pull-stream');
     } catch (error) {
       final message = _extractRequestErrorMessage(error, '拉取失败');
@@ -321,15 +323,15 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
         return;
       }
       if (message.contains('拉取中')) {
-        ScaffoldMessenger.of(
+        AppGlassNotice.show(
           context,
-        ).showSnackBar(const SnackBar(content: Text('该订阅已在拉取中')));
+          '该订阅已在拉取中',
+          type: AppGlassNoticeType.warning,
+        );
         context.push('/subscriptions/${sub.id}/pull-stream');
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      AppGlassNotice.show(context, message, type: AppGlassNoticeType.error);
     }
   }
 
@@ -339,15 +341,19 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
+      AppGlassNotice.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('已停止拉取')));
+        '已停止拉取',
+        type: AppGlassNoticeType.info,
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_extractRequestErrorMessage(error, '停止拉取失败'))),
+      AppGlassNotice.show(
+        context,
+        _extractRequestErrorMessage(error, '停止拉取失败'),
+        type: AppGlassNoticeType.error,
       );
     }
   }
@@ -398,15 +404,19 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
         if (!mounted) {
           return;
         }
-        ScaffoldMessenger.of(
+        AppGlassNotice.show(
           context,
-        ).showSnackBar(const SnackBar(content: Text('订阅已删除')));
+          '订阅已删除',
+          type: AppGlassNoticeType.success,
+        );
       } catch (error) {
         if (!mounted) {
           return;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_extractRequestErrorMessage(error, '删除订阅失败'))),
+        AppGlassNotice.show(
+          context,
+          _extractRequestErrorMessage(error, '删除订阅失败'),
+          type: AppGlassNoticeType.error,
         );
       }
     }
@@ -444,7 +454,6 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
       useRootNavigator: true,
       builder: (ctx) {
         final navigator = Navigator.of(ctx);
-        final rootMessenger = ScaffoldMessenger.of(context);
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
             final theme = Theme.of(ctx);
@@ -690,22 +699,22 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                                       return;
                                     }
                                     navigator.pop();
-                                    rootMessenger.showSnackBar(
-                                      const SnackBar(content: Text('订阅已创建')),
-                                  );
+                                    AppGlassNotice.show(
+                                      this.context,
+                                      '订阅已创建',
+                                      type: AppGlassNoticeType.success,
+                                    );
                                 } catch (error) {
                                   if (!mounted) {
                                     return;
                                   }
-                                  rootMessenger.showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        _extractRequestErrorMessage(
-                                          error,
-                                          '创建订阅失败',
-                                        ),
-                                      ),
+                                  AppGlassNotice.show(
+                                    this.context,
+                                    _extractRequestErrorMessage(
+                                      error,
+                                      '创建订阅失败',
                                     ),
+                                    type: AppGlassNoticeType.error,
                                   );
                                 }
                               },
@@ -766,7 +775,6 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
       useRootNavigator: true,
       builder: (ctx) {
         final navigator = Navigator.of(ctx);
-        final rootMessenger = ScaffoldMessenger.of(context);
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
             final theme = Theme.of(ctx);
@@ -1019,22 +1027,22 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                                       return;
                                     }
                                     navigator.pop();
-                                    rootMessenger.showSnackBar(
-                                      const SnackBar(content: Text('订阅已保存')),
-                                  );
+                                    AppGlassNotice.show(
+                                      this.context,
+                                      '订阅已保存',
+                                      type: AppGlassNoticeType.success,
+                                    );
                                 } catch (error) {
                                   if (!mounted) {
                                     return;
                                   }
-                                  rootMessenger.showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        _extractRequestErrorMessage(
-                                          error,
-                                          '保存订阅失败',
-                                        ),
-                                      ),
+                                  AppGlassNotice.show(
+                                    this.context,
+                                    _extractRequestErrorMessage(
+                                      error,
+                                      '保存订阅失败',
                                     ),
+                                    type: AppGlassNoticeType.error,
                                   );
                                 }
                               },

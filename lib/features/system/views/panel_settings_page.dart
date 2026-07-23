@@ -77,16 +77,18 @@ class _PanelSettingsPageState extends ConsumerState<PanelSettingsPage> {
         data: data,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('面板设置已保存')),
+      AppGlassNotice.show(
+        context,
+        '面板设置已保存',
+        type: AppGlassNoticeType.success,
       );
       _load();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(extractErrorMessage(error, '保存面板设置失败')),
-        ),
+      AppGlassNotice.show(
+        context,
+        extractErrorMessage(error, '保存面板设置失败'),
+        type: AppGlassNoticeType.error,
       );
     } finally {
       if (mounted) setState(() => _saving = false);

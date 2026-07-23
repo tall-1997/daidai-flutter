@@ -191,15 +191,19 @@ class _LoginLogsTabState extends ConsumerState<_LoginLogsTab>
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
+      AppGlassNotice.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('登录日志已清理')));
+        '登录日志已清理',
+        type: AppGlassNoticeType.success,
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(extractErrorMessage(error, '清理登录日志失败'))),
+      AppGlassNotice.show(
+        context,
+        extractErrorMessage(error, '清理登录日志失败'),
+        type: AppGlassNoticeType.error,
       );
     }
   }
@@ -418,15 +422,19 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
+      AppGlassNotice.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('其他会话已撤销')));
+        '其他会话已撤销',
+        type: AppGlassNoticeType.success,
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(extractErrorMessage(error, '撤销其他会话失败'))),
+      AppGlassNotice.show(
+        context,
+        extractErrorMessage(error, '撤销其他会话失败'),
+        type: AppGlassNoticeType.error,
       );
     }
   }
@@ -452,15 +460,19 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
+      AppGlassNotice.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('会话已撤销')));
+        '会话已撤销',
+        type: AppGlassNoticeType.success,
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(extractErrorMessage(error, '撤销会话失败'))),
+      AppGlassNotice.show(
+        context,
+        extractErrorMessage(error, '撤销会话失败'),
+        type: AppGlassNoticeType.error,
       );
     }
   }
@@ -698,15 +710,19 @@ class _IpWhitelistTabState extends ConsumerState<_IpWhitelistTab>
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
+      AppGlassNotice.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('IP 白名单已删除')));
+        'IP 白名单已删除',
+        type: AppGlassNoticeType.success,
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(extractErrorMessage(error, '删除 IP 白名单失败'))),
+      AppGlassNotice.show(
+        context,
+        extractErrorMessage(error, '删除 IP 白名单失败'),
+        type: AppGlassNoticeType.error,
       );
     }
   }
@@ -714,8 +730,6 @@ class _IpWhitelistTabState extends ConsumerState<_IpWhitelistTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final isLight = Theme.of(context).brightness == Brightness.light;
-    
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _load,
@@ -780,21 +794,14 @@ class _IpWhitelistTabState extends ConsumerState<_IpWhitelistTab>
                   );
                 }
                 final item = _items[i - 1];
-                return Container(
+                return AppCard(
+                  stableForScrolling: true,
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 12,
                   ),
-                  decoration: BoxDecoration(
-                    color: glassCardColor(isLight: isLight),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: widget.isLight
-                          ? AppColors.slate200
-                          : AppColors.slate800,
-                    ),
-                  ),
+                  borderRadius: 12,
                   child: Row(
                     children: [
                       const Icon(
@@ -900,19 +907,19 @@ class _IpWhitelistTabState extends ConsumerState<_IpWhitelistTab>
                         if (!mounted) {
                           return;
                         }
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('IP 白名单已添加')),
+                        AppGlassNotice.show(
+                          context,
+                          'IP 白名单已添加',
+                          type: AppGlassNoticeType.success,
                         );
                       } catch (error) {
                         if (!mounted) {
                           return;
                         }
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              extractErrorMessage(error, '添加 IP 白名单失败'),
-                            ),
-                          ),
+                        AppGlassNotice.show(
+                          context,
+                          extractErrorMessage(error, '添加 IP 白名单失败'),
+                          type: AppGlassNoticeType.error,
                         );
                       }
                     },
@@ -970,8 +977,6 @@ class _TwoFaTabState extends ConsumerState<_TwoFaTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final isLight = Theme.of(context).brightness == Brightness.light;
-    
     if (_loading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
@@ -983,15 +988,9 @@ class _TwoFaTabState extends ConsumerState<_TwoFaTab>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
+          AppCard(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: glassCardColor(isLight: isLight),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: widget.isLight ? AppColors.slate200 : AppColors.slate800,
-              ),
-            ),
+            borderRadius: 14,
             child: Row(
               children: [
                 Icon(
@@ -1047,17 +1046,9 @@ class _TwoFaTabState extends ConsumerState<_TwoFaTab>
           ),
           if (_secret != null) ...[
             const SizedBox(height: 16),
-            Container(
+            AppCard(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: glassCardColor(isLight: isLight),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: widget.isLight
-                      ? AppColors.slate200
-                      : AppColors.slate800,
-                ),
-              ),
+              borderRadius: 14,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1095,8 +1086,10 @@ class _TwoFaTabState extends ConsumerState<_TwoFaTab>
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(extractErrorMessage(error, '获取 2FA 密钥失败'))),
+      AppGlassNotice.show(
+        context,
+        extractErrorMessage(error, '获取 2FA 密钥失败'),
+        type: AppGlassNoticeType.error,
       );
     }
   }
@@ -1112,15 +1105,19 @@ class _TwoFaTabState extends ConsumerState<_TwoFaTab>
         _secret = null;
       });
       if (mounted) {
-        ScaffoldMessenger.of(
+        AppGlassNotice.show(
           context,
-        ).showSnackBar(const SnackBar(content: Text('2FA 已启用')));
+          '2FA 已启用',
+          type: AppGlassNoticeType.success,
+        );
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        AppGlassNotice.show(
           context,
-        ).showSnackBar(const SnackBar(content: Text('验证码错误')));
+          '验证码错误',
+          type: AppGlassNoticeType.error,
+        );
       }
     }
   }
@@ -1175,15 +1172,19 @@ class _TwoFaTabState extends ConsumerState<_TwoFaTab>
         return;
       }
       setState(() => _enabled = false);
-      ScaffoldMessenger.of(
+      AppGlassNotice.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('2FA 已禁用')));
+        '2FA 已禁用',
+        type: AppGlassNoticeType.warning,
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(extractErrorMessage(error, '禁用 2FA 失败'))),
+      AppGlassNotice.show(
+        context,
+        extractErrorMessage(error, '禁用 2FA 失败'),
+        type: AppGlassNoticeType.error,
       );
     }
   }
@@ -1230,8 +1231,6 @@ class _LoginStatsTabState extends ConsumerState<_LoginStatsTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final isLight = Theme.of(context).brightness == Brightness.light;
-    
 
     if (_loading) {
       return ListView(
@@ -1273,16 +1272,11 @@ class _LoginStatsTabState extends ConsumerState<_LoginStatsTab>
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
         children: keys.map((key) {
           final value = _stats![key];
-          return Container(
+          return AppCard(
+            stableForScrolling: true,
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: glassCardColor(isLight: isLight),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: widget.isLight ? AppColors.slate200 : AppColors.slate800,
-              ),
-            ),
+            borderRadius: 12,
             child: Row(
               children: [
                 Expanded(
@@ -1365,8 +1359,6 @@ class _AuditLogsTabState extends ConsumerState<_AuditLogsTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final isLight = Theme.of(context).brightness == Brightness.light;
-    
 
     return RefreshIndicator(
       color: AppColors.primary,
@@ -1403,21 +1395,14 @@ class _AuditLogsTabState extends ConsumerState<_AuditLogsTab>
                 final time = DateTime.tryParse(
                   log['created_at']?.toString() ?? '',
                 );
-                return Container(
+                return AppCard(
+                  stableForScrolling: true,
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 12,
                   ),
-                  decoration: BoxDecoration(
-                    color: glassCardColor(isLight: isLight),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: widget.isLight
-                          ? AppColors.slate200
-                          : AppColors.slate800,
-                    ),
-                  ),
+                  borderRadius: 12,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

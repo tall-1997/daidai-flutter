@@ -295,7 +295,6 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
         builder: (ctx, setSheetState) {
           final enabledChannels = channels.where((c) => c.enabled).toList();
           final navigator = Navigator.of(ctx);
-          final messenger = ScaffoldMessenger.of(context);
           return Padding(
             padding: EdgeInsets.fromLTRB(
               20,
@@ -368,8 +367,10 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                         final title = titleC.text.trim();
                         final content = contentC.text.trim();
                         if (title.isEmpty || content.isEmpty) {
-                          messenger.showSnackBar(
-                            const SnackBar(content: Text('请输入标题和正文')),
+                          AppGlassNotice.show(
+                            this.context,
+                            '请输入标题和正文',
+                            type: AppGlassNoticeType.warning,
                           );
                           return;
                         }
@@ -389,14 +390,16 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                               : null;
                           if (!mounted) return;
                           navigator.pop();
-                          messenger.showSnackBar(
-                            SnackBar(content: Text(message ?? '通知已发送')),
+                          AppGlassNotice.show(
+                            this.context,
+                            message ?? '通知已发送',
+                            type: AppGlassNoticeType.success,
                           );
                         } catch (error) {
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text(_extractMessage(error, '通知发送失败')),
-                            ),
+                          AppGlassNotice.show(
+                            this.context,
+                            _extractMessage(error, '通知发送失败'),
+                            type: AppGlassNoticeType.error,
                           );
                         }
                       },
@@ -425,16 +428,20 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
+      AppGlassNotice.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('测试通知已发送')));
+        '测试通知已发送',
+        type: AppGlassNoticeType.success,
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
+      AppGlassNotice.show(
         context,
-      ).showSnackBar(SnackBar(content: Text(_extractMessage(error, '测试发送失败'))));
+        _extractMessage(error, '测试发送失败'),
+        type: AppGlassNoticeType.error,
+      );
     }
   }
 
@@ -481,9 +488,11 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
         if (!mounted) {
           return;
         }
-        ScaffoldMessenger.of(
+        AppGlassNotice.show(
           context,
-        ).showSnackBar(SnackBar(content: Text(_extractMessage(error, '删除失败'))));
+          _extractMessage(error, '删除失败'),
+          type: AppGlassNoticeType.error,
+        );
       }
     }
   }
@@ -719,7 +728,6 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
       };
 
   void _showChannelDialog({NotifyChannel? channel}) {
-    final messenger = ScaffoldMessenger.of(context);
     final nameController = TextEditingController(text: channel?.name ?? '');
     final existingConfig = Map<String, dynamic>.from(channel?.config ?? {});
     final fieldControllers = <String, TextEditingController>{};
@@ -867,8 +875,10 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                       onPressed: () async {
                         final name = nameController.text.trim();
                         if (name.isEmpty) {
-                          messenger.showSnackBar(
-                            const SnackBar(content: Text('名称不能为空')),
+                          AppGlassNotice.show(
+                            this.context,
+                            '名称不能为空',
+                            type: AppGlassNoticeType.warning,
                           );
                           return;
                         }
@@ -889,8 +899,10 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                           ).text.trim();
                           final parsed = _parseConfig(raw.isEmpty ? '{}' : raw);
                           if (parsed == null) {
-                            messenger.showSnackBar(
-                              const SnackBar(content: Text('配置 JSON 格式错误')),
+                            AppGlassNotice.show(
+                              this.context,
+                              '配置 JSON 格式错误',
+                              type: AppGlassNoticeType.error,
                             );
                             return;
                           }
@@ -915,22 +927,20 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                           }
                           if (!mounted) return;
                           Navigator.of(ctx).pop();
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text(channel == null ? '创建成功' : '保存成功'),
-                            ),
+                          AppGlassNotice.show(
+                            this.context,
+                            channel == null ? '创建成功' : '保存成功',
+                            type: AppGlassNoticeType.success,
                           );
                         } catch (error) {
                           if (!mounted) return;
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                _extractMessage(
-                                  error,
-                                  channel == null ? '创建失败' : '保存失败',
-                                ),
-                              ),
+                          AppGlassNotice.show(
+                            this.context,
+                            _extractMessage(
+                              error,
+                              channel == null ? '创建失败' : '保存失败',
                             ),
+                            type: AppGlassNoticeType.error,
                           );
                         }
                       },

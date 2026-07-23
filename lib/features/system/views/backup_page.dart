@@ -398,7 +398,6 @@ class _BackupPageState extends ConsumerState<BackupPage> {
   }
 
   Future<_CreateBackupRequest?> _showCreateBackupDialog() async {
-    final messenger = ScaffoldMessenger.of(context);
     final passwordController = TextEditingController();
     var selection = const _BackupSelection.defaults();
 
@@ -455,8 +454,10 @@ class _BackupPageState extends ConsumerState<BackupPage> {
             FilledButton(
               onPressed: () {
                 if (!selection.any) {
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('请至少选择一个备份项')),
+                  AppGlassNotice.show(
+                    this.context,
+                    '请至少选择一个备份项',
+                    type: AppGlassNoticeType.warning,
                   );
                   return;
                 }
@@ -616,7 +617,6 @@ class _BackupPageState extends ConsumerState<BackupPage> {
   }
 
   Future<String?> _showRestoreDialog(String filename) async {
-    final messenger = ScaffoldMessenger.of(context);
     final passwordController = TextEditingController();
     final needsPassword = filename.toLowerCase().endsWith('.enc');
 
@@ -688,7 +688,11 @@ class _BackupPageState extends ConsumerState<BackupPage> {
           AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(dialogContext)),
           AppGlassDialogAction(label: '确认恢复', variant: AppLiquidGlassButtonVariant.danger, onPressed: () {
               if (needsPassword && passwordController.text.trim().isEmpty) {
-                messenger.showSnackBar(const SnackBar(content: Text('请输入备份密码')));
+                AppGlassNotice.show(
+                  this.context,
+                  '请输入备份密码',
+                  type: AppGlassNoticeType.warning,
+                );
                 return;
               }
               Navigator.pop(dialogContext, passwordController.text.trim());
@@ -1390,7 +1394,8 @@ class _BackupPageState extends ConsumerState<BackupPage> {
                         ),
                       )
                     else if (_backups.isEmpty)
-                      Card(
+                      AppCard(
+                        padding: EdgeInsets.zero,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 20,

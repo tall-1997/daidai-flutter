@@ -467,7 +467,6 @@ class _DepListPageState extends ConsumerState<DepListPage> {
   }
 
   Future<_CreateDepRequest?> _showCreateDialog() async {
-    final messenger = ScaffoldMessenger.of(context);
     final namesController = TextEditingController();
     var createType = ref.read(depListProvider).selectedType;
     var autoSplit = true;
@@ -544,8 +543,10 @@ class _DepListPageState extends ConsumerState<DepListPage> {
             AppGlassDialogAction(label: '安装', variant: AppLiquidGlassButtonVariant.primary, onPressed: () {
                 final names = _parseNames(namesController.text, autoSplit);
                 if (names.isEmpty) {
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('请输入依赖名称')),
+                  AppGlassNotice.show(
+                    this.context,
+                    '请输入依赖名称',
+                    type: AppGlassNoticeType.warning,
                   );
                   return;
                 }
@@ -881,46 +882,36 @@ class _DepListPageState extends ConsumerState<DepListPage> {
     bool isLight,
   ) {
     final count = _counts[type] ?? 0;
-    return GestureDetector(
+    return AppLiquidGlassSurface(
       onTap: () => _changeType(type),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppColors.primary.withAlpha(isLight ? 18 : 24)
-              : (glassCardColor(isLight: isLight)),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected
-                ? AppColors.primary
-                : (isLight ? AppColors.slate200 : AppColors.slate800),
+      selected: selected,
+      accentColor: AppColors.primary,
+      borderRadius: 14,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: selected
+                  ? AppColors.primaryDark
+                  : (isLight ? AppColors.slate500 : AppColors.slate400),
+            ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: selected
-                    ? AppColors.primaryDark
-                    : (isLight ? AppColors.slate500 : AppColors.slate400),
-              ),
+          const SizedBox(height: 6),
+          Text(
+            _countLoading ? '--' : '$count',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: selected
+                  ? AppColors.primary
+                  : (isLight ? AppColors.slate900 : AppColors.slate50),
             ),
-            const SizedBox(height: 6),
-            Text(
-              _countLoading ? '--' : '$count',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: selected
-                    ? AppColors.primary
-                    : (isLight ? AppColors.slate900 : AppColors.slate50),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -936,16 +927,8 @@ class _DepListPageState extends ConsumerState<DepListPage> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        width: double.infinity,
+      child: AppCard(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: glassCardColor(isLight: isLight),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isLight ? AppColors.slate200 : AppColors.slate800,
-          ),
-        ),
         child: LayoutBuilder(
           builder: (context, constraints) {
             final isNarrow = constraints.maxWidth < 420;

@@ -8,6 +8,7 @@ import '../../../shared/models/task_log.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../shared/utils/ansi_text.dart';
 import '../../../shared/utils/log_background.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class LogStreamPage extends StatefulWidget {
   final int logId;
@@ -229,8 +230,10 @@ class _LogStreamPageState extends State<LogStreamPage> {
               tooltip: '复制全部',
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: _lines.join('\n')));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('日志已复制到剪贴板'), duration: Duration(seconds: 2)),
+                AppGlassNotice.show(
+                  context,
+                  '日志已复制到剪贴板',
+                  type: AppGlassNoticeType.success,
                 );
               },
             ),

@@ -88,9 +88,11 @@ class _PanelLogPageState extends State<PanelLogPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(
+    AppGlassNotice.show(
       context,
-    ).showSnackBar(const SnackBar(content: Text('已复制日志内容')));
+      '已复制日志内容',
+      type: AppGlassNoticeType.success,
+    );
   }
 
   @override

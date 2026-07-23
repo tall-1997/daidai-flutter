@@ -9,6 +9,7 @@ import 'package:liquid_glass_easy/liquid_glass_easy.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/theme_provider.dart';
+import 'app_card.dart';
 
 class MainScaffold extends ConsumerStatefulWidget {
   final Widget child;
@@ -38,14 +39,12 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     if (_lastExitAttemptAt == null ||
         now.difference(_lastExitAttemptAt!) > const Duration(seconds: 5)) {
       _lastExitAttemptAt = now;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('5秒内再按一次返回键退出应用'),
-            duration: Duration(seconds: 5),
-          ),
-        );
+      AppGlassNotice.show(
+        context,
+        '5秒内再按一次返回键退出应用',
+        type: AppGlassNoticeType.warning,
+        duration: const Duration(seconds: 5),
+      );
       return;
     }
     await SystemNavigator.pop();

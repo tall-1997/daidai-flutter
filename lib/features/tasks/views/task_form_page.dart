@@ -436,9 +436,11 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
 
     if (_randomDelayMode == _RandomDelayMode.custom &&
         (randomDelay == null || randomDelay <= 0)) {
-      ScaffoldMessenger.of(
+      AppGlassNotice.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('请输入大于 0 的随机延迟秒数')));
+        '请输入大于 0 的随机延迟秒数',
+        type: AppGlassNoticeType.warning,
+      );
       return;
     }
 
@@ -484,8 +486,10 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
       if (mounted) context.pop();
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(extractErrorMessage(error, '保存失败'))),
+        AppGlassNotice.show(
+          context,
+          extractErrorMessage(error, '保存失败'),
+          type: AppGlassNoticeType.error,
         );
       }
     } finally {
