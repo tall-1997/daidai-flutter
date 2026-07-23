@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
@@ -15,6 +16,7 @@ class _InstalledPackagesPageState extends State<InstalledPackagesPage> {
   List<Map<String, dynamic>> _pip = const [];
   Map<String, dynamic> _npm = const {};
   bool _loading = true;
+  String _exported = '';
 
   @override
   void initState() {
@@ -41,6 +43,28 @@ class _InstalledPackagesPageState extends State<InstalledPackagesPage> {
     });
   }
 
+  Future<void> _export(String type) async {
+    final response = await DioClient.instance.dio.get(
+      ApiEndpoints.depsExport,
+      queryParameters: {'type': type},
+      options: Options(responseType: ResponseType.plain),
+    );
+    if (mounted) setState(() => _exported = response.data?.toString() ?? '');
+  }
+
+  Future<void> _batchReinstall() async {
+    final controller = TextEditingController();
+    final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      title: const Text('顺序批量重装'),
+      content: TextField(controller: controller, decoration: const InputDecoration(labelText: '依赖 ID，逗号分隔')),
+      actions: [AppLiquidGlassDialogActions(actions: [AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(ctx, false)), AppGlassDialogAction(label: '提交', onPressed: () => Navigator.pop(ctx, true))])],
+    ));
+    if (ok == true) {
+      final ids = controller.text.split(',').map((e) => int.tryParse(e.trim())).whereType<int>().toList();
+      if (ids.isNotEmpty) await DioClient.instance.dio.post(ApiEndpoints.depsBatchReinstall, data: {'ids': ids});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,6 +75,8 @@ class _InstalledPackagesPageState extends State<InstalledPackagesPage> {
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [
+                Wrap(spacing: 8, children: [AppLiquidGlassButton(label: '导出 Python', onPressed: () => _export('python'), height: 42), AppLiquidGlassButton(label: '导出 Node', onPressed: () => _export('nodejs'), height: 42), AppLiquidGlassButton(label: '顺序重装', onPressed: _batchReinstall, height: 42)]),
+                if (_exported.isNotEmpty) AppCard(child: SelectableText(_exported, style: const TextStyle(fontFamily: 'monospace'))),
                 const Text('Python', style: TextStyle(fontWeight: FontWeight.bold)),
                 ..._pip.map((item) => AppCard(
                       margin: const EdgeInsets.only(bottom: 6),
