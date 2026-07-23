@@ -527,6 +527,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
 
   void _onSearchChanged(String value) {
     setState(() {});
+    if (_selectionMode) _setSelectionMode(false);
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
       if (_scrollController.hasClients && _scrollController.offset > 0) {
@@ -707,6 +708,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     if (!mounted || selected == null) {
       return;
     }
+    if (_selectionMode) _setSelectionMode(false);
 
     if (_scrollController.hasClients && _scrollController.offset > 0) {
       _scrollController.jumpTo(0);
@@ -853,7 +855,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                    return AppLiquidGlassChoiceChip(
                      label: filter.label,
                      selected: selected,
-                    onSelected: (_) {
+                     onSelected: (_) {
+                       if (_selectionMode) _setSelectionMode(false);
                       if (_scrollController.hasClients &&
                           _scrollController.offset > 0) {
                         _scrollController.jumpTo(0);
@@ -933,7 +936,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                         ? IconButton(
                             tooltip: '清除筛选',
                             icon: const Icon(Icons.filter_alt_off, size: 18),
-                            onPressed: () {
+                             onPressed: () {
+                               if (_selectionMode) _setSelectionMode(false);
                               if (_scrollController.hasClients &&
                                   _scrollController.offset > 0) {
                                 _scrollController.jumpTo(0);
@@ -951,7 +955,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                             },
                           )
                         : TextButton(
-                            onPressed: () {
+                             onPressed: () {
+                        if (_selectionMode) _setSelectionMode(false);
                         if (_scrollController.hasClients &&
                             _scrollController.offset > 0) {
                           _scrollController.jumpTo(0);

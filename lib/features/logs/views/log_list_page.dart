@@ -500,6 +500,7 @@ class _LogListPageState extends ConsumerState<LogListPage> {
                             color: AppColors.slate400,
                           ),
                           onPressed: () {
+                            if (_selectionMode) _exitSelectionMode();
                             _searchController.clear();
                             setState(() {});
                             ref.read(logListProvider.notifier).setKeyword('');
@@ -510,6 +511,7 @@ class _LogListPageState extends ConsumerState<LogListPage> {
                 style: const TextStyle(fontSize: 14),
                 onChanged: (value) {
                   setState(() {});
+                  if (_selectionMode) _exitSelectionMode();
                   _debounce?.cancel();
                   _debounce = Timer(const Duration(milliseconds: 300), () {
                     _resetScroll();
@@ -533,6 +535,7 @@ class _LogListPageState extends ConsumerState<LogListPage> {
                       label: '全部',
                       selected: state.statusFilter == null,
                       onTap: () {
+                        if (_selectionMode) _exitSelectionMode();
                         _resetScroll();
                         ref
                             .read(logListProvider.notifier)
@@ -543,6 +546,7 @@ class _LogListPageState extends ConsumerState<LogListPage> {
                       label: '成功',
                       selected: state.statusFilter == 0,
                       onTap: () {
+                        if (_selectionMode) _exitSelectionMode();
                         _resetScroll();
                         ref.read(logListProvider.notifier).setStatusFilter(0);
                       },
@@ -551,6 +555,7 @@ class _LogListPageState extends ConsumerState<LogListPage> {
                       label: '失败',
                       selected: state.statusFilter == 1,
                       onTap: () {
+                        if (_selectionMode) _exitSelectionMode();
                         _resetScroll();
                         ref.read(logListProvider.notifier).setStatusFilter(1);
                       },
@@ -560,6 +565,7 @@ class _LogListPageState extends ConsumerState<LogListPage> {
                       label: '运行中',
                       selected: state.statusFilter == 2,
                       onTap: () {
+                        if (_selectionMode) _exitSelectionMode();
                         _resetScroll();
                         ref.read(logListProvider.notifier).setStatusFilter(2);
                       },
