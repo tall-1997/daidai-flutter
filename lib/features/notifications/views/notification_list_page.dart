@@ -370,7 +370,7 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                         final content = contentC.text.trim();
                         if (title.isEmpty || content.isEmpty) {
                           AppGlassNotice.show(
-                            this.context,
+                            context,
                             '请输入标题和正文',
                             type: AppGlassNoticeType.warning,
                           );
@@ -393,14 +393,14 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                           if (!mounted) return;
                           navigator.pop();
                           AppGlassNotice.show(
-                            this.context,
+                            context,
                             message ?? '通知已发送',
                             type: AppGlassNoticeType.success,
                           );
       } catch (error) {
         if (!mounted) return;
         AppGlassNotice.show(
-                            this.context,
+                            context,
                             _extractMessage(error, '通知发送失败'),
                             type: AppGlassNoticeType.error,
                           );
@@ -872,7 +872,7 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                         final name = nameController.text.trim();
                         if (name.isEmpty) {
                           AppGlassNotice.show(
-                            this.context,
+                             context,
                             '名称不能为空',
                             type: AppGlassNoticeType.warning,
                           );
@@ -896,7 +896,7 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                           final parsed = _parseConfig(raw.isEmpty ? '{}' : raw);
                           if (parsed == null) {
                             AppGlassNotice.show(
-                              this.context,
+                               context,
                               '配置 JSON 格式错误',
                               type: AppGlassNoticeType.error,
                             );
@@ -921,17 +921,17 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                                 .read(notificationListProvider.notifier)
                                 .update(channel.id, payload);
                           }
-                          if (!mounted) return;
+                          if (!mounted || !ctx.mounted) return;
                           Navigator.of(ctx).pop();
                           AppGlassNotice.show(
-                            this.context,
+                             context,
                             channel == null ? '创建成功' : '保存成功',
                             type: AppGlassNoticeType.success,
                           );
                         } catch (error) {
                           if (!mounted) return;
                           AppGlassNotice.show(
-                            this.context,
+                             context,
                             _extractMessage(
                               error,
                               channel == null ? '创建失败' : '保存失败',

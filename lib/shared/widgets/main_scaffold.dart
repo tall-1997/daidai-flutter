@@ -149,7 +149,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
-        errorBuilder: (_, __, ___) => Container(
+        errorBuilder: (_, _, _) => Container(
           color: Theme.of(context).scaffoldBackgroundColor,
         ),
       );

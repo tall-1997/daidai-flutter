@@ -30,7 +30,7 @@ class AppBackground extends ConsumerWidget {
               Image.file(
                 File(settings.backgroundImagePath!),
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => ColoredBox(
+                errorBuilder: (_, _, _) => ColoredBox(
                   color: Theme.of(context).scaffoldBackgroundColor,
                 ),
               ),

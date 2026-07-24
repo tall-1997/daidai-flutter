@@ -212,7 +212,7 @@ class _BackgroundImagePicker extends StatelessWidget {
               height: 80,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
+              errorBuilder: (_, _, _) => Container(
                 height: 80,
                 color: isLight ? AppColors.slate100 : AppColors.slate800,
                 child: Icon(

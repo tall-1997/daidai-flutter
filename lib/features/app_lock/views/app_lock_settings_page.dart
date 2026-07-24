@@ -49,6 +49,7 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
           variant: AppLiquidGlassButtonVariant.warning,
         );
         if (confirmed != true) return;
+        if (!mounted) return;
         // 滚动到底部让用户看到配置选项
         final controller = PrimaryScrollController.maybeOf(context);
         if (controller != null && controller.hasClients) {

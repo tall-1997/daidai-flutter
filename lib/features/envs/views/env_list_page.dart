@@ -809,6 +809,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                                 }
                               }
                             }
+                            if (!mounted) return;
                             setState(() {
                               _sortMode = !_sortMode;
                               _pendingSortMoves.clear();

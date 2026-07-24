@@ -445,12 +445,12 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                       await ref
                           .read(userListProvider.notifier)
                           .resetPassword(user.id, passwordC.text);
-                      if (!mounted) {
+                      if (!mounted || !dialogCtx.mounted) {
                         return;
                       }
                       Navigator.of(dialogCtx).pop();
                       AppGlassNotice.show(
-                        this.context,
+                        context,
                         '密码已重置',
                         type: AppGlassNoticeType.success,
                       );
@@ -459,7 +459,7 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                         return;
                       }
                       AppGlassNotice.show(
-                        this.context,
+                        context,
                         extractErrorMessage(error, '重置密码失败'),
                         type: AppGlassNoticeType.error,
                       );

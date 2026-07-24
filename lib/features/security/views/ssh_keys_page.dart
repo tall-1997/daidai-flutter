@@ -137,7 +137,7 @@ class _SshKeysPageState extends ConsumerState<SshKeysPage> {
                         'private_key': privateKeyC.text,
                       },
                     );
-                    if (!mounted) return;
+                    if (!mounted || !ctx.mounted) return;
                     Navigator.of(ctx).pop();
                     await _load();
                     if (!mounted) return;
