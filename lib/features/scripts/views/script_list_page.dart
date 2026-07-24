@@ -1196,7 +1196,7 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: targetDir,
+                  initialValue: targetDir,
                   decoration: const InputDecoration(labelText: '目标目录'),
                   items: [
                     const DropdownMenuItem(value: '', child: Text('根目录')),
@@ -1289,7 +1289,7 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: targetDir,
+                    initialValue: targetDir,
                     decoration: const InputDecoration(labelText: '目标目录'),
                     items: [
                       const DropdownMenuItem(value: '', child: Text('根目录')),
@@ -1408,7 +1408,7 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                  value: parent,
+                  initialValue: parent,
                     decoration: const InputDecoration(labelText: '保存目录'),
                     items: [
                       const DropdownMenuItem(value: '', child: Text('根目录')),
@@ -1506,7 +1506,7 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: parent,
+                    initialValue: parent,
                     decoration: const InputDecoration(labelText: '上级目录'),
                     items: [
                       const DropdownMenuItem(value: '', child: Text('根目录')),
@@ -1648,7 +1648,7 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                  value: targetDir,
+                  initialValue: targetDir,
                     decoration: const InputDecoration(labelText: '上传目录'),
                     items: [
                       const DropdownMenuItem(value: '', child: Text('根目录')),

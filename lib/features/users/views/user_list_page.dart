@@ -228,8 +228,6 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                           user: state.items[i],
                           isLight: isLight,
                           currentUsername: currentUsername,
-                          ref: ref,
-                          context: context,
                           showResetPw: _showResetPasswordDialog,
                           showRolePicker: _showRolePicker,
                           showDelete: _confirmDelete,
@@ -517,8 +515,6 @@ class _UserCard extends ConsumerWidget {
   final _User user;
   final bool isLight;
   final String? currentUsername;
-  final WidgetRef ref;
-  final BuildContext context;
   final void Function(_User) showResetPw;
   final Future<void> Function(_User) showRolePicker;
   final Future<void> Function(_User) showDelete;
@@ -527,8 +523,6 @@ class _UserCard extends ConsumerWidget {
     required this.user,
     required this.isLight,
     required this.currentUsername,
-    required this.ref,
-    required this.context,
     required this.showResetPw,
     required this.showRolePicker,
     required this.showDelete,
@@ -667,7 +661,7 @@ class _UserCard extends ConsumerWidget {
                       return;
                     }
                     AppGlassNotice.show(
-                      this.context,
+                      context,
                       user.enabled ? '用户已禁用' : '用户已启用',
                       type: AppGlassNoticeType.success,
                     );
@@ -676,7 +670,7 @@ class _UserCard extends ConsumerWidget {
                       return;
                     }
                     AppGlassNotice.show(
-                      this.context,
+                      context,
                       extractErrorMessage(
                         error,
                         user.enabled ? '禁用用户失败' : '启用用户失败',

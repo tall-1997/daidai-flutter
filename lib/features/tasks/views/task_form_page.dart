@@ -621,7 +621,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: _taskType,
+                  initialValue: _taskType,
                   decoration: const InputDecoration(labelText: '任务类型'),
                   items: const [
                     DropdownMenuItem(value: 'cron', child: Text('常规定时')),
@@ -634,7 +634,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: _pythonVersion,
+                  initialValue: _pythonVersion,
                   decoration: InputDecoration(
                     labelText: 'Python 版本',
                     helperText: '仅 Python 脚本使用；新建任务默认跟随面板默认 Python 版本。',
@@ -919,7 +919,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<int?>(
-                  value: _notificationChannelId,
+                  initialValue: _notificationChannelId,
                   decoration: InputDecoration(
                     labelText: '通知渠道',
                     suffixIcon: _loadingChannels

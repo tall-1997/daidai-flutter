@@ -473,9 +473,10 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
       if (data is List) {
         sshKeys = data.whereType<Map<String, dynamic>>().toList();
       }
-    } catch (_) {}
+      } catch (_) {}
+      if (!mounted) return;
 
-    showModalBottomSheet(
+      showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -542,7 +543,7 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                             const SizedBox(height: 12),
                             if (selectedType == 'git-repo' && sshKeys.isNotEmpty) ...[
                               DropdownButtonFormField<int?>(
-                                value: selectedSshKeyId,
+                                initialValue: selectedSshKeyId,
                                 decoration: const InputDecoration(
                                   labelText: 'SSH 密钥 (可选)',
                                 ),
@@ -797,9 +798,10 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
       if (data is List) {
         sshKeys = data.whereType<Map<String, dynamic>>().toList();
       }
-    } catch (_) {}
+      } catch (_) {}
+      if (!mounted) return;
 
-    showModalBottomSheet(
+      showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -866,7 +868,7 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                             const SizedBox(height: 12),
                             if (selectedType == 'git-repo' && sshKeys.isNotEmpty) ...[
                               DropdownButtonFormField<int?>(
-                                value: selectedSshKeyId,
+                                initialValue: selectedSshKeyId,
                                 decoration: const InputDecoration(
                                   labelText: 'SSH 密钥 (可选)',
                                 ),

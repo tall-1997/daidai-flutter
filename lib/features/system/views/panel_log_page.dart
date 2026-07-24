@@ -131,7 +131,7 @@ class _PanelLogPageState extends State<PanelLogPage> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _selectedLevel,
+                        initialValue: _selectedLevel,
                         decoration: const InputDecoration(labelText: '日志级别'),
                         items: const [
                           DropdownMenuItem(value: '', child: Text('全部')),

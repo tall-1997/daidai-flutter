@@ -397,8 +397,9 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                             message ?? '通知已发送',
                             type: AppGlassNoticeType.success,
                           );
-                        } catch (error) {
-                          AppGlassNotice.show(
+      } catch (error) {
+        if (!mounted) return;
+        AppGlassNotice.show(
                             this.context,
                             _extractMessage(error, '通知发送失败'),
                             type: AppGlassNoticeType.error,
@@ -785,7 +786,7 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: selectedType,
+                      initialValue: selectedType,
                       decoration: const InputDecoration(labelText: '渠道类型'),
                       items: availableTypes
                           .map(

@@ -136,7 +136,9 @@ class SseClient {
         }
         final data = dataLines.join('\n');
         final event = SseEvent(event: currentEvent, data: data);
-        if (generation != _generation) return;
+        if (generation != _generation) {
+          return;
+        }
         onEvent(event);
 
         if (currentEvent == 'done' &&

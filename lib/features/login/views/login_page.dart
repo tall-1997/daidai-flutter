@@ -151,6 +151,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
         final authService = AuthService();
         final ok = await authService.checkHealth(finalUrl);
+        if (!mounted) return;
         if (!ok) {
           setState(() {
             _error = '无法连接到服务器 ($finalUrl)，请检查地址是否正确、面板是否运行中。'
@@ -180,6 +181,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             _passwordController.text,
           );
         } catch (error) {
+          if (!mounted) return;
           setState(() {
             _needsInit = true;
             _error = extractErrorMessage(error, '初始化失败，请检查输入后重试');
@@ -187,6 +189,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           });
           return;
         }
+        if (!mounted) return;
         setState(() => _needsInit = false);
       }
 
@@ -203,6 +206,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         totpCode: _needsTotp ? _totpController.text.trim() : null,
         captcha: captcha,
       );
+      if (!mounted) return;
 
       if (result['two_factor_required'] == true) {
         setState(() {
@@ -248,6 +252,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         context.go('/dashboard');
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e is _LoginFlowMessage
             ? e.message

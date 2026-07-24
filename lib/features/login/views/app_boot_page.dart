@@ -54,12 +54,14 @@ class _AppBootPageState extends ConsumerState<AppBootPage> {
 
     // 读取当前面板，决定是否允许静默自动登录。
     final currentPanel = await SecureStorage.getCurrentPanel();
+    if (!mounted) return;
     if (currentPanel == null) {
       _go('/login');
       return;
     }
 
     try {
+      if (!mounted) return;
       setState(() {
         _bootMessage = '正在检查面板状态...';
       });
@@ -86,6 +88,7 @@ class _AppBootPageState extends ConsumerState<AppBootPage> {
     }
 
     try {
+      if (!mounted) return;
       setState(() {
         _bootMessage = '正在自动登录...';
       });
@@ -115,6 +118,7 @@ class _AppBootPageState extends ConsumerState<AppBootPage> {
           autoLogin: true,
         ),
       );
+      if (!mounted) return;
 
       try {
         ref.invalidate(dashboardProvider);
