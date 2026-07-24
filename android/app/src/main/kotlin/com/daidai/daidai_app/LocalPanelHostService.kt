@@ -22,6 +22,7 @@ class LocalPanelHostService : Service() {
         super.onCreate()
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification())
+        LocalPanelRuntime.ensureStarted(applicationContext)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -37,6 +38,11 @@ class LocalPanelHostService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onDestroy() {
+        LocalPanelRuntime.stop()
+        super.onDestroy()
+    }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -55,7 +61,7 @@ class LocalPanelHostService : Service() {
     private fun buildNotification() = NotificationCompat.Builder(this, CHANNEL_ID)
         .setSmallIcon(R.mipmap.ic_launcher)
         .setContentTitle("呆呆面板本地服务")
-        .setContentText("本地面板宿主已启用，等待核心组件接入")
+        .setContentText("本地面板与任务调度宿主正在运行")
         .setOngoing(true)
         .setContentIntent(
             PendingIntent.getActivity(

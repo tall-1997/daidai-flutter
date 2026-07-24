@@ -159,12 +159,18 @@ class MainActivity : FlutterActivity() {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, LOCAL_HOST_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                "ensureStarted", "getStatus" -> result.success(localHostStatus())
+                "ensureStarted" -> {
+                    LocalPanelRuntime.ensureStarted(applicationContext)
+                    result.success(localHostStatus())
+                }
+                "getStatus" -> result.success(localHostStatus())
                 "restart" -> {
+                    LocalPanelRuntime.restart(applicationContext)
                     emitLocalHostStatus()
                     result.success(null)
                 }
                 "stop" -> {
+                    LocalPanelRuntime.stop()
                     setPersistentSchedulingEnabled(false)
                     emitLocalHostStatus()
                     result.success(null)
@@ -192,16 +198,10 @@ class MainActivity : FlutterActivity() {
         )
     }
 
-    private fun localHostStatus(): Map<String, Any> = mapOf(
-        "phase" to "stopped",
-        "base_url" to "",
-        "instance_id" to "",
-        "core_version" to "",
-        "schema_version" to 0,
-        "failure_stage" to "core_bundle",
-        "message" to "Android local panel core is not bundled yet",
-        "foreground_service_enabled" to isPersistentSchedulingEnabled()
-    )
+    private fun localHostStatus(): Map<String, Any> =
+        LocalPanelRuntime.status().toMutableMap().apply {
+            this["foreground_service_enabled"] = isPersistentSchedulingEnabled()
+        }
 
     private fun emitLocalHostStatus() {
         localHostEventSink?.success(localHostStatus())
