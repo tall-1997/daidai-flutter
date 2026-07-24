@@ -12,6 +12,7 @@ import '../../../shared/utils/ansi_text.dart';
 import '../../../shared/utils/log_background.dart';
 import '../../../shared/utils/time_utils.dart';
 import '../../../shared/widgets/app_card.dart';
+import '../models/dependency_log_state.dart';
 
 // ── Provider ──
 
@@ -30,6 +31,7 @@ class DepListState {
   final String pythonDefaultVersion;
   final List<PythonRuntimeInfo> pythonRuntimes;
   final bool runtimeLoading;
+  final String? error;
 
   const DepListState({
     this.items = const [],
@@ -40,6 +42,7 @@ class DepListState {
     this.pythonDefaultVersion = '3.12',
     this.pythonRuntimes = const [],
     this.runtimeLoading = false,
+    this.error,
   });
 
   DepListState copyWith({
@@ -51,6 +54,8 @@ class DepListState {
     String? pythonDefaultVersion,
     List<PythonRuntimeInfo>? pythonRuntimes,
     bool? runtimeLoading,
+    String? error,
+    bool clearError = false,
   }) {
     return DepListState(
       items: items ?? this.items,
@@ -62,6 +67,7 @@ class DepListState {
       pythonDefaultVersion: pythonDefaultVersion ?? this.pythonDefaultVersion,
       pythonRuntimes: pythonRuntimes ?? this.pythonRuntimes,
       runtimeLoading: runtimeLoading ?? this.runtimeLoading,
+      error: clearError ? null : error ?? this.error,
     );
   }
 }
@@ -172,6 +178,7 @@ class DepListNotifier extends StateNotifier<DepListState> {
       selectedType: nextType,
       selectedPythonVersion: nextPythonVersion,
       loading: true,
+      clearError: true,
     );
     try {
       final result = await fetchByType(
@@ -185,10 +192,13 @@ class DepListNotifier extends StateNotifier<DepListState> {
         total: result.total,
         loading: false,
       );
-    } catch (_) {
+    } catch (error) {
       if (requestId != _loadRequestId) return;
       if (!refresh && _page > 1) _page--;
-      state = state.copyWith(loading: false);
+      state = state.copyWith(
+        loading: false,
+        error: extractErrorMessage(error, '依赖列表加载失败'),
+      );
     }
   }
 
@@ -1283,6 +1293,32 @@ class _DepListPageState extends ConsumerState<DepListPage> {
                           ),
                         ],
                       )
+                    : state.error != null && state.items.isEmpty
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        children: [
+                          const SizedBox(height: 100),
+                          AppCard(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.cloud_off_outlined, size: 42),
+                                const SizedBox(height: 10),
+                                Text(
+                                  state.error!,
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 12),
+                                AppLiquidGlassButton(
+                                  label: '重试',
+                                  onPressed: _loadPageData,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
                     : () {
                         final filtered = _statusFilter == null
                             ? state.items
@@ -1578,9 +1614,8 @@ class DepLogStreamPage extends ConsumerStatefulWidget {
 
 class _DepLogStreamPageState extends ConsumerState<DepLogStreamPage> {
   final _sseClient = SseClient();
-  final _logs = <String>[];
   final _scrollController = ScrollController();
-  bool _done = false;
+  DependencyLogState _logState = const DependencyLogState();
   Color? _logBackgroundColor;
 
   @override
@@ -1598,9 +1633,19 @@ class _DepLogStreamPageState extends ConsumerState<DepLogStreamPage> {
       onEvent: (event) {
         if (!mounted) return;
         setState(() {
-          _logs.add(event.data);
+          _logState = _logState.add(event.data).transition(
+            DependencyLogPhase.streaming,
+          );
           if (event.event == 'done' && event.data != 'reconnect') {
-            _done = true;
+            _logState = _logState.transition(
+              dependencyLogDonePhase(event.data),
+              message: event.data,
+            );
+          } else if (event.event == 'done' && event.data == 'reconnect') {
+            _logState = _logState.transition(
+              DependencyLogPhase.reconnecting,
+              message: '连接已中断，正在恢复日志',
+            );
           }
         });
         Future.delayed(const Duration(milliseconds: 50), () {
@@ -1612,10 +1657,34 @@ class _DepLogStreamPageState extends ConsumerState<DepLogStreamPage> {
         });
       },
       onDone: () {
-        if (mounted) setState(() => _done = true);
+        if (mounted && !_logState.terminal) {
+          setState(() {
+            _logState = _logState.transition(
+              DependencyLogPhase.connectionError,
+              message: '日志连接已结束，安装结果尚未确认',
+            );
+          });
+        }
       },
-      onError: (_) {
-        if (mounted) setState(() => _done = true);
+      onReconnecting: () {
+        if (mounted && !_logState.terminal) {
+          setState(() {
+            _logState = _logState.transition(
+              DependencyLogPhase.reconnecting,
+              message: '连接已中断，正在恢复日志',
+            );
+          });
+        }
+      },
+      onError: (error) {
+        if (mounted) {
+          setState(() {
+            _logState = _logState.transition(
+              DependencyLogPhase.connectionError,
+              message: extractErrorMessage(error, '日志连接失败'),
+            );
+          });
+        }
       },
     );
   }
@@ -1649,11 +1718,11 @@ class _DepLogStreamPageState extends ConsumerState<DepLogStreamPage> {
               child: ListView.builder(
                 controller: _scrollController,
                 padding: const EdgeInsets.all(12),
-                itemCount: _logs.length,
+                itemCount: _logState.entries.length,
                 itemBuilder: (_, i) => SelectionArea(
                   child: RichText(
                     text: AnsiTextParser.buildTextSpan(
-                      _logs[i],
+                      _logState.entries[i],
                       baseStyle: TextStyle(
                         color: logTheme.foreground,
                         fontFamily: 'monospace',
@@ -1666,13 +1735,14 @@ class _DepLogStreamPageState extends ConsumerState<DepLogStreamPage> {
                 ),
               ),
             ),
-            if (_done)
+            if (_logState.terminal ||
+                _logState.phase == DependencyLogPhase.reconnecting)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 color: doneBannerBackground,
                 child: Text(
-                  '安装完成',
+                  _dependencyLogStatusText(_logState),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: logTheme.brightness == Brightness.dark
@@ -1687,6 +1757,20 @@ class _DepLogStreamPageState extends ConsumerState<DepLogStreamPage> {
       ),
     );
   }
+}
+
+String _dependencyLogStatusText(DependencyLogState state) {
+  return switch (state.phase) {
+    DependencyLogPhase.succeeded => '安装完成',
+    DependencyLogPhase.failed => state.message?.trim().isNotEmpty == true
+        ? '安装失败：${state.message}'
+        : '安装失败',
+    DependencyLogPhase.cancelled => '安装已取消',
+    DependencyLogPhase.connectionError => state.message ?? '日志连接失败',
+    DependencyLogPhase.reconnecting => state.message ?? '正在恢复日志连接',
+    DependencyLogPhase.connecting => '正在连接安装日志',
+    DependencyLogPhase.streaming => '安装进行中',
+  };
 }
 
 class _StatusFilterChip extends StatelessWidget {

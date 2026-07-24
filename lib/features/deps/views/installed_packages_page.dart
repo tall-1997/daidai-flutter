@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../shared/utils/api_utils.dart';
 import '../../../shared/widgets/app_card.dart';
 
 class InstalledPackagesPage extends StatefulWidget {
@@ -16,6 +17,7 @@ class _InstalledPackagesPageState extends State<InstalledPackagesPage> {
   List<Map<String, dynamic>> _pip = const [];
   Map<String, dynamic> _npm = const {};
   bool _loading = true;
+  String? _error;
   String _exported = '';
 
   @override
@@ -25,22 +27,37 @@ class _InstalledPackagesPageState extends State<InstalledPackagesPage> {
   }
 
   Future<void> _load() async {
-    final responses = await Future.wait([
-      DioClient.instance.dio.get(ApiEndpoints.depsPip),
-      DioClient.instance.dio.get(ApiEndpoints.depsNpm),
-    ]);
-    final pip = responses[0].data;
-    final npm = responses[1].data;
-    if (!mounted) return;
     setState(() {
-      _pip = pip is List
-          ? pip.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
-          : const [];
-      _npm = npm is Map && npm['dependencies'] is Map
-          ? Map<String, dynamic>.from(npm['dependencies'] as Map)
-          : const {};
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    try {
+      final responses = await Future.wait([
+        DioClient.instance.dio.get(ApiEndpoints.depsPip),
+        DioClient.instance.dio.get(ApiEndpoints.depsNpm),
+      ]);
+      final pip = extractData(responses[0].data);
+      final npm = extractData(responses[1].data);
+      if (!mounted) return;
+      setState(() {
+        _pip = pip is List
+            ? pip
+                  .whereType<Map>()
+                  .map((e) => Map<String, dynamic>.from(e))
+                  .toList()
+            : const [];
+        _npm = npm is Map && npm['dependencies'] is Map
+            ? Map<String, dynamic>.from(npm['dependencies'] as Map)
+            : const {};
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = extractErrorMessage(error, '依赖清单加载失败');
+      });
+    }
   }
 
   Future<void> _export(String type) async {
@@ -72,6 +89,21 @@ class _InstalledPackagesPageState extends State<InstalledPackagesPage> {
       appBar: AppBar(title: const Text('系统依赖清单')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
+          : _error != null
+          ? Center(
+              child: AppCard(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.cloud_off_outlined, size: 42),
+                    const SizedBox(height: 10),
+                    Text(_error!, textAlign: TextAlign.center),
+                    const SizedBox(height: 12),
+                    AppLiquidGlassButton(label: '重试', onPressed: _load),
+                  ],
+                ),
+              ),
+            )
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [

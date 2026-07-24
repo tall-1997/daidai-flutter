@@ -197,6 +197,21 @@ class ApiEndpoints {
   static const String depsNpm = '$baseApi/deps/npm';
   static const String depsExport = '$baseApi/deps/export';
   static const String depsBatchReinstall = '$baseApi/deps/batch-reinstall';
+  static const String localCapabilities = '$baseApi/local/capabilities';
+  static const String localRuntimes = '$baseApi/local/runtimes';
+  static String localRuntime(String id) =>
+      '$localRuntimes/${Uri.encodeComponent(id)}';
+  static String localRuntimeInstall(String id) =>
+      '${localRuntime(id)}/install';
+  static String localRuntimeDiagnostics(String id) =>
+      '${localRuntime(id)}/diagnostics';
+  static const String localOperations = '$baseApi/local/operations';
+  static String localOperation(String id) =>
+      '$localOperations/${Uri.encodeComponent(id)}';
+  static String localOperationCancel(String id) =>
+      '${localOperation(id)}/cancel';
+  static String localOperationStream(String id) =>
+      '$baseApiV1/local/operations/${Uri.encodeComponent(id)}/stream';
   static const String envsBatchRename = '$baseApi/envs/batch/rename';
   static String envMoveTop(int id) => '$baseApi/envs/$id/move-top';
   static String envCancelTop(int id) => '$baseApi/envs/$id/cancel-top';

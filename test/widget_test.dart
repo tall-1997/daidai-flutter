@@ -4,6 +4,9 @@ import 'package:daidai_app/features/dashboard/providers/dashboard_provider.dart'
 import 'package:daidai_app/core/services/android_update_manifest.dart';
 import 'package:daidai_app/core/services/local_notification_service.dart';
 import 'package:daidai_app/core/services/app_update_service.dart';
+import 'package:daidai_app/features/deps/models/dependency_log_state.dart';
+import 'package:daidai_app/features/deps/models/dependency_operation.dart';
+import 'package:daidai_app/core/local_panel/local_panel_models.dart';
 import 'package:daidai_app/shared/models/subscription.dart';
 import 'package:daidai_app/shared/utils/api_utils.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -172,5 +175,64 @@ void main() {
     expect(released, 16);
     expect(await root.list().toList(), isEmpty);
     await root.delete();
+  });
+
+  group('dependency log state', () {
+    test('connection errors remain distinct from successful completion', () {
+      final state = const DependencyLogState().transition(
+        DependencyLogPhase.connectionError,
+        message: 'offline',
+      );
+
+      expect(state.phase, DependencyLogPhase.connectionError);
+      expect(state.terminal, isTrue);
+    });
+
+    test('keeps only the most recent log entries', () {
+      var state = const DependencyLogState();
+      for (var index = 0; index < DependencyLogState.maxEntries + 5; index++) {
+        state = state.add('$index');
+      }
+
+      expect(state.entries, hasLength(DependencyLogState.maxEntries));
+      expect(state.entries.first, '5');
+    });
+
+    test('maps dependency terminal events', () {
+      expect(dependencyLogDonePhase('failed'), DependencyLogPhase.failed);
+      expect(dependencyLogDonePhase('cancelled'), DependencyLogPhase.cancelled);
+      expect(dependencyLogDonePhase('installed'), DependencyLogPhase.succeeded);
+    });
+  });
+
+  test('local capabilities parse booleans and numeric limits', () {
+    final capabilities = LocalPanelCapabilities.fromJson({
+      'instance_mode': 'android_local',
+      'architecture': 'arm64-v8a',
+      'schema_version': '2',
+      'capabilities': {'python': true, 'linux_package_manager': false},
+      'limits': {'runtime_quota_bytes': 1024},
+    });
+
+    expect(capabilities.instanceMode, 'android_local');
+    expect(capabilities.schemaVersion, 2);
+    expect(capabilities.supports('python'), isTrue);
+    expect(capabilities.supports('linux_package_manager'), isFalse);
+  });
+
+  test('dependency operation clamps progress and recognizes terminal state', () {
+    final operation = DependencyOperation.fromJson({
+      'id': 'op-1',
+      'kind': 'pip_install',
+      'state': 'failed',
+      'progress': 2,
+      'sequence': '12',
+      'error_code': 'abi_incompatible',
+    });
+
+    expect(operation.progress, 1);
+    expect(operation.sequence, 12);
+    expect(operation.terminal, isTrue);
+    expect(operation.errorCode, 'abi_incompatible');
   });
 }

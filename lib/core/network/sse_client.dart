@@ -24,6 +24,7 @@ class SseClient {
     required void Function(SseEvent event) onEvent,
     void Function()? onDone,
     void Function(dynamic error)? onError,
+    void Function()? onReconnecting,
     bool autoReconnect = false,
   }) async {
     _closed = false;
@@ -33,6 +34,7 @@ class SseClient {
       onEvent: onEvent,
       onDone: onDone,
       onError: onError,
+      onReconnecting: onReconnecting,
       autoReconnect: autoReconnect,
       authRefreshAttempts: 0,
       generation: generation,
@@ -44,6 +46,7 @@ class SseClient {
     required void Function(SseEvent event) onEvent,
     void Function()? onDone,
     void Function(dynamic error)? onError,
+    void Function()? onReconnecting,
     bool autoReconnect = false,
     int authRefreshAttempts = 0,
     required int generation,
@@ -86,6 +89,7 @@ class SseClient {
             onEvent: onEvent,
             onDone: onDone,
             onError: onError,
+            onReconnecting: onReconnecting,
             autoReconnect: autoReconnect,
             authRefreshAttempts: authRefreshAttempts + 1,
             generation: generation,
@@ -114,6 +118,7 @@ class SseClient {
             generation != _generation ||
             reconnectScheduled) return;
         reconnectScheduled = true;
+        onReconnecting?.call();
         _disposeConnection();
         _reconnectTimer?.cancel();
         _reconnectTimer = Timer(const Duration(seconds: 1), () {
@@ -122,6 +127,7 @@ class SseClient {
             onEvent: onEvent,
             onDone: onDone,
             onError: onError,
+            onReconnecting: onReconnecting,
             autoReconnect: autoReconnect,
             authRefreshAttempts: 0,
             generation: generation,
@@ -214,6 +220,7 @@ class SseClient {
       if (_closed || generation != _generation) return;
       _disposeConnection();
       if (autoReconnect) {
+        onReconnecting?.call();
         _reconnectTimer?.cancel();
         _reconnectTimer = Timer(const Duration(seconds: 2), () {
           _doConnect(
@@ -221,6 +228,7 @@ class SseClient {
             onEvent: onEvent,
             onDone: onDone,
             onError: onError,
+            onReconnecting: onReconnecting,
             autoReconnect: autoReconnect,
             authRefreshAttempts: 0,
             generation: generation,

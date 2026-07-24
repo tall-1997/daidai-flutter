@@ -7,6 +7,7 @@ import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.EventChannel
 import com.yzq.bsdiff.BsDiffTool
 import java.io.File
 import java.security.MessageDigest
@@ -15,7 +16,11 @@ import java.util.concurrent.Executors
 class MainActivity : FlutterActivity() {
     private val ROOT_CHANNEL = "com.daidai.app/root"
     private val INSTALL_CHANNEL = "com.daidai.panel/app_install"
+    private val LOCAL_HOST_CHANNEL = "com.daidai.panel/local_host"
+    private val LOCAL_HOST_EVENTS = "com.daidai.panel/local_host/events"
     private val updateExecutor = Executors.newSingleThreadExecutor()
+    private var localHostEventSink: EventChannel.EventSink? = null
+    private var persistentSchedulingEnabled = false
 
     private var isRootChecked = false
     private var isRootAvailable = false
@@ -151,6 +156,55 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, LOCAL_HOST_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "ensureStarted", "getStatus" -> result.success(localHostStatus())
+                "restart" -> {
+                    emitLocalHostStatus()
+                    result.success(null)
+                }
+                "stop" -> {
+                    persistentSchedulingEnabled = false
+                    emitLocalHostStatus()
+                    result.success(null)
+                }
+                "setPersistentSchedulingEnabled" -> {
+                    persistentSchedulingEnabled = call.argument<Boolean>("enabled") == true
+                    emitLocalHostStatus()
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, LOCAL_HOST_EVENTS).setStreamHandler(
+            object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                    localHostEventSink = events
+                    emitLocalHostStatus()
+                }
+
+                override fun onCancel(arguments: Any?) {
+                    localHostEventSink = null
+                }
+            }
+        )
+    }
+
+    private fun localHostStatus(): Map<String, Any> = mapOf(
+        "phase" to "stopped",
+        "base_url" to "",
+        "instance_id" to "",
+        "core_version" to "",
+        "schema_version" to 0,
+        "failure_stage" to "core_bundle",
+        "message" to "Android local panel core is not bundled yet",
+        "foreground_service_enabled" to persistentSchedulingEnabled
+    )
+
+    private fun emitLocalHostStatus() {
+        localHostEventSink?.success(localHostStatus())
     }
 
     private fun installApk(path: String) {
