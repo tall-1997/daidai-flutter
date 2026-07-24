@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/theme/theme_provider.dart';
 import '../../../shared/models/task_log.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../shared/utils/time_utils.dart';
@@ -97,6 +96,7 @@ class LogListNotifier extends StateNotifier<LogListState> {
       );
     } catch (_) {
       if (requestId != _loadRequestId) return;
+      if (!refresh && _page > 1) _page--;
       state = state.copyWith(loading: false);
     }
   }

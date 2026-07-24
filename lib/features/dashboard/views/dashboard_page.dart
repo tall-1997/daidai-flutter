@@ -5,7 +5,6 @@ import '../../../core/auth/auth_provider.dart';
 import '../../../core/services/app_update_service.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/theme/theme_provider.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../providers/dashboard_provider.dart';
 import '../widgets/task_stats_card.dart';
@@ -48,6 +47,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     try {
       if (!await AppUpdateService.beginAutomaticCheck()) return;
       final info = await AppUpdateService.checkUpdate();
+      if (info != null) await AppUpdateService.completeAutomaticCheck();
       if (info != null &&
           classifyAppUpdate(info) == AppUpdateAvailability.updateAvailable &&
           mounted) {

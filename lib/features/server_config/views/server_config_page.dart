@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/auth/token_refresh_coordinator.dart';
 import '../../../core/auth/auth_service.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/storage/secure_storage.dart';
@@ -152,6 +153,7 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
     String finalUrl, {
     required bool skipAutoLogin,
   }) async {
+    TokenRefreshCoordinator.invalidate();
     final previousUrl = DioClient.instance.baseUrl;
     await SecureStorage.saveServerUrl(finalUrl);
     try {

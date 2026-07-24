@@ -10,12 +10,20 @@ class TokenRefreshCoordinator {
   TokenRefreshCoordinator._();
 
   static Future<String>? _inFlight;
+  static int _epoch = 0;
+
+  static void invalidate() {
+    _epoch++;
+    _inFlight = null;
+  }
 
   static Future<String> refresh() {
     return _inFlight ??= _refreshOnce().whenComplete(() => _inFlight = null);
   }
 
   static Future<String> _refreshOnce() async {
+    final epoch = _epoch;
+    final baseUrl = DioClient.instance.baseUrl;
     final refreshToken = await SecureStorage.getRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) {
       throw StateError('Missing refresh token');
@@ -30,6 +38,9 @@ class TokenRefreshCoordinator {
       response.data,
       'refresh_token',
     );
+    if (epoch != _epoch || baseUrl != DioClient.instance.baseUrl) {
+      throw StateError('Auth session changed during token refresh');
+    }
     await SecureStorage.saveTokens(
       accessToken: accessToken,
       refreshToken: rotatedRefreshToken ?? refreshToken,

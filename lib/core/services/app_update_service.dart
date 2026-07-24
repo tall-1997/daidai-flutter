@@ -113,6 +113,7 @@ class AppUpdateService {
   static const _autoCheckAtKey = 'app_update_auto_check_at';
   static const _reminderAtKey = 'app_update_reminder_at';
   static const _reminderVersionKey = 'app_update_reminder_version';
+  static bool _updateInProgress = false;
 
   static Future<bool> beginAutomaticCheck() async {
     final prefs = await SharedPreferences.getInstance();
@@ -120,8 +121,15 @@ class AppUpdateService {
     final lastCheck = raw == null ? null : DateTime.tryParse(raw);
     final now = DateTime.now().toUtc();
     if (!shouldRunAutomaticUpdateCheck(lastCheck, now)) return false;
-    await prefs.setString(_autoCheckAtKey, now.toIso8601String());
     return true;
+  }
+
+  static Future<void> completeAutomaticCheck() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _autoCheckAtKey,
+      DateTime.now().toUtc().toIso8601String(),
+    );
   }
 
   static Future<bool> claimAutomaticReminder(String version) async {
@@ -273,6 +281,12 @@ class AppUpdateService {
     VoidCallback onDone,
     ValueChanged<String> onError,
   ) async {
+    if (_updateInProgress) {
+      onError('已有更新任务正在进行中');
+      return;
+    }
+    _updateInProgress = true;
+    try {
     final manifest = info.androidManifest;
     if (Platform.isAndroid && manifest != null) {
       try {
@@ -316,8 +330,8 @@ class AppUpdateService {
             throw StateError('差分合并后的 APK 校验失败');
           }
           onProgress(1.0);
-          onDone();
           await _platform.invokeMethod('installApk', {'path': output.path});
+          onDone();
           return;
         }
       } catch (_) {
@@ -334,6 +348,9 @@ class AppUpdateService {
       expectedDigest: info.assetDigest,
       expectedMd5: manifest?.full.md5 ?? '',
     );
+    } finally {
+      _updateInProgress = false;
+    }
   }
 
   static Future<File> _downloadArtifact(
@@ -479,8 +496,6 @@ class AppUpdateService {
         throw StateError('安装包校验失败，请重新下载');
       }
 
-      onDone();
-
       if (Platform.isAndroid) {
         final originalHost = Uri.parse(url).host.toLowerCase();
         await _platform.invokeMethod('installApk', {
@@ -488,6 +503,7 @@ class AppUpdateService {
           'sourceHost': originalHost,
         });
       }
+      onDone();
     } catch (e) {
       onError(e.toString());
     }

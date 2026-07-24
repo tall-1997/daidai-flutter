@@ -8,7 +8,6 @@ import '../../../core/network/dio_client.dart';
 import '../../../core/services/app_update_service.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/theme/theme_provider.dart';
 import '../../../shared/widgets/app_card.dart';
 
 class MorePage extends ConsumerStatefulWidget {

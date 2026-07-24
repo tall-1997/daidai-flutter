@@ -11,7 +11,6 @@ import '../../../shared/utils/api_utils.dart';
 import '../../../shared/utils/ansi_text.dart';
 import '../../../shared/utils/log_background.dart';
 import '../../../shared/utils/time_utils.dart';
-import '../../../core/theme/theme_provider.dart';
 import '../../../shared/widgets/app_card.dart';
 
 // ── Provider ──
@@ -188,6 +187,7 @@ class DepListNotifier extends StateNotifier<DepListState> {
       );
     } catch (_) {
       if (requestId != _loadRequestId) return;
+      if (!refresh && _page > 1) _page--;
       state = state.copyWith(loading: false);
     }
   }

@@ -17,7 +17,6 @@ import '../../../shared/utils/ansi_text.dart';
 import '../../../shared/utils/log_background.dart';
 import '../../../shared/utils/time_utils.dart';
 import '../../tasks/views/task_form_page.dart';
-import '../../../core/theme/theme_provider.dart';
 import '../../../shared/widgets/app_card.dart';
 
 final scriptProvider = StateNotifierProvider<ScriptNotifier, ScriptState>((

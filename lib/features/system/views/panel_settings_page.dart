@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/theme/theme_provider.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../shared/widgets/app_card.dart';
 
@@ -15,7 +14,6 @@ class PanelSettingsPage extends ConsumerStatefulWidget {
 }
 
 class _PanelSettingsPageState extends ConsumerState<PanelSettingsPage> {
-  Map<String, dynamic>? _settings;
   bool _loading = true;
   bool _saving = false;
 
@@ -47,7 +45,6 @@ class _PanelSettingsPageState extends ConsumerState<PanelSettingsPage> {
       );
       final data = extractData(resp.data);
       if (data is Map<String, dynamic>) {
-        _settings = data;
         _titleC.text = data['panel_title']?.toString() ?? '';
         _iconC.text = data['panel_icon']?.toString() ?? '';
         _editorBgC.text = data['editor_background_color']?.toString() ?? '';

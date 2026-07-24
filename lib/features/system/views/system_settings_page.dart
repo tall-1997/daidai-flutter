@@ -7,7 +7,6 @@ import '../../../core/network/api_endpoints.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/python_runtime_info.dart';
 import '../../../shared/utils/api_utils.dart';
-import '../../../core/theme/theme_provider.dart';
 import '../../../shared/widgets/app_card.dart';
 
 class SystemSettingsPage extends ConsumerStatefulWidget {

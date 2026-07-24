@@ -17,6 +17,7 @@ class SseClient {
   StreamSubscription? _subscription;
   Timer? _reconnectTimer;
   bool _closed = false;
+  int _generation = 0;
 
   Future<void> connect({
     required String path,
@@ -26,6 +27,7 @@ class SseClient {
     bool autoReconnect = false,
   }) async {
     _closed = false;
+    final generation = ++_generation;
     await _doConnect(
       path: path,
       onEvent: onEvent,
@@ -33,6 +35,7 @@ class SseClient {
       onError: onError,
       autoReconnect: autoReconnect,
       authRefreshAttempts: 0,
+      generation: generation,
     );
   }
 
@@ -43,14 +46,16 @@ class SseClient {
     void Function(dynamic error)? onError,
     bool autoReconnect = false,
     int authRefreshAttempts = 0,
+    required int generation,
   }) async {
-    if (_closed) return;
+    if (_closed || generation != _generation) return;
 
     final baseUrl = DioClient.instance.baseUrl;
     final token = await SecureStorage.getAccessToken();
+    if (_closed || generation != _generation) return;
     final url = Uri.parse('$baseUrl$path');
 
-    _client = http.Client();
+    final client = http.Client();
     final request = http.Request('GET', url);
     request.headers.addAll(AppUserAgent.defaultHeaders);
     request.headers['Accept'] = 'text/event-stream';
@@ -60,7 +65,12 @@ class SseClient {
     }
 
     try {
-      final response = await _client!.send(request);
+      final response = await client.send(request);
+      if (_closed || generation != _generation) {
+        client.close();
+        return;
+      }
+      _client = client;
 
       if (response.statusCode == 401 && !_closed) {
         if (authRefreshAttempts >= 1) {
@@ -78,11 +88,18 @@ class SseClient {
             onError: onError,
             autoReconnect: autoReconnect,
             authRefreshAttempts: authRefreshAttempts + 1,
+            generation: generation,
           );
           return;
         }
         _disposeConnection();
         onError?.call('认证失败，请重新登录');
+        return;
+      }
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        _disposeConnection();
+        onError?.call('SSE 连接失败（HTTP ${response.statusCode}）');
         return;
       }
 
@@ -92,7 +109,10 @@ class SseClient {
       var reconnectScheduled = false;
 
       void scheduleReconnect() {
-        if (!autoReconnect || _closed || reconnectScheduled) return;
+        if (!autoReconnect ||
+            _closed ||
+            generation != _generation ||
+            reconnectScheduled) return;
         reconnectScheduled = true;
         _disposeConnection();
         _reconnectTimer?.cancel();
@@ -104,6 +124,7 @@ class SseClient {
             onError: onError,
             autoReconnect: autoReconnect,
             authRefreshAttempts: 0,
+            generation: generation,
           );
         });
       }
@@ -115,6 +136,7 @@ class SseClient {
         }
         final data = dataLines.join('\n');
         final event = SseEvent(event: currentEvent, data: data);
+        if (generation != _generation) return;
         onEvent(event);
 
         if (currentEvent == 'done' &&
@@ -128,10 +150,11 @@ class SseClient {
         dataLines.clear();
       }
 
-      _subscription = response.stream
+      final subscription = response.stream
           .transform(utf8.decoder)
           .listen(
             (chunk) {
+              if (generation != _generation) return;
               buffer += chunk;
               final lines = buffer.split('\n');
               buffer = lines.removeLast(); // 保留不完整的行
@@ -148,6 +171,7 @@ class SseClient {
               }
             },
             onDone: () {
+              if (generation != _generation) return;
               if (buffer.isNotEmpty) {
                 final line = _normalizeSseLine(buffer);
                 if (line.startsWith('data: ')) {
@@ -167,7 +191,7 @@ class SseClient {
               }
             },
             onError: (error) {
-              if (_closed) return;
+              if (_closed || generation != _generation) return;
               if (autoReconnect) {
                 scheduleReconnect();
               } else {
@@ -177,9 +201,32 @@ class SseClient {
             },
             cancelOnError: true,
           );
+      if (generation == _generation) {
+        _subscription = subscription;
+      } else {
+        await subscription.cancel();
+        client.close();
+      }
     } catch (e) {
+      client.close();
+      if (_closed || generation != _generation) return;
       _disposeConnection();
-      if (!_closed) onError?.call(e);
+      if (autoReconnect) {
+        _reconnectTimer?.cancel();
+        _reconnectTimer = Timer(const Duration(seconds: 2), () {
+          _doConnect(
+            path: path,
+            onEvent: onEvent,
+            onDone: onDone,
+            onError: onError,
+            autoReconnect: autoReconnect,
+            authRefreshAttempts: 0,
+            generation: generation,
+          );
+        });
+      } else {
+        onError?.call(e);
+      }
     }
   }
 
@@ -206,6 +253,7 @@ class SseClient {
 
   void close() {
     _closed = true;
+    _generation++;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
     _disposeConnection();

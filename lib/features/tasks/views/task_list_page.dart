@@ -75,7 +75,11 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   void initState() {
     super.initState();
     Future.microtask(() async {
-      await ref.read(taskViewProvider.notifier).load();
+      try {
+        await ref.read(taskViewProvider.notifier).load();
+      } catch (_) {
+        // 任务视图属于增强能力，失败时仍加载核心任务列表。
+      }
       await _restoreTaskUiState();
       if (!mounted) {
         return;
@@ -818,6 +822,10 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                       PopupMenuButton<int?>(
                         tooltip: '任务视图',
                         onSelected: (id) {
+                          if (id == -1) {
+                            context.push('/task-views');
+                            return;
+                          }
                           final views = ref.read(taskViewProvider);
                           final view = views.where((item) => item.id == id).firstOrNull;
                           ref.read(taskProvider.notifier).setView(view?.filters, view?.sortRules);
@@ -826,7 +834,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                           const PopupMenuItem<int?>(value: null, child: Text('全部任务')),
                           ...ref.watch(taskViewProvider).where((v) => !v.hidden).map((v) => PopupMenuItem<int?>(value: v.id, child: Text(v.name))),
                           const PopupMenuDivider(),
-                          PopupMenuItem<int?>(value: -1, onTap: () => Future.microtask(() => context.push('/task-views')), child: const Text('管理视图')),
+                          const PopupMenuItem<int?>(value: -1, child: Text('管理视图')),
                         ],
                         child: const _TaskGlassIconTarget(icon: Icons.view_list_outlined),
                       ),

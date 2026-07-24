@@ -6,7 +6,6 @@ import 'package:liquid_glass_easy/liquid_glass_easy.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/app_lock_provider.dart';
 import '../widgets/pattern_pad.dart';
-import '../../../core/theme/theme_provider.dart';
 import '../../../shared/widgets/app_card.dart';
 
 class AppLockSettingsPage extends ConsumerStatefulWidget {
@@ -254,7 +253,6 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
   Widget build(BuildContext context) {
     final lockState = ref.watch(appLockProvider);
     final theme = Theme.of(context);
-    final isLight = theme.brightness == Brightness.light;
     
 
     return Scaffold(

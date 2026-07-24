@@ -163,6 +163,27 @@ class MainActivity : FlutterActivity() {
         if (canonicalApk.parentFile != updateDir || !canonicalApk.name.endsWith(".apk")) {
             throw SecurityException("APK file is outside the update directory")
         }
+        val archiveInfo = packageManager.getPackageArchiveInfo(canonicalApk.absolutePath, 0)
+            ?: throw SecurityException("APK package information is invalid")
+        if (archiveInfo.packageName != packageName) {
+            throw SecurityException("APK package name does not match this application")
+        }
+        val archiveVersionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            archiveInfo.longVersionCode
+        } else {
+            @Suppress("DEPRECATION")
+            archiveInfo.versionCode.toLong()
+        }
+        val currentInfo = packageManager.getPackageInfo(packageName, 0)
+        val currentVersionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            currentInfo.longVersionCode
+        } else {
+            @Suppress("DEPRECATION")
+            currentInfo.versionCode.toLong()
+        }
+        if (archiveVersionCode <= currentVersionCode) {
+            throw SecurityException("APK version is not newer than the installed version")
+        }
 
         val authority = "${applicationContext.packageName}.fileProvider"
         val apkUri = FileProvider.getUriForFile(this, authority, canonicalApk)

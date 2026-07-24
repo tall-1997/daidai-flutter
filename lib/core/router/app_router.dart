@@ -102,18 +102,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         final path = state.matchedLocation;
         const adminRoutes = <String>{
           '/deps','/users','/security','/ssh-keys','/system-settings',
-          '/panel-settings','/panel-log','/backup','/open-api','/health-check',
+          '/panel-settings','/panel-log','/backup','/open-api',
           '/platform-tokens',
           '/config-script',
           '/android-runtime',
           '/installed-packages',
         };
-        const operatorRoutes = <String>{'/scripts','/subscriptions'};
+        const operatorRoutes = <String>{
+          '/scripts','/subscriptions','/envs','/env-tools','/tasks/new',
+          '/tasks/edit','/task-views',
+        };
         final user = authState.user;
         if (adminRoutes.any((route) => path.startsWith(route)) &&
-            user?.hasMinRole('admin') != true) return '/more';
+            user?.hasMinRole('admin') != true) {
+          return '/more';
+        }
         if (operatorRoutes.any((route) => path.startsWith(route)) &&
-            user?.hasMinRole('operator') != true) return '/more';
+            user?.hasMinRole('operator') != true) {
+          return '/more';
+        }
       }
       return null;
     },

@@ -4,6 +4,7 @@ import '../network/api_endpoints.dart';
 import '../network/dio_client.dart';
 import '../storage/secure_storage.dart';
 import '../../shared/models/user.dart';
+import 'token_refresh_coordinator.dart';
 
 /// 从响应中提取 data 字段，兼容 {code, data: {...}} 和直接 {...} 两种格式
 dynamic _extractData(dynamic responseData) {
@@ -119,6 +120,7 @@ class AuthService {
   }
 
   Future<void> logout() async {
+    TokenRefreshCoordinator.invalidate();
     try {
       await _dio.post(ApiEndpoints.logout);
     } finally {

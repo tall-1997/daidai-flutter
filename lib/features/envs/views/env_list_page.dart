@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/theme/theme_provider.dart';
 import '../../../shared/models/env_var.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../shared/widgets/app_card.dart';
@@ -554,88 +553,6 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
     );
 
     return confirmed == true;
-  }
-
-  Future<bool> _confirmDelete(EnvVar env) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: const Text('删除环境变量'),
-        content: Text('确定删除「${env.name}」吗？删除后无法恢复。'),
-        actions: [
-          AppLiquidGlassDialogActions(
-            actions: [
-              AppGlassDialogAction(
-                label: '取消',
-                onPressed: () => Navigator.of(dialogCtx).pop(false),
-              ),
-              AppGlassDialogAction(
-                label: '删除',
-                onPressed: () => Navigator.of(dialogCtx).pop(true),
-                variant: AppLiquidGlassButtonVariant.danger,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-
-    return confirmed == true;
-  }
-
-  Future<void> _setEnvEnabled(EnvVar env, bool enabled) async {
-    if (env.enabled == enabled) {
-      return;
-    }
-
-    try {
-      await ref.read(envListProvider.notifier).toggle(env.id, enabled);
-      if (!mounted) {
-        return;
-      }
-      AppGlassNotice.show(
-        context,
-        enabled ? '已启用 ${env.name}' : '已禁用 ${env.name}',
-        type: AppGlassNoticeType.success,
-      );
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      AppGlassNotice.show(
-        context,
-        extractErrorMessage(error, '修改环境变量状态失败'),
-        type: AppGlassNoticeType.error,
-      );
-    }
-  }
-
-  Future<void> _deleteEnv(EnvVar env) async {
-    final confirmed = await _confirmDelete(env);
-    if (!confirmed || !mounted) {
-      return;
-    }
-
-    try {
-      await ref.read(envListProvider.notifier).delete(env.id);
-      if (!mounted) {
-        return;
-      }
-      AppGlassNotice.show(
-        context,
-        '已删除 ${env.name}',
-        type: AppGlassNoticeType.success,
-      );
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      AppGlassNotice.show(
-        context,
-        extractErrorMessage(error, '删除环境变量失败'),
-        type: AppGlassNoticeType.error,
-      );
-    }
   }
 
   Future<void> _performBatchAction(_EnvBatchAction action) async {

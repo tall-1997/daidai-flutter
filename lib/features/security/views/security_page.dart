@@ -6,7 +6,6 @@ import '../../../core/network/api_endpoints.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../shared/utils/time_utils.dart';
-import '../../../core/theme/theme_provider.dart';
 import '../../../shared/widgets/app_card.dart';
 
 // ── Security Page (Tabbed) ──
@@ -36,7 +35,6 @@ class _SecurityPageState extends ConsumerState<SecurityPage>
 
   @override
   Widget build(BuildContext context) {
-    final isLight = Theme.of(context).brightness == Brightness.light;
     
 
     return Scaffold(

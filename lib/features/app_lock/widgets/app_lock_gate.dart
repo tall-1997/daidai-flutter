@@ -240,7 +240,6 @@ class _AppLockOverlayState extends State<_AppLockOverlay> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isLight = theme.brightness == Brightness.light;
     final methods = <_UnlockMethod>[
       if (widget.state.hasBiometric) _UnlockMethod.biometric,
       if (widget.state.hasPassword) _UnlockMethod.password,
