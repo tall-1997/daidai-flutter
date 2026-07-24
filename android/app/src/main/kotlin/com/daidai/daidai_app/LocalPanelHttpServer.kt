@@ -14,8 +14,14 @@ class LocalPanelHttpServer(
     private val store = LocalPanelStore(context)
 
     companion object {
-        private fun findAvailablePort(): Int =
-            ServerSocket(0, 0, InetAddress.getByName("127.0.0.1")).use { it.localPort }
+        private fun findAvailablePort(): Int {
+            val loopback = InetAddress.getByName("127.0.0.1")
+            return try {
+                ServerSocket(5700, 0, loopback).use { it.localPort }
+            } catch (_: Exception) {
+                ServerSocket(0, 0, loopback).use { it.localPort }
+            }
+        }
     }
 
     val endpoint: String

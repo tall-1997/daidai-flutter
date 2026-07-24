@@ -151,12 +151,24 @@ class LocalPanelStore(context: Context) : SQLiteOpenHelper(
         val id = segments.getOrNull(2)?.toLongOrNull()
         val action = segments.getOrNull(3)
         return when {
+            session.method == NanoHTTPD.Method.GET && session.uri == "/api/tasks/views" ->
+                ok(JSONObject().put("data", JSONArray()))
+            session.method == NanoHTTPD.Method.GET && session.uri == "/api/tasks/cron/templates" ->
+                cronTemplates()
+            session.method == NanoHTTPD.Method.POST && session.uri == "/api/tasks/cron/parse" ->
+                cronParse(body(session))
+            session.method == NanoHTTPD.Method.GET && session.uri == "/api/tasks/notification-channels" ->
+                ok(JSONObject().put("data", JSONArray()))
+            session.uri.startsWith("/api/tasks/batch/") -> serveTaskBatch(session, action)
             session.method == NanoHTTPD.Method.GET && id == null -> paginated("tasks", taskRows())
             session.method == NanoHTTPD.Method.POST && id == null -> createTask(body(session))
             id != null && session.method == NanoHTTPD.Method.PUT && action == null -> updateTask(id, body(session))
             id != null && session.method == NanoHTTPD.Method.DELETE -> delete("tasks", id)
             id != null && session.method == NanoHTTPD.Method.PUT && action in setOf("enable", "disable", "run", "stop") ->
                 updateTaskStatus(id, action!!)
+            id != null && session.method == NanoHTTPD.Method.GET && action == "latest-log" -> taskLog(id)
+            id != null && session.method == NanoHTTPD.Method.GET && action == "live-logs" -> taskLog(id)
+            id != null && session.method == NanoHTTPD.Method.GET && action == "stats" -> taskStats(id)
             else -> error(NanoHTTPD.Response.Status.NOT_FOUND, "任务接口尚未实现")
         }
     }
@@ -167,6 +179,8 @@ class LocalPanelStore(context: Context) : SQLiteOpenHelper(
         val action = segments.getOrNull(3)
         return when {
             session.method == NanoHTTPD.Method.GET && session.uri.endsWith("/groups") -> envGroups()
+            session.uri.startsWith("/api/envs/batch") -> serveEnvBatch(session, action)
+            session.method == NanoHTTPD.Method.PUT && session.uri == "/api/envs/sort" -> sortEnvs(body(session))
             session.method == NanoHTTPD.Method.GET && id == null -> paginated("envs", envRows())
             session.method == NanoHTTPD.Method.POST && id == null -> createEnv(body(session))
             id != null && session.method == NanoHTTPD.Method.PUT && action == null -> updateEnv(id, body(session))
@@ -184,12 +198,23 @@ class LocalPanelStore(context: Context) : SQLiteOpenHelper(
         val action = segments.getOrNull(2)
         return when {
             session.method == NanoHTTPD.Method.GET && normalizedUri == "/deps/python-runtimes" -> pythonRuntimes()
+            session.method == NanoHTTPD.Method.PUT && normalizedUri == "/deps/python-runtime-default" ->
+                ok(JSONObject().put("data", JSONObject().put("version", body(session).optString("version", "3.12"))))
             session.method == NanoHTTPD.Method.GET && normalizedUri == "/deps/pip" -> ok(JSONArray())
             session.method == NanoHTTPD.Method.GET && normalizedUri == "/deps/npm" ->
                 ok(JSONObject().put("dependencies", JSONObject()))
             session.method == NanoHTTPD.Method.GET && normalizedUri == "/deps/mirrors" -> mirrors()
             session.method == NanoHTTPD.Method.PUT && normalizedUri == "/deps/mirrors" -> ok(body(session))
             session.method == NanoHTTPD.Method.GET && id != null && action == "log-stream" -> dependencyLog(id)
+            session.method == NanoHTTPD.Method.GET && id != null && action == "status" -> dependencyStatus(id)
+            session.method == NanoHTTPD.Method.PUT && id != null && action == "cancel" ->
+                updateDependencyStatus(id, "cancelled", "Dependency operation cancelled")
+            session.method == NanoHTTPD.Method.PUT && id != null && action == "reinstall" ->
+                updateDependencyStatus(id, "failed", "runtime_unavailable: Android runtime component is required")
+            session.method == NanoHTTPD.Method.POST && normalizedUri == "/deps/batch-delete" ->
+                deleteDependencies(body(session))
+            session.method == NanoHTTPD.Method.POST && normalizedUri == "/deps/batch-reinstall" ->
+                reinstallDependencies(body(session))
             session.method == NanoHTTPD.Method.GET && id == null -> paginated("dependencies", dependencyRows(session))
             session.method == NanoHTTPD.Method.POST && id == null -> createDependencies(body(session))
             id != null && session.method == NanoHTTPD.Method.DELETE -> delete("dependencies", id)
@@ -303,7 +328,87 @@ class LocalPanelStore(context: Context) : SQLiteOpenHelper(
             put("updated_at", Instant.now().toString())
         }
         writableDatabase.update("tasks", values, "id = ?", arrayOf(id.toString()))
+        if (action == "run") {
+            values.clear()
+            values.put("status", 1.0)
+            values.put("last_run_status", "failed")
+            values.put("updated_at", Instant.now().toString())
+            writableDatabase.update("tasks", values, "id = ?", arrayOf(id.toString()))
+        }
         return ok(JSONObject().put("data", JSONObject().put("id", id).put("status", status)))
+    }
+
+    private fun serveTaskBatch(
+        session: NanoHTTPD.IHTTPSession,
+        action: String?
+    ): NanoHTTPD.Response {
+        val json = body(session)
+        val ids = json.optJSONArray("task_ids") ?: JSONArray()
+        val values = ContentValues().apply {
+            when (action) {
+                "enable" -> put("status", 1.0)
+                "disable" -> put("status", 0.0)
+                "run" -> {
+                    put("status", 1.0)
+                    put("last_run_status", "failed")
+                }
+            }
+            put("updated_at", Instant.now().toString())
+        }
+        writableDatabase.beginTransaction()
+        try {
+            for (index in 0 until ids.length()) {
+                val id = ids.optLong(index)
+                if (action == "delete") {
+                    writableDatabase.delete("tasks", "id = ?", arrayOf(id.toString()))
+                } else {
+                    writableDatabase.update("tasks", values, "id = ?", arrayOf(id.toString()))
+                }
+            }
+            writableDatabase.setTransactionSuccessful()
+        } finally {
+            writableDatabase.endTransaction()
+        }
+        return ok(JSONObject().put("data", JSONObject().put("ids", ids)))
+    }
+
+    private fun taskLog(id: Long): NanoHTTPD.Response = ok(
+        JSONObject().put(
+            "data",
+            JSONObject()
+                .put("task_id", id)
+                .put("status", "failed")
+                .put("content", "Android runtime component is required before task execution")
+                .put("logs", JSONArray().put("Android runtime component is required before task execution"))
+        )
+    )
+
+    private fun taskStats(id: Long): NanoHTTPD.Response = ok(
+        JSONObject().put(
+            "data",
+            JSONObject()
+                .put("task_id", id)
+                .put("total_runs", 0)
+                .put("success_runs", 0)
+                .put("failed_runs", 0)
+        )
+    )
+
+    private fun cronTemplates(): NanoHTTPD.Response = ok(
+        JSONObject().put(
+            "data",
+            JSONArray()
+                .put(JSONObject().put("name", "每小时").put("expression", "0 * * * *"))
+                .put(JSONObject().put("name", "每天零点").put("expression", "0 0 * * *"))
+                .put(JSONObject().put("name", "每周一零点").put("expression", "0 0 * * 1"))
+        )
+    )
+
+    private fun cronParse(json: JSONObject): NanoHTTPD.Response {
+        val expression = json.optString("expression", json.optString("cron_expression")).trim()
+        val valid = expression.split(Regex("\\s+")).size in 5..6
+        if (!valid) return error(NanoHTTPD.Response.Status.BAD_REQUEST, "Cron 表达式格式无效")
+        return ok(JSONObject().put("data", JSONObject().put("valid", true).put("expression", expression)))
     }
 
     private fun createEnv(json: JSONObject): NanoHTTPD.Response {
@@ -341,6 +446,53 @@ class LocalPanelStore(context: Context) : SQLiteOpenHelper(
         }
         writableDatabase.update("envs", values, "id = ?", arrayOf(id.toString()))
         return ok(JSONObject().put("data", JSONObject().put("id", id).put("enabled", enabled)))
+    }
+
+    private fun serveEnvBatch(
+        session: NanoHTTPD.IHTTPSession,
+        action: String?
+    ): NanoHTTPD.Response {
+        val json = body(session)
+        val ids = json.optJSONArray("ids") ?: JSONArray()
+        writableDatabase.beginTransaction()
+        try {
+            for (index in 0 until ids.length()) {
+                val id = ids.optLong(index)
+                when (action) {
+                    "enable", "disable" -> updateEnvEnabledRecord(id, action == "enable")
+                    "group" -> {
+                        val values = ContentValues().apply {
+                            put("groups_json", normalizeGroups(json).toString())
+                            put("updated_at", Instant.now().toString())
+                        }
+                        writableDatabase.update("envs", values, "id = ?", arrayOf(id.toString()))
+                    }
+                    null -> if (session.method == NanoHTTPD.Method.DELETE) {
+                        writableDatabase.delete("envs", "id = ?", arrayOf(id.toString()))
+                    }
+                }
+            }
+            writableDatabase.setTransactionSuccessful()
+        } finally {
+            writableDatabase.endTransaction()
+        }
+        return ok(JSONObject().put("data", JSONObject().put("ids", ids)))
+    }
+
+    private fun updateEnvEnabledRecord(id: Long, enabled: Boolean) {
+        val values = ContentValues().apply {
+            put("enabled", if (enabled) 1 else 0)
+            put("updated_at", Instant.now().toString())
+        }
+        writableDatabase.update("envs", values, "id = ?", arrayOf(id.toString()))
+    }
+
+    private fun sortEnvs(json: JSONObject): NanoHTTPD.Response {
+        val sourceId = json.optLong("source_id")
+        val targetId = json.optLong("target_id")
+        val values = ContentValues().apply { put("sort_order", targetId) }
+        writableDatabase.update("envs", values, "id = ?", arrayOf(sourceId.toString()))
+        return ok(JSONObject().put("data", JSONObject().put("source_id", sourceId).put("target_id", targetId)))
     }
 
     private fun createDependencies(json: JSONObject): NanoHTTPD.Response {
@@ -392,6 +544,59 @@ class LocalPanelStore(context: Context) : SQLiteOpenHelper(
                 payload
             )
         }
+    }
+
+    private fun dependencyStatus(id: Long): NanoHTTPD.Response {
+        return readableDatabase.query(
+            "dependencies",
+            arrayOf("id", "status", "log"),
+            "id = ?",
+            arrayOf(id.toString()),
+            null,
+            null,
+            null
+        ).use { cursor ->
+            if (!cursor.moveToFirst()) return@use error(NanoHTTPD.Response.Status.NOT_FOUND, "依赖不存在")
+            ok(
+                JSONObject().put(
+                    "data",
+                    JSONObject()
+                        .put("id", cursor.long("id"))
+                        .put("status", cursor.string("status"))
+                        .put("log", cursor.string("log"))
+                )
+            )
+        }
+    }
+
+    private fun updateDependencyStatus(id: Long, status: String, log: String): NanoHTTPD.Response {
+        val values = ContentValues().apply {
+            put("status", status)
+            put("log", log)
+            put("updated_at", Instant.now().toString())
+        }
+        writableDatabase.update("dependencies", values, "id = ?", arrayOf(id.toString()))
+        return ok(JSONObject().put("data", JSONObject().put("id", id).put("status", status)))
+    }
+
+    private fun deleteDependencies(json: JSONObject): NanoHTTPD.Response {
+        val ids = json.optJSONArray("ids") ?: JSONArray()
+        for (index in 0 until ids.length()) {
+            writableDatabase.delete("dependencies", "id = ?", arrayOf(ids.optLong(index).toString()))
+        }
+        return ok(JSONObject().put("data", JSONObject().put("ids", ids)))
+    }
+
+    private fun reinstallDependencies(json: JSONObject): NanoHTTPD.Response {
+        val ids = json.optJSONArray("ids") ?: JSONArray()
+        for (index in 0 until ids.length()) {
+            updateDependencyStatus(
+                ids.optLong(index),
+                "failed",
+                "runtime_unavailable: Android runtime component is required"
+            )
+        }
+        return ok(JSONObject().put("data", JSONObject().put("ids", ids)))
     }
 
     private fun pythonRuntimes(): NanoHTTPD.Response = ok(
