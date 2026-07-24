@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:daidai_app/features/dashboard/providers/dashboard_provider.dart';
 import 'package:daidai_app/core/services/android_update_manifest.dart';
 import 'package:daidai_app/core/services/local_notification_service.dart';
@@ -155,5 +157,20 @@ void main() {
       expect(shouldShowAutomaticUpdateReminder(version: '2', lastVersion: '2', lastReminder: now.subtract(const Duration(hours: 12)), now: now), isFalse);
       expect(shouldShowAutomaticUpdateReminder(version: '2', lastVersion: '2', lastReminder: now.subtract(const Duration(hours: 24)), now: now), isTrue);
     });
+  });
+
+  test('update cache cleanup removes all artifacts and reports file bytes', () async {
+    final root = await Directory.systemTemp.createTemp('daidai-update-test-');
+    final nested = Directory('${root.path}/nested');
+    await nested.create();
+    await File('${root.path}/installer.apk').writeAsBytes(List.filled(8, 1));
+    await File('${root.path}/installer.apk.download').writeAsBytes(List.filled(5, 2));
+    await File('${nested.path}/delta.patch').writeAsBytes(List.filled(3, 3));
+
+    final released = await clearUpdateArtifactDirectory(root);
+
+    expect(released, 16);
+    expect(await root.list().toList(), isEmpty);
+    await root.delete();
   });
 }

@@ -100,6 +100,37 @@ bool shouldShowAutomaticUpdateReminder({
     lastReminder == null ||
     now.difference(lastReminder) >= const Duration(hours: 24);
 
+@visibleForTesting
+Future<int> clearUpdateArtifactDirectory(Directory directory) async {
+  if (!await directory.exists()) return 0;
+
+  var releasedBytes = 0;
+  await for (final entity in directory.list(followLinks: false)) {
+    try {
+      releasedBytes += await _updateArtifactSize(entity);
+    } on FileSystemException {
+      // Continue deleting even when a file size cannot be read.
+    }
+    try {
+      await entity.delete(recursive: true);
+    } on FileSystemException {
+      // Cache cleanup is best effort; a locked installer can be retried later.
+    }
+  }
+  return releasedBytes;
+}
+
+Future<int> _updateArtifactSize(FileSystemEntity entity) async {
+  if (entity is File) return entity.length();
+  if (entity is! Directory) return 0;
+
+  var size = 0;
+  await for (final child in entity.list(followLinks: false)) {
+    size += await _updateArtifactSize(child);
+  }
+  return size;
+}
+
 class AppUpdateService {
   AppUpdateService._();
 
@@ -114,6 +145,35 @@ class AppUpdateService {
   static const _reminderAtKey = 'app_update_reminder_at';
   static const _reminderVersionKey = 'app_update_reminder_version';
   static bool _updateInProgress = false;
+  static bool _installerOpened = false;
+
+  static Future<int> clearStaleUpdateCache() async {
+    if (_updateInProgress) return 0;
+    try {
+      final root = await getTemporaryDirectory();
+      return clearUpdateArtifactDirectory(
+        Directory('${root.path}/updates'),
+      );
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  static Future<void> clearInstallerCacheAfterReturn() async {
+    if (!_installerOpened || _updateInProgress) return;
+    _installerOpened = false;
+    await clearUpdateCache();
+  }
+
+  static Future<int> clearUpdateCache() async {
+    if (_updateInProgress) return 0;
+    try {
+      final root = await getTemporaryDirectory();
+      return clearUpdateArtifactDirectory(Directory('${root.path}/updates'));
+    } catch (_) {
+      return 0;
+    }
+  }
 
   static Future<bool> beginAutomaticCheck() async {
     final prefs = await SharedPreferences.getInstance();
@@ -292,70 +352,79 @@ class AppUpdateService {
     }
     _updateInProgress = true;
     try {
-    final manifest = info.androidManifest;
-    if (Platform.isAndroid && manifest != null) {
-      try {
-        final rawInfo = await _platform.invokeMapMethod<String, dynamic>(
-          'getInstalledApkInfo',
-        );
-        final installed = rawInfo ?? const <String, dynamic>{};
-        final currentVersion = installed['versionName']?.toString() ?? '';
-        final currentVersionCode = _toInt(installed['versionCode']) ?? 0;
-        final currentMd5 = installed['md5']?.toString().toLowerCase() ?? '';
-        final currentSha256 =
-            installed['sha256']?.toString().toLowerCase() ?? '';
-        AndroidUpdatePatch? selectedPatch;
-        for (final patch in manifest.patches) {
-          final versionMatches = patch.fromVersion == currentVersion;
-          final codeMatches = patch.fromVersionCode <= 0 ||
-              patch.fromVersionCode == currentVersionCode;
-          final md5Matches = patch.oldApkMd5.isEmpty ||
-              patch.oldApkMd5 == currentMd5;
-          final shaMatches = patch.oldApkSha256 == currentSha256;
-          if (versionMatches && codeMatches && md5Matches && shaMatches) {
-            selectedPatch = patch;
-            break;
-          }
-        }
-        if (selectedPatch != null &&
-            selectedPatch.size > 0 &&
-            selectedPatch.size < manifest.full.size) {
-          final patchFile = await _downloadArtifact(
-            selectedPatch,
-            onProgress: (progress) => onProgress(progress * 0.8),
+      await _clearUpdateCacheDuringUpdate();
+      final manifest = info.androidManifest;
+      if (Platform.isAndroid && manifest != null) {
+        try {
+          final rawInfo = await _platform.invokeMapMethod<String, dynamic>(
+            'getInstalledApkInfo',
           );
-          final outputName = 'daidai-v${manifest.version}-patched.apk';
-          final result = await _platform.invokeMapMethod<String, dynamic>(
-            'applyPatch',
-            {'patchPath': patchFile.path, 'outputName': outputName},
-          );
-          final outputPath = result?['path']?.toString() ?? '';
-          final output = File(outputPath);
-          if (!await _matchesAsset(output, manifest.full)) {
-            throw StateError('差分合并后的 APK 校验失败');
+          final installed = rawInfo ?? const <String, dynamic>{};
+          final currentVersion = installed['versionName']?.toString() ?? '';
+          final currentVersionCode = _toInt(installed['versionCode']) ?? 0;
+          final currentMd5 = installed['md5']?.toString().toLowerCase() ?? '';
+          final currentSha256 =
+              installed['sha256']?.toString().toLowerCase() ?? '';
+          AndroidUpdatePatch? selectedPatch;
+          for (final patch in manifest.patches) {
+            final versionMatches = patch.fromVersion == currentVersion;
+            final codeMatches = patch.fromVersionCode <= 0 ||
+                patch.fromVersionCode == currentVersionCode;
+            final md5Matches = patch.oldApkMd5.isEmpty ||
+                patch.oldApkMd5 == currentMd5;
+            final shaMatches = patch.oldApkSha256 == currentSha256;
+            if (versionMatches && codeMatches && md5Matches && shaMatches) {
+              selectedPatch = patch;
+              break;
+            }
           }
-          onProgress(1.0);
-          await _platform.invokeMethod('installApk', {'path': output.path});
-          onDone();
-          return;
+          if (selectedPatch != null &&
+              selectedPatch.size > 0 &&
+              selectedPatch.size < manifest.full.size) {
+            final patchFile = await _downloadArtifact(
+              selectedPatch,
+              onProgress: (progress) => onProgress(progress * 0.8),
+            );
+            final outputName = 'daidai-v${manifest.version}-patched.apk';
+            final result = await _platform.invokeMapMethod<String, dynamic>(
+              'applyPatch',
+              {'patchPath': patchFile.path, 'outputName': outputName},
+            );
+            final outputPath = result?['path']?.toString() ?? '';
+            final output = File(outputPath);
+            if (!await _matchesAsset(output, manifest.full)) {
+              throw StateError('差分合并后的 APK 校验失败');
+            }
+            if (await patchFile.exists()) await patchFile.delete();
+            onProgress(1.0);
+            await _platform.invokeMethod('installApk', {'path': output.path});
+            _installerOpened = true;
+            onDone();
+            return;
+          }
+        } catch (_) {
+          // 基线、下载或合并失败时使用完整 APK，保证更新仍可完成。
+          await _clearUpdateCacheDuringUpdate();
         }
-      } catch (_) {
-        // 基线、下载或合并失败时使用完整 APK，保证更新仍可完成。
       }
-    }
-    await downloadAndInstall(
-      info.downloadUrl,
-      info.assetName,
-      onProgress,
-      onDone,
-      onError,
-      expectedSize: info.assetSize,
-      expectedDigest: info.assetDigest,
-      expectedMd5: manifest?.full.md5 ?? '',
-    );
+      await downloadAndInstall(
+        info.downloadUrl,
+        info.assetName,
+        onProgress,
+        onDone,
+        onError,
+        expectedSize: info.assetSize,
+        expectedDigest: info.assetDigest,
+        expectedMd5: manifest?.full.md5 ?? '',
+      );
     } finally {
       _updateInProgress = false;
     }
+  }
+
+  static Future<void> _clearUpdateCacheDuringUpdate() async {
+    final root = await getTemporaryDirectory();
+    await clearUpdateArtifactDirectory(Directory('${root.path}/updates'));
   }
 
   static Future<File> _downloadArtifact(
@@ -507,9 +576,15 @@ class AppUpdateService {
           'path': filePath,
           'sourceHost': originalHost,
         });
+        _installerOpened = true;
       }
       onDone();
     } catch (e) {
+      try {
+        await _clearUpdateCacheDuringUpdate();
+      } on FileSystemException {
+        // Keep the original update error visible to the user.
+      }
       onError(e.toString());
     }
   }

@@ -6,6 +6,7 @@ import 'core/auth/auth_provider.dart';
 import 'core/network/app_user_agent.dart';
 import 'core/network/dio_client.dart';
 import 'core/services/local_notification_service.dart';
+import 'core/services/app_update_service.dart';
 import 'core/storage/secure_storage.dart';
 import 'core/router/app_router.dart';
 import 'features/app_lock/providers/app_lock_provider.dart';
@@ -32,6 +33,7 @@ class _AppLifecycleHandler extends WidgetsBindingObserver {
     if (state == AppLifecycleState.paused) {
       _pausedAt = DateTime.now();
     } else if (state == AppLifecycleState.resumed) {
+      AppUpdateService.clearInstallerCacheAfterReturn();
       if (_pausedAt != null) {
         final elapsed = DateTime.now().difference(_pausedAt!);
         if (elapsed >= const Duration(seconds: 1)) {
@@ -58,6 +60,7 @@ class _AppLifecycleHandler extends WidgetsBindingObserver {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppUserAgent.initialize();
+  await AppUpdateService.clearStaleUpdateCache();
 
   try {
     await LocalNotificationService().initialize();
