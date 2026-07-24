@@ -2,14 +2,14 @@
 
 - [ ] 1. 建立 Android 本地核心宿主边界
   - [x] 1.1 实现 `LocalPanelHost`、状态模型、能力模型和 Platform Channel
-  - [ ] 1.2 实现 Android Foreground Service、动态回环端口和健康检查
-  - [ ] 1.3 将本地实例接入启动、认证和服务器切换流程
+  - [x] 1.2 实现 Android Foreground Service、动态回环端口和健康检查
+  - [x] 1.3 将本地实例接入启动、认证和服务器切换流程
   - [ ]* 1.4 编写宿主生命周期与回环绑定集成测试
 
 - [ ] 2. 提取并嵌入四模块 Go 核心
   - [ ] 2.1 提取 Dashboard、Task、Env、Dependency 模型和 Repository
   - [ ] 2.2 接入 App 私有 SQLite、Schema 迁移和恢复快照
-  - [ ] 2.3 提供现有 `/api` 兼容接口和本地授权中间件
+  - [x] 2.3 提供现有 `/api` 兼容接口和本地授权中间件
   - [ ]* 2.4 编写 Repository、迁移和 API 契约测试
 
 - [ ] 3. 完成主页本地能力
