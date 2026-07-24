@@ -140,11 +140,13 @@ class AuthService {
   }
 
   Future<void> changeUsername(String username) async {
+    TokenRefreshCoordinator.invalidate();
     await _dio.put(ApiEndpoints.authUsername, data: {'username': username});
     await SecureStorage.clearAuthSession();
   }
 
   Future<void> changePassword(String oldPassword, String newPassword) async {
+    TokenRefreshCoordinator.invalidate();
     await _dio.put(
       ApiEndpoints.authPassword,
       data: {'old_password': oldPassword, 'new_password': newPassword},

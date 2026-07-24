@@ -42,6 +42,7 @@ import '../../shared/models/task.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
+String? _pendingProtectedLocation;
 
 NoTransitionPage<void> _rootPage(Widget child) => NoTransitionPage<void>(
   child: AppBackground(child: child),
@@ -82,6 +83,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         return null;
       }
       if (isUnknown) {
+        if (!isLoginRoute && !isServerConfig) {
+          _pendingProtectedLocation = state.uri.toString();
+        }
         return '/boot';
       }
       if (isServerConfig) {
@@ -96,8 +100,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         }
         return null;
       }
-      if (!isAuth && !isLoginRoute) return '/login';
-      if (isAuth && isLoginRoute) return '/dashboard';
+      if (!isAuth && !isLoginRoute) {
+        _pendingProtectedLocation = state.uri.toString();
+        return '/login';
+      }
+      if (isAuth && (isLoginRoute || state.matchedLocation == '/dashboard')) {
+        final pending = _pendingProtectedLocation;
+        if (pending != null && pending != state.uri.toString()) {
+          _pendingProtectedLocation = null;
+          return pending;
+        }
+        if (isLoginRoute) return '/dashboard';
+      }
       if (isAuth) {
         final path = state.matchedLocation;
         const adminRoutes = <String>{
@@ -226,7 +240,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (_, state) => _rootPage(
           TaskLiveLogPage(
-            taskId: int.parse(state.pathParameters['id']!),
+            taskId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
             taskName: state.extra as String?,
           ),
         ),
@@ -235,7 +249,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/logs/:id/stream',
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (_, state) => _rootPage(
-          LogStreamPage(logId: int.parse(state.pathParameters['id']!)),
+          LogStreamPage(logId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0),
         ),
       ),
       GoRoute(
@@ -248,7 +262,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (_, state) => _rootPage(
           SubscriptionPullStreamPage(
-            subscriptionId: int.parse(state.pathParameters['id']!),
+            subscriptionId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
           ),
         ),
       ),
@@ -257,7 +271,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (_, state) => _rootPage(
           SubscriptionLogsPage(
-            subscriptionId: int.parse(state.pathParameters['id']!),
+            subscriptionId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
             subscriptionName: state.extra as String?,
           ),
         ),
@@ -296,7 +310,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/deps/:id/log-stream',
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (_, state) => _rootPage(
-          DepLogStreamPage(depId: int.parse(state.pathParameters['id']!)),
+          DepLogStreamPage(depId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0),
         ),
       ),
       GoRoute(
@@ -359,7 +373,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (_, state) => _rootPage(
           OpenApiLogsPage(
-            appId: int.parse(state.pathParameters['id']!),
+            appId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
           ),
         ),
       ),

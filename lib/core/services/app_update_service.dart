@@ -187,10 +187,15 @@ class AppUpdateService {
           if (name.endsWith('.apk')) {
             final rawUrl = asset['browser_download_url']?.toString() ?? '';
             if (_isTrustedDownloadUrl(rawUrl)) {
+              final digest = asset['digest']?.toString() ?? '';
+              if (!digest.toLowerCase().startsWith('sha256:') ||
+                  digest.length <= 'sha256:'.length) {
+                continue;
+              }
               apkUrl = rawUrl;
               assetName = name;
               assetSize = _toInt(asset['size']) ?? 0;
-              assetDigest = asset['digest']?.toString() ?? '';
+              assetDigest = digest;
               break;
             }
           }

@@ -825,13 +825,13 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                             context.push('/task-views');
                             return;
                           }
-                          final views = ref.read(taskViewProvider);
+                          final views = ref.read(taskViewProvider).items;
                           final view = views.where((item) => item.id == id).firstOrNull;
                           ref.read(taskProvider.notifier).setView(view?.filters, view?.sortRules);
                         },
                         itemBuilder: (_) => [
                           const PopupMenuItem<int?>(value: null, child: Text('全部任务')),
-                          ...ref.watch(taskViewProvider).where((v) => !v.hidden).map((v) => PopupMenuItem<int?>(value: v.id, child: Text(v.name))),
+                          ...ref.watch(taskViewProvider).items.where((v) => !v.hidden).map((v) => PopupMenuItem<int?>(value: v.id, child: Text(v.name))),
                           const PopupMenuDivider(),
                           const PopupMenuItem<int?>(value: -1, child: Text('管理视图')),
                         ],

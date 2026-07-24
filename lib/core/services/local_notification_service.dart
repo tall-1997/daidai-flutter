@@ -51,7 +51,6 @@ class LocalNotificationService {
         : null;
     final prefs = await SharedPreferences.getInstance();
     _pendingPayload ??= prefs.getString(_pendingPayloadKey);
-    await prefs.remove(_pendingPayloadKey);
   }
 
   void _onNotificationTap(NotificationResponse response) {
@@ -75,6 +74,9 @@ class LocalNotificationService {
       _pendingPayload = payload;
     } else {
       handler(route);
+      SharedPreferences.getInstance().then(
+        (prefs) => prefs.remove(_pendingPayloadKey),
+      );
     }
   }
 
