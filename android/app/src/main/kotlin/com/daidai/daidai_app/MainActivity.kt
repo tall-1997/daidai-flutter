@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import androidx.core.content.FileProvider
+import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -20,7 +21,6 @@ class MainActivity : FlutterActivity() {
     private val LOCAL_HOST_EVENTS = "com.daidai.panel/local_host/events"
     private val updateExecutor = Executors.newSingleThreadExecutor()
     private var localHostEventSink: EventChannel.EventSink? = null
-    private var persistentSchedulingEnabled = false
 
     private var isRootChecked = false
     private var isRootAvailable = false
@@ -165,12 +165,12 @@ class MainActivity : FlutterActivity() {
                     result.success(null)
                 }
                 "stop" -> {
-                    persistentSchedulingEnabled = false
+                    setPersistentSchedulingEnabled(false)
                     emitLocalHostStatus()
                     result.success(null)
                 }
                 "setPersistentSchedulingEnabled" -> {
-                    persistentSchedulingEnabled = call.argument<Boolean>("enabled") == true
+                    setPersistentSchedulingEnabled(call.argument<Boolean>("enabled") == true)
                     emitLocalHostStatus()
                     result.success(null)
                 }
@@ -200,11 +200,28 @@ class MainActivity : FlutterActivity() {
         "schema_version" to 0,
         "failure_stage" to "core_bundle",
         "message" to "Android local panel core is not bundled yet",
-        "foreground_service_enabled" to persistentSchedulingEnabled
+        "foreground_service_enabled" to isPersistentSchedulingEnabled()
     )
 
     private fun emitLocalHostStatus() {
         localHostEventSink?.success(localHostStatus())
+    }
+
+    private fun isPersistentSchedulingEnabled(): Boolean =
+        getSharedPreferences(LocalPanelHostService.PREFS_NAME, MODE_PRIVATE)
+            .getBoolean(LocalPanelHostService.PREF_PERSISTENT_SCHEDULING, false)
+
+    private fun setPersistentSchedulingEnabled(enabled: Boolean) {
+        getSharedPreferences(LocalPanelHostService.PREFS_NAME, MODE_PRIVATE)
+            .edit()
+            .putBoolean(LocalPanelHostService.PREF_PERSISTENT_SCHEDULING, enabled)
+            .apply()
+        val intent = Intent(this, LocalPanelHostService::class.java)
+        if (enabled) {
+            ContextCompat.startForegroundService(this, intent)
+        } else {
+            stopService(intent)
+        }
     }
 
     private fun installApk(path: String) {
