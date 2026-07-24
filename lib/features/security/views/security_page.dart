@@ -35,7 +35,7 @@ class _SecurityPageState extends ConsumerState<SecurityPage>
 
   @override
   Widget build(BuildContext context) {
-    
+    final isLight = Theme.of(context).brightness == Brightness.light;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -506,7 +506,6 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final isLight = Theme.of(context).brightness == Brightness.light;
     
     return RefreshIndicator(
       color: AppColors.primary,

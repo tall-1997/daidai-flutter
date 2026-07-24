@@ -553,7 +553,6 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isLight = theme.brightness == Brightness.light;
     final isNarrow = MediaQuery.of(context).size.width < 420;
     Widget section(String title, List<Widget> children) {
       return AppCard(

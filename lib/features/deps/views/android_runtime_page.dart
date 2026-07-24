@@ -58,7 +58,10 @@ class _AndroidRuntimePageState extends State<AndroidRuntimePage> {
         data: {'name': name},
         options: Options(responseType: ResponseType.stream),
       );
-      final lines = response.data!.stream.transform(utf8.decoder).transform(const LineSplitter());
+      final lines = response.data!.stream
+          .cast<List<int>>()
+          .transform(utf8.decoder)
+          .transform(const LineSplitter());
       final completer = Completer<void>();
       _installSubscription = lines.listen((line) {
         if (!line.startsWith('data: ')) return;
