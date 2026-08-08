@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,8 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/storage/secure_storage.dart';
-import '../../../core/local_panel/method_channel_local_panel_host.dart';
-import '../../../core/local_panel/local_panel_models.dart';
 import '../../dashboard/providers/dashboard_provider.dart';
 
 class AppBootPage extends ConsumerStatefulWidget {
@@ -37,26 +33,8 @@ class _AppBootPageState extends ConsumerState<AppBootPage> {
 
     _jumping = true;
 
-    // 先确认有没有当前服务器，没有就直接去登录页（登录页会显示服务器地址输入框）。
-    var serverUrl = await SecureStorage.getServerUrl();
-    if (Platform.isAndroid &&
-        (serverUrl == null || serverUrl.isEmpty || _isLoopbackUrl(serverUrl))) {
-      try {
-        if (mounted) setState(() => _bootMessage = '正在启动本地面板...');
-        final localStatus = await MethodChannelLocalPanelHost().ensureStarted();
-        if (localStatus.phase == LocalPanelPhase.ready &&
-            localStatus.baseUrl.isNotEmpty) {
-          final localUrl = localStatus.baseUrl;
-          serverUrl = localUrl;
-          await SecureStorage.saveServerUrl(localUrl);
-          await SecureStorage.savePanel(
-            PanelConfig(url: localUrl, name: '本地面板'),
-          );
-        }
-      } catch (_) {
-        // 登录页保留远程服务器配置入口。
-      }
-    }
+    // 没有当前服务器时直接进入登录页，由用户配置面板地址。
+    final serverUrl = await SecureStorage.getServerUrl();
     if (serverUrl == null || serverUrl.isEmpty) {
       _go('/login');
       return;
@@ -154,11 +132,6 @@ class _AppBootPageState extends ConsumerState<AppBootPage> {
       _go('/login?manual=1');
       return;
     }
-  }
-
-  bool _isLoopbackUrl(String url) {
-    final host = Uri.tryParse(url)?.host.toLowerCase();
-    return host == '127.0.0.1' || host == 'localhost' || host == '::1';
   }
 
   void _go(String location) {

@@ -4,11 +4,9 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import androidx.core.content.FileProvider
-import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.EventChannel
 import com.yzq.bsdiff.BsDiffTool
 import java.io.File
 import java.security.MessageDigest
@@ -17,10 +15,7 @@ import java.util.concurrent.Executors
 class MainActivity : FlutterActivity() {
     private val ROOT_CHANNEL = "com.daidai.app/root"
     private val INSTALL_CHANNEL = "com.daidai.panel/app_install"
-    private val LOCAL_HOST_CHANNEL = "com.daidai.panel/local_host"
-    private val LOCAL_HOST_EVENTS = "com.daidai.panel/local_host/events"
     private val updateExecutor = Executors.newSingleThreadExecutor()
-    private var localHostEventSink: EventChannel.EventSink? = null
 
     private var isRootChecked = false
     private var isRootAvailable = false
@@ -157,71 +152,6 @@ class MainActivity : FlutterActivity() {
             }
         }
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, LOCAL_HOST_CHANNEL).setMethodCallHandler { call, result ->
-            when (call.method) {
-                "ensureStarted" -> {
-                    LocalPanelRuntime.ensureStarted(applicationContext)
-                    result.success(localHostStatus())
-                }
-                "getStatus" -> result.success(localHostStatus())
-                "restart" -> {
-                    LocalPanelRuntime.restart(applicationContext)
-                    emitLocalHostStatus()
-                    result.success(null)
-                }
-                "stop" -> {
-                    LocalPanelRuntime.stop()
-                    setPersistentSchedulingEnabled(false)
-                    emitLocalHostStatus()
-                    result.success(null)
-                }
-                "setPersistentSchedulingEnabled" -> {
-                    setPersistentSchedulingEnabled(call.argument<Boolean>("enabled") == true)
-                    emitLocalHostStatus()
-                    result.success(null)
-                }
-                else -> result.notImplemented()
-            }
-        }
-
-        EventChannel(flutterEngine.dartExecutor.binaryMessenger, LOCAL_HOST_EVENTS).setStreamHandler(
-            object : EventChannel.StreamHandler {
-                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-                    localHostEventSink = events
-                    emitLocalHostStatus()
-                }
-
-                override fun onCancel(arguments: Any?) {
-                    localHostEventSink = null
-                }
-            }
-        )
-    }
-
-    private fun localHostStatus(): Map<String, Any> =
-        LocalPanelRuntime.status().toMutableMap().apply {
-            this["foreground_service_enabled"] = isPersistentSchedulingEnabled()
-        }
-
-    private fun emitLocalHostStatus() {
-        localHostEventSink?.success(localHostStatus())
-    }
-
-    private fun isPersistentSchedulingEnabled(): Boolean =
-        getSharedPreferences(LocalPanelHostService.PREFS_NAME, MODE_PRIVATE)
-            .getBoolean(LocalPanelHostService.PREF_PERSISTENT_SCHEDULING, false)
-
-    private fun setPersistentSchedulingEnabled(enabled: Boolean) {
-        getSharedPreferences(LocalPanelHostService.PREFS_NAME, MODE_PRIVATE)
-            .edit()
-            .putBoolean(LocalPanelHostService.PREF_PERSISTENT_SCHEDULING, enabled)
-            .apply()
-        val intent = Intent(this, LocalPanelHostService::class.java)
-        if (enabled) {
-            ContextCompat.startForegroundService(this, intent)
-        } else {
-            stopService(intent)
-        }
     }
 
     private fun installApk(path: String) {

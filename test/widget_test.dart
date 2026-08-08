@@ -5,8 +5,6 @@ import 'package:daidai_app/core/services/android_update_manifest.dart';
 import 'package:daidai_app/core/services/local_notification_service.dart';
 import 'package:daidai_app/core/services/app_update_service.dart';
 import 'package:daidai_app/features/deps/models/dependency_log_state.dart';
-import 'package:daidai_app/features/deps/models/dependency_operation.dart';
-import 'package:daidai_app/core/local_panel/local_panel_models.dart';
 import 'package:daidai_app/shared/models/subscription.dart';
 import 'package:daidai_app/shared/utils/api_utils.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -205,34 +203,4 @@ void main() {
     });
   });
 
-  test('local capabilities parse booleans and numeric limits', () {
-    final capabilities = LocalPanelCapabilities.fromJson({
-      'instance_mode': 'android_local',
-      'architecture': 'arm64-v8a',
-      'schema_version': '2',
-      'capabilities': {'python': true, 'linux_package_manager': false},
-      'limits': {'runtime_quota_bytes': 1024},
-    });
-
-    expect(capabilities.instanceMode, 'android_local');
-    expect(capabilities.schemaVersion, 2);
-    expect(capabilities.supports('python'), isTrue);
-    expect(capabilities.supports('linux_package_manager'), isFalse);
-  });
-
-  test('dependency operation clamps progress and recognizes terminal state', () {
-    final operation = DependencyOperation.fromJson({
-      'id': 'op-1',
-      'kind': 'pip_install',
-      'state': 'failed',
-      'progress': 2,
-      'sequence': '12',
-      'error_code': 'abi_incompatible',
-    });
-
-    expect(operation.progress, 1);
-    expect(operation.sequence, 12);
-    expect(operation.terminal, isTrue);
-    expect(operation.errorCode, 'abi_incompatible');
-  });
 }
