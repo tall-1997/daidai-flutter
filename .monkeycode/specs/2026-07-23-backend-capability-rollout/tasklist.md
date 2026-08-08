@@ -37,4 +37,4 @@
 - [ ] 6. 兼容性与性能门禁
   - [ ] 6.1 覆盖旧面板 404/405、临时失败和缓存过期测试
   - [ ] 6.2 覆盖核心数据优先、请求去重和面板隔离测试
-  - [ ] 6.3 执行 Flutter Analyze、Flutter Test、Android 和 iOS 构建
+  - [x] 6.3 执行 Flutter Analyze、Flutter Test、Android 和 iOS 构建
