@@ -33,6 +33,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   bool _autoLogin = false;
   bool _needsServerUrl = false;
   String? _error;
+  String? _loadingStage;
   String? _currentUrl;
   List<PanelConfig> _panels = [];
   PanelConfig? _selectedPanel;
@@ -123,8 +124,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final auth = ref.read(authProvider.notifier);
+    auth.clearError();
     setState(() {
       _loading = true;
+      _loadingStage = _needsServerUrl ? '正在检查服务器连接...' : '正在准备登录...';
       _error = null;
     });
 
@@ -149,14 +153,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         }
 
         final authService = AuthService();
-        final ok = await authService.checkHealth(finalUrl);
+        final health = await authService.checkHealthDetails(finalUrl);
         if (!mounted) return;
-        if (!ok) {
+        if (!health.reachable) {
           setState(() {
-            _error = '无法连接到服务器 ($finalUrl)，请检查地址是否正确、面板是否运行中。'
-                '如果使用群晖/飞牛等 NAS 的 Nginx Proxy Manager 或公网域名反代，'
-                '请升级面板到 v2.3.0 以上；升级前可在 config.yaml 的 cors.origins 中加入完整公网地址。';
+            _error = '${health.errorMessage ?? '无法连接到服务器'}\n$finalUrl';
             _loading = false;
+            _loadingStage = null;
           });
           return;
         }
@@ -168,12 +171,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           PanelConfig(url: finalUrl, name: finalUrl),
         );
         _needsServerUrl = false;
+        setState(() => _loadingStage = '正在检查面板初始化状态...');
+        await auth.checkInit(rethrowErrors: true);
+        _needsInit = ref.read(authProvider).needsInit;
       }
 
-      final auth = ref.read(authProvider.notifier);
       final initializing = _needsInit;
 
       if (initializing) {
+        if (mounted) setState(() => _loadingStage = '正在初始化管理员账号...');
         try {
           await auth.initAdmin(
             _usernameController.text.trim(),
@@ -192,6 +198,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         setState(() => _needsInit = false);
       }
 
+      if (!initializing && mounted) {
+        setState(() => _loadingStage = '正在检查登录验证配置...');
+      }
       final captcha = initializing
           ? null
           : await _prepareCaptchaIfEnabled(_usernameController.text.trim());
@@ -199,6 +208,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         return;
       }
 
+      setState(() => _loadingStage = '正在登录...');
       final result = await auth.login(
         username: _usernameController.text.trim(),
         password: _passwordController.text,
@@ -255,10 +265,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       setState(() {
         _error = e is _LoginFlowMessage
             ? e.message
-            : ref.read(authProvider).error ?? '登录失败';
+            : auth.errorMessageFor(e);
       });
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _loadingStage = null;
+        });
+      }
     }
   }
 
@@ -591,6 +606,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               fontSize: 13,
                             ),
                             textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+
+                      if (_loadingStage != null) ...[
+                        const SizedBox(height: 12),
+                        Center(
+                          child: Text(
+                            _loadingStage!,
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       ],

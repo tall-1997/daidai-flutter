@@ -1,10 +1,17 @@
 import 'package:dio/dio.dart';
+import '../network/api_endpoints.dart';
 import '../network/dio_client.dart';
 import '../storage/secure_storage.dart';
 import 'token_refresh_coordinator.dart';
 
 class AuthInterceptor extends Interceptor {
   static const _retryMarker = 'auth_retry_attempted';
+  static const _publicAuthPaths = {
+    ApiEndpoints.checkInit,
+    ApiEndpoints.init,
+    ApiEndpoints.login,
+    ApiEndpoints.captchaConfig,
+  };
 
   bool _isRefreshing = false;
   final List<({RequestOptions options, ErrorInterceptorHandler handler})>
@@ -14,11 +21,23 @@ class AuthInterceptor extends Interceptor {
 
   AuthInterceptor({this.onAuthFailed});
 
+  static bool isPublicAuthPath(String path) {
+    final normalizedPath = Uri.tryParse(path)?.path ?? path;
+    return _publicAuthPaths.contains(normalizedPath);
+  }
+
   @override
   void onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    if (isPublicAuthPath(options.path)) {
+      options.headers.removeWhere(
+        (name, _) => name.toLowerCase() == 'authorization',
+      );
+      handler.next(options);
+      return;
+    }
     final token = await SecureStorage.getAccessToken();
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
@@ -28,7 +47,8 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    if (err.response?.statusCode != 401) {
+    if (err.response?.statusCode != 401 ||
+        isPublicAuthPath(err.requestOptions.path)) {
       handler.next(err);
       return;
     }

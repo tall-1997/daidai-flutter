@@ -41,6 +41,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   AuthNotifier(this._authService) : super(const AuthState());
 
+  void clearError() {
+    state = state.copyWith(error: null);
+  }
+
+  String errorMessageFor(Object error) => _extractErrorMessage(error);
+
   Future<void> restoreTrustedLocalSession() async {
     // 启动时先恢复本地可信登录态，避免每次打开 APP 都重新打登录日志。
     final token = await SecureStorage.getAccessToken();
@@ -115,13 +121,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> checkInit() async {
+  Future<void> checkInit({bool rethrowErrors = false}) async {
     try {
       final needsInit = await _authService.needsInitialization();
       state = state.copyWith(needsInit: needsInit);
-    } catch (e) {
+    } catch (_) {
       // 出错时默认不需要初始化，直接显示登录
       state = state.copyWith(needsInit: false);
+      if (rethrowErrors) rethrow;
     }
   }
 
@@ -237,6 +244,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final statusCode = e.response?.statusCode;
       if (statusCode != null && statusCode >= 400) {
         return '请求失败 (HTTP $statusCode)，请检查服务器配置';
+      }
+
+      final detail = '${e.message ?? ''} ${e.error ?? ''}'.toLowerCase();
+      if (detail.contains('certificate') ||
+          detail.contains('hostname mismatch')) {
+        return 'HTTPS 证书校验失败，请检查证书有效期、域名匹配和证书链';
+      }
+      if (detail.contains('handshake')) {
+        return 'TLS 握手失败，请检查协议、证书和反向代理 TLS 配置';
+      }
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return '登录请求超时，请检查 HTTPS 反向代理和面板服务状态';
+      }
+      if (detail.contains('failed host lookup') ||
+          detail.contains('name or service not known')) {
+        return '域名解析失败，请检查域名和 DNS 配置';
+      }
+      if (e.type == DioExceptionType.connectionError) {
+        return '无法连接服务器，请检查域名、端口和反向代理配置';
       }
     }
 
