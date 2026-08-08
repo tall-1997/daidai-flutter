@@ -19,6 +19,7 @@ import '../../../shared/models/task.dart';
 import '../../../shared/models/task_log.dart';
 import '../../../shared/utils/ansi_text.dart';
 import '../../../shared/utils/api_utils.dart';
+import '../../../shared/utils/import_payloads.dart';
 import '../../../shared/utils/time_utils.dart';
 import '../../../shared/utils/log_background.dart';
 import '../../../shared/widgets/app_card.dart';
@@ -174,24 +175,31 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       return;
     }
 
-    final file = result.files.first;
-    final multipart = await _toMultipartFile(file);
-    if (multipart == null) {
-      _showMessage('无法读取所选任务文件');
-      return;
-    }
-
     setState(() => _taskTransferBusy = true);
     try {
-      final formData = FormData();
-      formData.files.add(MapEntry('file', multipart));
+      final bytes = await readPlatformFileBytes(
+        result.files.first,
+        maxBytes: maxTaskImportBytes,
+      );
+      final tasks = parseTaskImportPayload(bytes);
       await DioClient.instance.dio.post(
         ApiEndpoints.tasksImport,
-        data: formData,
-        options: Options(contentType: 'multipart/form-data'),
+        data: {'tasks': tasks},
       );
       await ref.read(taskProvider.notifier).load(refresh: true);
-      _showMessage('任务导入成功');
+      if (!mounted) return;
+      AppGlassNotice.show(
+        context,
+        '已导入 ${tasks.length} 个任务',
+        type: AppGlassNoticeType.success,
+      );
+    } on ImportPayloadException catch (error) {
+      if (!mounted) return;
+      AppGlassNotice.show(
+        context,
+        error.message,
+        type: AppGlassNoticeType.warning,
+      );
     } catch (error) {
       await _showActionError(error, '导入任务失败');
     } finally {
@@ -199,23 +207,6 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
         setState(() => _taskTransferBusy = false);
       }
     }
-  }
-
-  Future<MultipartFile?> _toMultipartFile(PlatformFile file) async {
-    if (file.path != null && file.path!.isNotEmpty) {
-      return MultipartFile.fromFile(file.path!, filename: file.name);
-    }
-    if (file.readStream != null) {
-      return MultipartFile.fromStream(
-        () => file.readStream!,
-        file.size,
-        filename: file.name,
-      );
-    }
-    if (file.bytes != null) {
-      return MultipartFile.fromBytes(file.bytes!, filename: file.name);
-    }
-    return null;
   }
 
   Uint8List? _extractBytes(dynamic data) {
@@ -1195,6 +1186,29 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                           ),
                         ],
                       )
+                    : state.error != null && state.tasks.isEmpty
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(20, 80, 20, 110),
+                        children: [
+                          AppCard(
+                            child: Column(
+                              children: [
+                                const Icon(Icons.cloud_off_outlined, size: 42),
+                                const SizedBox(height: 10),
+                                Text(state.error!, textAlign: TextAlign.center),
+                                const SizedBox(height: 12),
+                                AppLiquidGlassButton(
+                                  label: '重试',
+                                  onPressed: () => ref
+                                      .read(taskProvider.notifier)
+                                      .load(refresh: true),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
                     : state.tasks.isEmpty
                     ? ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
@@ -2170,6 +2184,9 @@ class _TaskCard extends StatelessWidget {
     if (task.lastRunStatus == 1) {
       return AppColors.red500;
     }
+    if (task.lastRunStatus == 2) {
+      return AppColors.amber500;
+    }
     if (task.isEnabled) {
       return AppColors.primary;
     }
@@ -2186,7 +2203,7 @@ class _TaskCard extends StatelessWidget {
     if (task.isEnabled) {
       return '已启用';
     }
-    return '已禁用';
+    return task.statusText;
   }
 
   Color _statusBg() {
@@ -2216,14 +2233,7 @@ class _TaskCard extends StatelessWidget {
   }
 
   String _taskTypeLabel() {
-    switch (task.taskType) {
-      case 'manual':
-        return '手动运行';
-      case 'startup':
-        return '开机运行';
-      default:
-        return '常规定时';
-    }
+    return task.taskTypeText;
   }
 
   List<String> _scheduleExpressions() {
@@ -2242,6 +2252,9 @@ class _TaskCard extends StatelessWidget {
     }
     if (task.lastRunStatus == 1 && task.lastRunAt != null) {
       return '上次失败：${formatTimeCn(task.lastRunAt, short: true)}';
+    }
+    if (task.lastRunStatus == 2 && task.lastRunAt != null) {
+      return '上次终止：${formatTimeCn(task.lastRunAt, short: true)}';
     }
     if (task.nextRunAt != null) {
       return '下次运行：${formatTimeCn(task.nextRunAt, short: true)}';
@@ -2514,17 +2527,25 @@ class _TaskScheduleSummary extends StatelessWidget {
         : taskTypeLabel;
     final value = isCron
         ? (cleanExpressions.isEmpty ? '暂无定时规则' : cleanExpressions.first)
-        : (taskType == 'manual' ? '手动触发运行' : '面板启动时自动执行');
+        : taskType == 'manual'
+        ? '手动触发运行'
+        : taskType == 'startup'
+        ? '面板启动时自动执行'
+        : taskType;
     final icon = isCron
         ? Icons.schedule_rounded
         : taskType == 'manual'
         ? Icons.touch_app_outlined
-        : Icons.power_settings_new_rounded;
+        : taskType == 'startup'
+        ? Icons.power_settings_new_rounded
+        : Icons.help_outline_rounded;
     final color = isCron
         ? AppColors.primary
         : taskType == 'manual'
         ? AppColors.blue500
-        : AppColors.amber500;
+        : taskType == 'startup'
+        ? AppColors.amber500
+        : AppColors.slate500;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
@@ -3097,11 +3118,7 @@ class TaskDetailSheet extends StatelessWidget {
                       infoTile(
                         '任务类型',
                         Text(
-                          task.taskType == 'manual'
-                              ? '手动运行'
-                              : task.taskType == 'startup'
-                              ? '开机运行'
-                              : '常规定时',
+                          task.taskTypeText,
                           style: const TextStyle(fontSize: 13),
                         ),
                       ),
@@ -3170,11 +3187,7 @@ class TaskDetailSheet extends StatelessWidget {
                       infoTile(
                         '上次结果',
                         Text(
-                          task.lastRunStatus == null
-                              ? '未运行'
-                              : task.lastRunStatus == 0
-                              ? '成功'
-                              : '失败',
+                          task.lastRunStatusText,
                           style: TextStyle(
                             fontSize: 13,
                             color: task.lastRunStatus == 1

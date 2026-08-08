@@ -5,6 +5,8 @@ import 'package:daidai_app/core/services/android_update_manifest.dart';
 import 'package:daidai_app/core/services/local_notification_service.dart';
 import 'package:daidai_app/core/services/app_update_service.dart';
 import 'package:daidai_app/features/deps/models/dependency_log_state.dart';
+import 'package:daidai_app/features/system/models/system_config_schema.dart';
+import 'package:daidai_app/shared/models/dependency.dart';
 import 'package:daidai_app/shared/models/subscription.dart';
 import 'package:daidai_app/shared/utils/api_utils.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -201,6 +203,53 @@ void main() {
       expect(dependencyLogDonePhase('cancelled'), DependencyLogPhase.cancelled);
       expect(dependencyLogDonePhase('installed'), DependencyLogPhase.succeeded);
     });
+  });
+
+  group('system config schema', () {
+    test('parses metadata and applies the log size fallback', () {
+      final schemas = parseSystemConfigSchemas({
+        'max_log_content_size': {
+          'value_type': 'int',
+          'group': '日志',
+          'description': '最大日志长度',
+          'readonly': true,
+          'registered': false,
+        },
+        'theme': {
+          'value': 'dark',
+          'value_type': 'enum',
+          'options': ['light', {'value': 'dark', 'label': '深色'}],
+        },
+      });
+
+      expect(schemas.first.effectiveValue, '102400000');
+      expect(schemas.first.isInt, isTrue);
+      expect(schemas.first.readonly, isTrue);
+      expect(schemas.first.registered, isFalse);
+      expect(schemas.last.options.last.label, '深色');
+    });
+
+    test('submits only changed values', () {
+      expect(
+        changedSystemConfigValues(
+          {'unchanged': '1', 'changed': 'old'},
+          {'unchanged': '1', 'changed': 'new'},
+        ),
+        {'changed': 'new'},
+      );
+    });
+  });
+
+  test('Dependency exposes unknown status values', () {
+    final dependency = Dependency.fromJson({
+      'id': 1,
+      'name': 'demo',
+      'status': 'paused',
+      'created_at': '2026-01-01T00:00:00Z',
+      'updated_at': '2026-01-01T00:00:00Z',
+    });
+
+    expect(dependency.statusText, '未知状态(paused)');
   });
 
 }

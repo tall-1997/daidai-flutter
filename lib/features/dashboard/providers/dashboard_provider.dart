@@ -64,6 +64,12 @@ class DashboardData {
   int get disabledTasks => totalTasks - enabledTasks;
   int get todaySuccess => _integer(dashboard['success_logs']);
   int get todayFailed => _integer(dashboard['failed_logs']);
+  int get todayAborted => _integer(
+    dashboard['aborted_logs'] ??
+        dashboard['abort_logs'] ??
+        dashboard['aborted'] ??
+        dashboard['abort'],
+  );
   List<dynamic> get recentLogs => dashboard['recent_logs'] as List? ?? [];
   List<dynamic> get executionTrend => dashboard['daily_stats'] as List? ?? [];
 

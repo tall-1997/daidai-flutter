@@ -105,6 +105,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
   late final TextEditingController _randomDelayC;
   late final TextEditingController _retriesC;
   late final TextEditingController _retryIntervalC;
+  late final TextEditingController _successExitCodesC;
   late final TextEditingController _dependsOnC;
   late final TextEditingController _taskBeforeC;
   late final TextEditingController _taskAfterC;
@@ -119,6 +120,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
   String _taskType = 'cron';
   bool _notifyOnFailure = true;
   bool _notifyOnSuccess = false;
+  bool _notifyOnAbort = false;
   bool _allowMultipleInstances = false;
   String _pythonVersion = '3.12';
   String _pythonDefaultVersion = '3.12';
@@ -156,6 +158,9 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
     _retryIntervalC = TextEditingController(
       text: '${task?.retryInterval ?? 60}',
     );
+    _successExitCodesC = TextEditingController(
+      text: (task?.successExitCodes ?? const [0]).join(','),
+    );
     _dependsOnC = TextEditingController(
       text: task?.dependsOn?.toString() ?? '',
     );
@@ -168,6 +173,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
     _pythonVersion = task?.pythonVersion ?? '3.12';
     _notifyOnFailure = task?.notifyOnFailure ?? true;
     _notifyOnSuccess = task?.notifyOnSuccess ?? false;
+    _notifyOnAbort = task?.notifyOnAbort ?? false;
     _allowMultipleInstances = task?.allowMultipleInstances ?? false;
     _notificationChannelId = task?.notificationChannelId;
     _labels
@@ -196,6 +202,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
       _randomDelayC,
       _retriesC,
       _retryIntervalC,
+      _successExitCodesC,
       _dependsOnC,
       _taskBeforeC,
       _taskAfterC,
@@ -462,8 +469,12 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
       'random_delay_seconds': randomDelay,
       'max_retries': _parseInt(_retriesC, 0),
       'retry_interval': _parseInt(_retryIntervalC, 60),
+      'success_exit_codes': Task.parseSuccessExitCodes(
+        _successExitCodesC.text,
+      )!.join(','),
       'notify_on_failure': _notifyOnFailure,
       'notify_on_success': _notifyOnSuccess,
+      'notify_on_abort': _notifyOnAbort,
       'notification_channel_id': _notificationChannelId,
       'labels': normalizedLabels,
       'depends_on': int.tryParse(_dependsOnC.text.trim()),
@@ -623,10 +634,15 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                 DropdownButtonFormField<String>(
                   initialValue: _taskType,
                   decoration: const InputDecoration(labelText: '任务类型'),
-                  items: const [
-                    DropdownMenuItem(value: 'cron', child: Text('常规定时')),
-                    DropdownMenuItem(value: 'manual', child: Text('手动运行')),
-                    DropdownMenuItem(value: 'startup', child: Text('开机运行')),
+                  items: [
+                    const DropdownMenuItem(value: 'cron', child: Text('常规定时')),
+                    const DropdownMenuItem(value: 'manual', child: Text('手动运行')),
+                    const DropdownMenuItem(value: 'startup', child: Text('开机运行')),
+                    if (!const ['cron', 'manual', 'startup'].contains(_taskType))
+                      DropdownMenuItem(
+                        value: _taskType,
+                        child: Text('未知类型（$_taskType）'),
+                      ),
                   ],
                   onChanged: (v) {
                     if (v != null) setState(() => _taskType = v);
@@ -879,6 +895,23 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                     keyboardType: TextInputType.number,
                   ),
                 ],
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _successExitCodesC,
+                  decoration: const InputDecoration(
+                    labelText: '成功退出码',
+                    helperText: '使用英文逗号分隔，例如 0,2',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    signed: true,
+                  ),
+                  validator: (value) {
+                    if (Task.parseSuccessExitCodes(value ?? '') == null) {
+                      return '请输入逗号分隔的整数退出码';
+                    }
+                    return null;
+                  },
+                ),
               ]),
 
               // 通知
@@ -891,6 +924,17 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                     AppLiquidGlassToggle(
                       value: _notifyOnFailure,
                       onChanged: (v) => setState(() => _notifyOnFailure = v),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text('终止时通知', style: TextStyle(fontSize: 14)),
+                    ),
+                    AppLiquidGlassToggle(
+                      value: _notifyOnAbort,
+                      onChanged: (v) => setState(() => _notifyOnAbort = v),
                     ),
                   ],
                 ),

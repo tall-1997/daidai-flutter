@@ -1,167 +1,236 @@
 # 上游功能与 Bug 审计
 
-本文档对比当前 Flutter 客户端、上游 `Dumb-Panel-APP` 和后端 `daidai-panel`，记录已确认的功能差异、API 适配状态与缺陷。
+本文档对比当前 Flutter 客户端、`linzixuanzz/Dumb-Panel-APP` 和 `linzixuanzz/daidai-panel` 的全部正式 Release，记录移动客户端相关的缺陷、接口契约和功能差距。
 
 ## 分析基线
 
-| 项目 | 版本 | Commit |
+| 项目 | 审计范围 | 当前基线 |
 | --- | --- | --- |
-| 当前客户端 `tall-1997/daidai-flutter` | `0.1.56+56` | `92355e70de69af43fb9499b3bbd98bb7bbf9ba65` |
-| 上游客户端 `linzixuanzz/Dumb-Panel-APP` | `1.2.6+19` | `03b9ef655d8b80393c7faa865099d63cd35562a4` |
-| 后端 `linzixuanzz/daidai-panel` | `v3.0.0` | `28636ea58da134ad6e1e440cb937726336700cdc` |
+| `tall-1997/daidai-flutter` | 当前仓库 | `0.1.57+57`，`cda35a8fcaf2e02f6fdc0f1785a396e628c6519b` |
+| `linzixuanzz/Dumb-Panel-APP` | 18 个正式 Release | `v1.0.2` 至 `v1.3.0` |
+| `linzixuanzz/daidai-panel` | 73 个正式 Release | `v0.1.1` 至 `v3.0.1` |
 
-审计日期：2026-08-08。
+审计日期：2026-08-08。Release 统计排除了 draft 和 prerelease。早期仅包含 Full Changelog 的 Release 已结合 tag、compare commit 和后端源码核对。
 
-当前环境没有 Flutter/Dart SDK，结论来自源码和接口契约静态复核，尚未执行 `flutter analyze`、`flutter test` 或真机联调。
+本轮已完成静态审计和客户端修复实现。动态网络、Token 轮换、跨版本降级和真机文件流程仍需联调验证。
 
-## 后端 v3.0.0 适配状态
+## 结论摘要
 
-### 已适配
+| 分级 | 数量 | 重点 |
+| --- | ---: | --- |
+| P0 | 3 | 任务导入协议、环境变量导入协议、邮件配置值类型 |
+| P1 | 10 | 通知配置无损保存、备份完整性、任务和日志终止状态、任务新增字段、系统配置覆盖范围、订阅 Token 鉴权 |
+| P2 | 11 | 错误空态、未知枚举、动态 schema、凭据展示、长耗时、仪表盘统计、认证重放风险 |
+| P3 | 1 | 环境变量导入预检和模式体验 |
 
-- API 前缀：后端同时注册 `/api` 和 `/api/v1`，当前客户端继续使用多数 `/api` 路径可兼容。
-- 任务全量查询：任务列表使用 `all=1`，后端安全上限为 5000 条，见 `lib/features/tasks/providers/task_provider.dart:67-94`。
-- 任务排队状态：客户端将状态 `0.5` 映射为“排队中”，见 `lib/shared/models/task.dart:70-79`。
-- Refresh Token：客户端从 `Authorization` 头发送 Refresh Token，并支持轮换及并发刷新协调。
-- SSE 基础能力：通用客户端支持 Bearer Token、401 刷新、CRLF、多行 `data` 聚合和断线重连。
-- 会话数据：后端为会话和登录日志返回 `client_type`、`client_type_label`、`client_name`，当前页面可继续展示现有字段。
-- 分页响应：客户端公共解析器支持后端的 `data`、`total`、`page`、`page_size` 包装。
+证据等级定义：A 表示当前客户端与固定后端源码直接证明；B 表示客户端源码和框架确定行为证明；C 表示前向兼容或运行环境相关风险。
 
-### 本轮已补齐功能
+## 实现状态
 
-1. 原始日志票据下载
-   - 后端新增 `GET /logs/:id/raw-ticket` 和 `GET /tasks/:id/log-files/:filename/raw-ticket`，签发两分钟有效的资源绑定票据。
-   - 客户端已增加票据模型、接口端点和流式文件下载服务。
-   - 执行日志和任务日志文件页面已提供原始字节下载入口，文件保存到应用文档目录下的 `downloads`。
+- P0、P1、P2 和 P3 列出的客户端修复均已实现，并为导入解析、通知配置、订阅鉴权、任务与日志契约、系统配置 schema 增加回归测试。
+- 通知凭据与订阅 Token 编辑采用空值保留策略；未知通知类型和未知配置键保持可编辑、可回写。
+- 系统设置、任务列表和日志列表已提供加载错误与重试入口。
+- 当前环境缺少 Flutter/Dart SDK，格式化、静态分析、自动测试和双平台构建保留为待执行门禁。
 
-2. 会话客户端分类展示
-   - 后端已返回 `client_type_label` 和 `client_name`。
-   - 会话页已显示客户端类型标签、客户端名称和稳定类型图标。
+## P0 数据与接口缺陷
 
-3. 后端列表契约复核
-   - 后端分页默认每页 20 条，`page_size` 有效范围为 1 至 100。
-   - 任务和环境变量支持 `all=1|true|yes`，最多返回 5000 条。
-   - 用户、SSH 密钥、通知渠道、平台令牌和 Open API 应用接口直接返回完整列表，客户端保持单次请求。
+### P0-1：任务导入使用错误的请求格式
 
-## 本轮已修复 Bug
+- 状态：确认存在。
+- 位置：`lib/features/tasks/views/task_list_page.dart:164-192`。
+- 触发条件：用户选择任务导出文件并执行导入。
+- 当前行为：以 `multipart/form-data` 上传 `file`。
+- 后端契约：`POST /tasks/import` 使用 `ShouldBindJSON`，请求体要求 `{"tasks": [...]}`。
+- 影响：后端返回请求参数错误，任务导入不可用。客户端导出保存的是 API 包装响应，导入前还需提取任务数组。
+- 证据等级：A。
+- 修复：读取并解析 JSON，兼容导出响应包装，提交 `tasks` 数组，并增加导出后立即导入的契约测试。
 
-### P1：SSE 终态后持续重连
+### P0-2：环境变量导入使用错误的请求格式
 
-位置：
+- 状态：确认存在。
+- 位置：`lib/features/envs/views/env_list_page.dart:415-443`。
+- 触发条件：用户选择环境变量文件并执行导入。
+- 当前行为：以 `multipart/form-data` 上传 `file`。
+- 后端契约：`POST /envs/import` 使用 JSON，字段为 `envs` 和 `mode`，请求上限 1 MiB。
+- 影响：后端无法绑定 `envs`，导入不可用。
+- 证据等级：A。
+- 修复：客户端解析文件后提交 `{"envs": [...], "mode": "merge"}`，支持 `merge/replace`。
 
-- `lib/core/network/sse_client.dart:138-159`
-- `lib/core/network/sse_client.dart:181-198`
-- 受影响调用包括任务日志、执行日志、依赖日志和订阅拉取流。
+### P0-3：邮件 `smtp_ssl` 保存为 bool
 
-触发条件：服务端发送 `event: done`，数据为 `finished`、`installed`、`failed`、`not_running`、`closed` 或 `timeout`，随后正常关闭响应流，调用方启用 `autoReconnect`。
+- 状态：确认存在。
+- 位置：`lib/features/notifications/views/notification_list_page.dart:727,825-845,882-911`。
+- 触发条件：创建邮件渠道，或编辑后保存已有邮件渠道。
+- 当前行为：写入 `{"smtp_ssl": true}` 或 `false`。
+- 后端契约：通知配置解码为 `map[string]string`；`smtp_ssl` 具有自动、开启、关闭三态。
+- 影响：整份配置可能解码失败，测试发送和正式通知均可能返回 `invalid config`。
+- 证据等级：A。
+- 修复：所有通知配置值统一序列化为字符串；邮件 SSL 使用 `auto/on/off` 三态控件，并兼容历史别名。
 
-原因：客户端只对 `done/reconnect` 显式安排重连，流正常结束时又对所有自动重连连接无条件调用 `scheduleReconnect()`，缺少“已收到业务终态”标记。
+## P1 行为与兼容缺陷
 
-影响：完成后的连接每秒重建，持续消耗网络、电量和后端连接；重新连接可能再次返回完整历史日志并造成重复内容。
+### P1-1：已知通知渠道保存时删除未知字段
 
-修复状态：`SseClient` 已记录业务终态、立即关闭连接并阻止 EOF 重连；异常 EOF、网络错误和 `done/reconnect` 保持自动重连。调用页面统一使用协议判断函数处理带可选空白的数据。
+- 状态：确认存在。
+- 位置：`lib/features/notifications/views/notification_list_page.dart:723-760,882-905`。
+- 触发条件：服务端配置含新字段、扩展字段或客户端字段表未覆盖的键，用户在 App 中保存渠道。
+- 影响：未知键被静默删除。邮件 `from` 已构成直接案例，可能改变发件人、认证参数或扩展行为。
+- 证据等级：A。
+- 修复：从 `existingConfig` 副本开始保存，只覆盖用户编辑过的键。
 
-### P1：安全日志加载失败后跳页
+### P1-2：通知类型辅助请求失败会隐藏已有渠道
 
-位置：
+- 状态：确认存在。
+- 位置：`lib/features/notifications/views/notification_list_page.dart:87-124,228-258`。
+- 触发条件：旧面板缺少 `/api/notifications/types`，或该辅助端点失败、无权限。
+- 影响：通知主列表即使请求成功，页面仍显示“暂无通知渠道”。
+- 证据等级：A。
+- 修复：主列表与类型列表独立加载；类型请求失败时使用 fallback 类型。
 
-- 登录日志：`lib/features/security/views/security_page.dart:151-181`
-- 审计日志：`lib/features/security/views/security_page.dart:1375-1400`
+### P1-3：手动备份遗漏 `task_views`
 
-触发条件：加载下一页前执行 `_page++`，该页请求发生超时、断网或服务端错误，用户继续滚动。
+- 状态：确认存在。
+- 位置：`lib/features/system/views/backup_page.dart:56-133,228-236,375-393,862-905`。
+- 触发条件：用户通过 App 创建备份。
+- 影响：任务视图名称、过滤规则、排序和隐藏状态不会进入备份，恢复后丢失。
+- 证据等级：A。
+- 修复：在备份选择模型、JSON、标签、开关和默认值中完整加入 `task_views`。
 
-影响：下一次请求直接访问后续页，失败页的数据在当前会话中缺失。
+### P1-4：`last_run_status=2` 被显示为失败或忽略
 
-修复状态：登录日志和审计日志已改为请求成功后提交目标页码，并增加重复请求门禁。
+- 状态：确认存在。
+- 位置：`lib/features/tasks/views/task_list_page.dart:2163-2176,2239-2278,3170-3183`。
+- 触发条件：任务被停止并以中止状态结束。
+- 后端契约：`0=成功`、`1=失败`、`2=已终止`。
+- 影响：详情错误显示“失败”，列表缺少终止结果。
+- 证据等级：A。
+- 修复：集中定义运行结果枚举并统一展示。
 
-### P1：Open API 调用日志加载失败后跳页
+### P1-5：日志 `status=3` 缺少映射和筛选
 
-位置：
+- 状态：确认存在。
+- 位置：`lib/shared/models/task_log.dart:5,26-40`、`lib/features/logs/views/log_list_page.dart:562-602,700-704`。
+- 触发条件：日志以中止状态结束。
+- 后端契约：`3=已终止`。
+- 影响：列表显示“未知”，无法筛选，颜色与运行中接近。
+- 证据等级：A。
+- 修复：模型、详情、筛选项和颜色统一支持状态 3。
 
-- `lib/features/openapi/views/open_api_page.dart:1055-1076`
-- `lib/features/openapi/views/open_api_page.dart:1112-1158`
+### P1-6：任务缺少 `success_exit_codes`
 
-原因与安全日志一致：`_loadMore()` 先递增页码，异常路径没有回滚。
+- 状态：功能缺失。
+- 位置：`lib/shared/models/task.dart:4-34,119-186`、`lib/features/tasks/views/task_form_page.dart:455-473`。
+- 触发条件：任务需要把 `0` 之外的退出码视为成功。
+- 影响：App 无法查看或配置；新建任务使用服务端默认 `0`。普通字段级编辑会保留服务端已有值。
+- 证据等级：A。
+- 修复：加入模型、表单、校验、序列化和导入导出测试。
 
-影响：调用日志产生数据断层，底部加载指示器可能持续触发更后面的页。
+### P1-7：任务缺少 `notify_on_abort`
 
-修复状态：调用日志已改为请求成功后提交目标页码，并增加重复请求门禁。
+- 状态：功能缺失。
+- 位置：`lib/features/tasks/views/task_form_page.dart:167-171,455-473,884-919`。
+- 触发条件：用户需要配置任务终止通知。
+- 影响：App 无法查看或修改；新建任务采用服务端默认 `false`。
+- 证据等级：A。
+- 修复：在通知设置中增加独立终止开关并完整透传。
 
-### P2：任务分组候选只扫描前 20 条任务
+### P1-8：系统设置仅覆盖固定配置子集
 
-位置：`lib/features/tasks/views/task_form_page.dart:243-260`。
+- 状态：部分实现。
+- 位置：`lib/features/system/views/system_settings_page.dart:31-40,104-141,526-543,850-1028`。
+- 触发条件：面板注册新配置，或用户管理固定表单之外的配置。
+- 影响：资源告警、通知、订阅覆盖、标题、时区、定时备份、最大会话数、CAPTCHA、可信代理和默认 Python 等配置只能从 Web 管理。
+- 证据等级：A。
+- 修复：消费 `/api/configs` 的 `value_type/group/default_value/description/options/registered` 动态生成控件。
 
-客户端发送 `page_size=200`。后端 v3.0.0 接受的最大值为 100，越界后回退为 20，客户端又只读取第一页。因此仅出现在后续任务中的分组不会成为表单候选，用户仍可手动输入。
+### P1-9：系统配置保存可能覆盖陈旧值并形成部分提交
 
-修复状态：任务分组候选已使用 `all=1` 获取完整任务集合。
+- 状态：确认存在。
+- 位置：`lib/features/system/views/system_settings_page.dart:526-545`。
+- 触发条件：页面加载后其他客户端修改配置，或批量保存中某个后续键校验失败。
+- 影响：未编辑字段可能覆盖新值；失败响应前的部分键可能已经生效。
+- 证据等级：A。
+- 修复：只提交加载值与当前值的差异；失败后重新加载服务端最终状态。
 
-### P2：订阅日志页面存在异步销毁竞态
+### P1-10：订阅缺少 HTTP Token 鉴权字段
 
-位置：`lib/features/subscriptions/views/subscription_list_page.dart:1353-1364`。
+- 状态：功能缺失。
+- 位置：`lib/shared/models/subscription.dart:1-124`、`lib/features/subscriptions/views/subscription_list_page.dart:454-728,780-1061`。
+- 触发条件：私有 Git 仓库使用用户名和 Personal Access Token，而非 SSH Key。
+- 后端契约：支持 `auth_type=token`、`auth_username`、`auth_token`、`has_auth_token`；更新时空 Token 保留旧值。
+- 影响：App 只能选择 SSH 密钥，无法创建或完整编辑 Token 鉴权订阅，也无法展示已保存凭据状态。
+- 证据等级：A。
+- 修复：模型和表单加入鉴权类型、用户名、Token 与“已配置”状态，保持空 Token 不覆盖旧值。
 
-页面初始化先等待日志背景色，再调用 `_load()`。用户在等待期间离开页面时，后续 `_load()` 会在首次 `setState()` 前缺少 `mounted` 检查，可能触发 `setState() called after dispose()`。
+## P2 稳健性与体验差距
 
-修复状态：背景色异步读取和后续加载均已增加生命周期门禁。
+| 项目 | 状态与影响 | 位置 | 证据 |
+| --- | --- | --- | --- |
+| 任务列表首屏错误显示为空数据 | 请求失败显示“暂无任务”，缺少错误和重试 | `lib/features/tasks/providers/task_provider.dart:11-98`、`task_list_page.dart:1186-1247` | A |
+| 日志列表吞掉请求异常 | 请求失败显示“暂无日志”，缺少错误和重试 | `lib/features/logs/views/log_list_page.dart:20-101,608-643` | A |
+| 未知任务状态显示为已禁用 | 未来状态值会造成错误操作判断 | `lib/shared/models/task.dart:70-80` | C |
+| 未知任务类型显示为常规定时 | 列表和详情误报，编辑下拉还可能断言 | `task_list_page.dart:2218-2226,3097-3105`、`task_form_page.dart:623-634` | B/C |
+| 未知依赖状态显示为已安装 | 新增状态值会被误报为成功安装 | `lib/shared/models/dependency.dart:34-48` | C |
+| 日志耗时缺少小时格式 | 7325 秒显示为 `122m5s` | `lib/shared/models/task_log.dart:43-50` | A |
+| 通知字段 schema 静态化 | `NotificationTypeOption` 只保留 type/name，新字段仍依赖硬编码 Map | `notification_list_page.dart:21-31,493-721` | C |
+| 通知凭据明文显示 | 多类 token、secret 和 key 可被肩窥或录屏捕获 | `notification_list_page.dart:525-700` | A |
+| 系统配置字段语义偏差 | “日志背景色”实际写入 `editor_background_color`；旧面板日志大小 fallback 小 1000 倍 | `system_settings_page.dart:115-128,877-954` | A |
+| 仪表盘缺少今日终止统计 | 仅展示成功和失败，无法观察终止趋势 | `lib/features/dashboard/widgets/task_stats_card.dart:11-79` | A |
+| Token 刷新重放存在自等待风险 | 重放请求再次 401 时，同一拦截器可能把请求加入自身等待队列 | `lib/core/auth/auth_interceptor.dart:42-69` | B |
 
-### P2：平台令牌加载失败永久显示加载态
+认证重放建议为每个请求增加一次性 retry 标记；重放再次 401 时立即清理会话并拒绝全部队列。业务 `403` 继续作为授权或 scope 错误展示，保持与登录失效分离。
 
-位置：`lib/features/security/views/platform_tokens_page.dart:22-33`。
+## P3 导入体验
 
-首次 `Future.wait` 任一请求失败时，方法直接抛出，`_loading` 保持 `true`，页面没有错误状态或重试入口。新增、编辑、启停和删除操作也缺少统一错误反馈。
+### P3-1：环境变量导入缺少模式与本地预检
 
-修复状态：平台令牌页面已增加 generation 隔离、错误状态、重试入口、操作忙状态和统一错误反馈。
+- 状态：功能缺失。
+- 位置：`lib/features/envs/views/env_list_page.dart:415-469`。
+- 影响：修复 JSON 协议后，用户仍无法选择 `merge/replace`；客户端也未预检 1 MiB 上限、变量名、条目数量及文件内重复的 `(name, remarks)`。
+- 修复：提供模式选择；`replace` 增加数据替换确认；提交前校验文件和重复身份。
 
-### P2：SSE 字段格式兼容范围偏窄
+## 已正确处理
 
-位置：`lib/core/network/sse_client.dart:170-179`。
+- App/Web 会话隔离：所有 Dio 和 raw Dio 请求携带 `X-Client-Type: app`，见 `lib/core/network/app_user_agent.dart:18-27`。
+- 会话展示：页面消费 `client_type`、`client_type_label` 和 `client_name`。
+- Unicode 用户名：客户端与后端均使用 Unicode 字母、数字、下划线的 1 至 32 字符规则，见 `lib/features/profile/views/profile_page.dart:87-96`。
+- HTTP 成功范围：全局 Dio 和 raw Dio 仅接受 `2xx`，登录 `4xx` 也会显式转为异常。
+- 普通业务 `401`：支持 Refresh Token 轮换、并发刷新协调和原请求重放。
+- SSE：每次连接重新读取 Access Token；握手 `401` 刷新后重连一次；支持 CRLF、多行 data、业务终态和异常 EOF 重连。
+- 任务字段：`python_version`、多 Cron 和 `timeout=0` 已正确解析、保留和保存。
+- 服务端任务复制：客户端直接调用复制接口，服务端负责透传完整字段。
+- 环境变量：按记录 ID 编辑，保留同名多值语义；列表、模型和编辑支持多分组。
+- 环境变量 `by-name`：该接口用于脚本 upsert，当前 App 的按 ID CRUD 无需接入。
+- 订阅分页：使用合法上限 `page_size=100` 并继续分页。
+- 任务全量查询：使用 `all=1`，后端安全上限为 5000 条。
+- 任务排队状态：已支持状态 `0.5`。
+- Cron 模板：已通过 `/api/tasks/cron/templates` 动态加载。
+- 原始日志：已实现票据下载和系统文件保存流程。
+- 任务视图：CRUD 已实现，当前缺口集中在备份选择。
+- 头像：后端头像路由公开，普通 `NetworkImage` 可加载。
 
-解析器只识别 `event: ` 和 `data: `，标准 SSE 允许 `event:value`、`data:value` 以及字段值前可选的单个空格。当前后端固定输出带空格格式，因此这属于协议健壮性缺口。
+## 产品范围差异
 
-Android Runtime 页面在 `lib/features/deps/views/android_runtime_page.dart:61-71` 维护另一套更简化的行解析器，也仅识别 `data: `，并通过日志文本符号判断失败。
+- 当前客户端额外提供任务视图、本地通知、环境变量工具、Android Runtime、依赖重装、平台令牌、SSH 私钥、配置脚本、健康诊断、主题背景和 Android 差分更新。
+- 上游 App 提供任务卡左滑快捷操作和 Flutter Web/PWA 外壳。
+- 当前项目已明确采用无任务卡侧滑操作的 Android/iOS 产品范围，上述两项不列为缺陷。
 
-修复状态：通用客户端和 Android Runtime 均使用标准字段解析，兼容字段值前可选空格、CRLF 和多行 `data`；Android Runtime 根据 `done` 结果判断安装状态。
+## 动态验证清单
 
-## 已排除候选
+1. 在 `daidai-panel v3.0.1` 联调任务和环境变量 JSON 导入，覆盖合法文件、包装响应、非法字段、1 MiB 上限、merge 和 replace。
+2. 创建并编辑邮件渠道，验证 `smtp_ssl` 三态、历史别名、未知字段保留和测试发送。
+3. 使用短时 Access Token 验证并发 `401`、刷新成功、重放再次 `401` 和 Refresh Token 失效。
+4. 验证 SSE 长时间断网、Token 轮换、业务 `403` 和终态关闭。
+5. 使用超过 100 条订阅验证完整分页，并联调 SSH 和 Token 两类私有仓库。
+6. 使用旧面板验证 `/notifications/types` 和动态 `/configs` 缺失时的降级行为。
+7. 在具备 Flutter SDK 的环境执行 `dart format .`、`flutter analyze`、`flutter test`，并构建 Android 与 iOS。
+8. 修改卡片渲染后验证浅色、深色、快速滚动、分组展开、窄屏和侧滑环境变量卡。
 
-- 头像认证：后端 `GET /auth/avatar/:filename` 是公开静态资源路由，个人资料页使用普通 `NetworkImage` 可以加载。`more_page.dart` 构造空 Authorization 头属于可清理实现，当前不会阻断公开头像。
-- 通用 SSE Token 刷新：当前 `SseClient` 已复用 `TokenRefreshCoordinator`，401 后最多刷新一次并重连。
-- SSE 多行数据：当前通用解析器已按空行聚合多行 `data`。
-- 任务列表分页：当前任务列表使用 `all=1`，空 `loadMore()` 属于失效交互残留，5000 条安全上限内不会产生分页缺失。
-- 任务排队状态：当前客户端已支持状态 `0.5`。
+## 修复顺序
 
-## 与上游 App v1.2.6 的功能差异
-
-### 当前客户端新增
-
-- 任务视图管理、过滤规则和排序规则。
-- 任务导入导出。
-- 服务端 Cron 模板和表达式解析预览。
-- 本地任务完成通知、通知权限设置和点击深链。
-- 个人头像、用户名和密码管理。
-- 环境变量批量改名、置顶和多格式导出工具。
-- Android/Magisk Runtime 管理。
-- pip/npm 已安装清单、依赖导出和顺序批量重装。
-- 平台令牌管理与 SSH 私钥管理。
-- 配置脚本编辑器和系统健康诊断。
-- 可持久化主题、背景图片和模糊强度。
-- Android 差分更新、安装包 MD5/SHA-256 校验及完整包回退。
-- Refresh Token 轮换、并发刷新协调和服务器切换隔离。
-- 未保存脚本直接调试运行。
-
-### 上游客户端独有
-
-- 任务卡左滑快捷操作：启停、置顶、复制、编辑和删除。
-- Flutter Web/PWA 平台外壳。
-
-当前项目已明确移除任务卡侧滑操作，并聚焦 Android/iOS 移动客户端，这两项属于产品范围差异。
-
-## 已清理残留
-
-- 已移除 `lib/core/network/api_endpoints.dart` 中无调用点的 `/api/local/*` 端点。
-- 已移除任务列表的空 `loadMore()` 调用和 Provider 空实现。
-- 已移除公开头像请求构造的空 `Authorization` 头。
-
-## 剩余验证
-
-1. 在具备 Flutter SDK 的环境执行 `dart format .`、`flutter analyze` 和 `flutter test`。
-2. 执行 Android 与 iOS 构建，确认原始日志票据接口和移动端文件保存行为。
-3. 使用 Flutter profile 与 DevTools 验证浅色/深色、快速滚动、分组展开和窄屏场景的帧耗时。
+1. 修复任务导入、环境变量导入和邮件配置类型三个 P0。
+2. 保证通知配置无损保存，并补齐 SMTP 三态与类型端点降级。
+3. 补齐 `task_views` 备份、任务终止结果和日志终止状态。
+4. 补齐 `success_exit_codes`、`notify_on_abort` 和订阅 Token 鉴权。
+5. 改造动态系统配置与差异保存。
+6. 增加任务和日志错误态、未知枚举、小时耗时及认证重放回归测试。

@@ -17,10 +17,13 @@ final logListProvider = StateNotifierProvider<LogListNotifier, LogListState>((
   return LogListNotifier();
 });
 
+const _logStateUnset = Object();
+
 class LogListState {
   final List<TaskLog> logs;
   final int total;
   final bool loading;
+  final String? error;
   final String keyword;
   final String taskIdFilter;
   final int? statusFilter;
@@ -28,6 +31,7 @@ class LogListState {
     this.logs = const [],
     this.total = 0,
     this.loading = false,
+    this.error,
     this.keyword = '',
     this.taskIdFilter = '',
     this.statusFilter,
@@ -37,6 +41,7 @@ class LogListState {
     List<TaskLog>? logs,
     int? total,
     bool? loading,
+    Object? error = _logStateUnset,
     String? keyword,
     String? taskIdFilter,
     int? statusFilter,
@@ -46,6 +51,7 @@ class LogListState {
       logs: logs ?? this.logs,
       total: total ?? this.total,
       loading: loading ?? this.loading,
+      error: identical(error, _logStateUnset) ? this.error : error as String?,
       keyword: keyword ?? this.keyword,
       taskIdFilter: taskIdFilter ?? this.taskIdFilter,
       statusFilter: resetStatusFilter
@@ -80,7 +86,7 @@ class LogListNotifier extends StateNotifier<LogListState> {
   Future<void> load({bool refresh = false}) async {
     final requestId = ++_loadRequestId;
     if (refresh) _page = 1;
-    state = state.copyWith(loading: true);
+    state = state.copyWith(loading: true, error: null);
     try {
       final response = await DioClient.instance.dio.get(
         ApiEndpoints.logs,
@@ -93,11 +99,15 @@ class LogListNotifier extends StateNotifier<LogListState> {
         logs: refresh ? items : [...state.logs, ...items],
         total: paginated.total,
         loading: false,
+        error: null,
       );
-    } catch (_) {
+    } catch (error) {
       if (requestId != _loadRequestId) return;
       if (!refresh && _page > 1) _page--;
-      state = state.copyWith(loading: false);
+      state = state.copyWith(
+        loading: false,
+        error: extractErrorMessage(error, '日志加载失败'),
+      );
     }
   }
 
@@ -122,7 +132,7 @@ class LogListNotifier extends StateNotifier<LogListState> {
         ...firstPage,
         ...state.logs.where((log) => !firstPageIds.contains(log.id)),
       ];
-      state = state.copyWith(logs: merged, total: paginated.total);
+      state = state.copyWith(logs: merged, total: paginated.total, error: null);
     } catch (_) {
       // 自动刷新失败时保留当前分页和滚动内容。
     }
@@ -599,11 +609,43 @@ class _LogListPageState extends ConsumerState<LogListPage> {
                       },
                       selectedColor: AppColors.blue500,
                     ),
+                    _StatusFilterChip(
+                      label: '已终止',
+                      selected: state.statusFilter == 3,
+                      onTap: () {
+                        if (_selectionMode) _exitSelectionMode();
+                        _resetScroll();
+                        ref.read(logListProvider.notifier).setStatusFilter(3);
+                      },
+                      selectedColor: AppColors.amber500,
+                    ),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 16),
+
+            if (state.error != null && state.logs.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: AppCard(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: AppColors.red500),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(state.error!)),
+                      TextButton(
+                        onPressed: () => ref
+                            .read(logListProvider.notifier)
+                            .load(refresh: true),
+                        child: const Text('重试'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
 
             Expanded(
               child: RefreshIndicator(
@@ -618,6 +660,29 @@ class _LogListPageState extends ConsumerState<LogListPage> {
                           Center(
                             child: CircularProgressIndicator(
                               color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      )
+                    : state.error != null && state.logs.isEmpty
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(20, 80, 20, 110),
+                        children: [
+                          AppCard(
+                            child: Column(
+                              children: [
+                                const Icon(Icons.cloud_off_outlined, size: 42),
+                                const SizedBox(height: 10),
+                                Text(state.error!, textAlign: TextAlign.center),
+                                const SizedBox(height: 12),
+                                AppLiquidGlassButton(
+                                  label: '重试',
+                                  onPressed: () => ref
+                                      .read(logListProvider.notifier)
+                                      .load(refresh: true),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -700,6 +765,7 @@ class _LogItem extends ConsumerWidget {
   Color _statusColor() {
     if (log.isSuccess) return AppColors.primary;
     if (log.isFailed) return AppColors.red500;
+    if (log.isAborted) return AppColors.amber500;
     return AppColors.blue500;
   }
 

@@ -15,6 +15,10 @@ class Subscription {
   final DateTime? lastPullAt;
   final String saveDir;
   final int? sshKeyId;
+  final String authType;
+  final String authUsername;
+  final String authToken;
+  final bool hasAuthToken;
   final String alias;
   final String dependOn;
   final String hookScript;
@@ -39,6 +43,10 @@ class Subscription {
     this.lastPullAt,
     this.saveDir = '',
     this.sshKeyId,
+    this.authType = '',
+    this.authUsername = '',
+    this.authToken = '',
+    this.hasAuthToken = false,
     this.alias = '',
     this.dependOn = '',
     this.hookScript = '',
@@ -78,6 +86,16 @@ class Subscription {
   }
 
   factory Subscription.fromJson(Map<String, dynamic> json) {
+    final sshKeyId = _intOrNull(json['ssh_key_id']);
+    final hasAuthToken = json['has_auth_token'] == true;
+    final rawAuthType = json['auth_type']?.toString().trim() ?? '';
+    final authType = rawAuthType.isNotEmpty
+        ? rawAuthType
+        : hasAuthToken
+        ? 'token'
+        : sshKeyId != null
+        ? 'ssh'
+        : '';
     return Subscription(
       id: _int(json['id']),
       name: json['name']?.toString() ?? '',
@@ -94,7 +112,11 @@ class Subscription {
       status: _double(json['status']),
       lastPullAt: _date(json['last_pull_at']),
       saveDir: json['save_dir']?.toString() ?? '',
-      sshKeyId: _intOrNull(json['ssh_key_id']),
+      sshKeyId: sshKeyId,
+      authType: authType,
+      authUsername: json['auth_username']?.toString() ?? '',
+      authToken: json['auth_token']?.toString() ?? '',
+      hasAuthToken: hasAuthToken,
       alias: json['alias']?.toString() ?? '',
       dependOn: json['depend_on']?.toString() ?? '',
       hookScript: json['hook_script']?.toString() ?? '',
@@ -116,7 +138,10 @@ class Subscription {
     'auto_add_task': autoAddTask,
     'auto_del_task': autoDelTask,
     'save_dir': saveDir,
-    'ssh_key_id': sshKeyId,
+    'ssh_key_id': authType == 'ssh' ? sshKeyId : null,
+    'auth_type': authType,
+    'auth_username': authType == 'token' ? authUsername : '',
+    if (authType == 'token' && authToken.isNotEmpty) 'auth_token': authToken,
     'alias': alias,
     'depend_on': dependOn,
     'hook_script': hookScript,

@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/python_runtime_info.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../shared/widgets/app_card.dart';
+import '../models/system_config_schema.dart';
 
 class SystemSettingsPage extends ConsumerStatefulWidget {
   const SystemSettingsPage({super.key});
@@ -27,33 +28,12 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
   bool _checking = false;
   bool _savingConfigs = false;
   bool _updatingPanel = false;
+  String? _loadError;
 
-  final _concurrencyC = TextEditingController();
-  final _logRetentionC = TextEditingController();
-  final _logMaxSizeC = TextEditingController();
-  final _randomDelayC = TextEditingController();
-  final _fileSuffixC = TextEditingController();
-  final _editorBackgroundColorC = TextEditingController();
-  final _proxyUrlC = TextEditingController();
-  final _updateImageMirrorC = TextEditingController();
-  final _binaryUpdateProxyC = TextEditingController();
-  bool _autoInstallDeps = false;
-
-  static const _dockerMirrorOptions = [
-    'https://docker.1ms.run',
-    'https://docker.1panel.live',
-    'https://docker.sparkcr.cn',
-    'https://hub.rat.dev',
-    'https://dockerproxy.net',
-    'https://mirror.ccs.tencentyun.com',
-  ];
-
-  static const _binaryProxyOptions = [
-    'https://gh-proxy.org/',
-    'https://v4.gh-proxy.org/',
-    'http://gh.301.ee/',
-    'https://ghproxy.homeboyc.cn/',
-  ];
+  List<SystemConfigSchema> _configSchemas = const [];
+  Map<String, String> _initialConfigValues = const {};
+  final Map<String, String> _configValues = {};
+  final Map<String, TextEditingController> _configControllers = {};
 
   @override
   void initState() {
@@ -63,20 +43,17 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
 
   @override
   void dispose() {
-    _concurrencyC.dispose();
-    _logRetentionC.dispose();
-    _logMaxSizeC.dispose();
-    _randomDelayC.dispose();
-    _fileSuffixC.dispose();
-    _editorBackgroundColorC.dispose();
-    _proxyUrlC.dispose();
-    _updateImageMirrorC.dispose();
-    _binaryUpdateProxyC.dispose();
+    for (final controller in _configControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
     try {
       final results = await Future.wait([
         DioClient.instance.dio.get(ApiEndpoints.systemVersion),
@@ -101,55 +78,38 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
         runtimeRaw = runtimeResp.data;
       } catch (_) {}
 
-      final configs = configData is Map<String, dynamic>
-          ? configData
-          : <String, dynamic>{};
+      final schemas = parseSystemConfigSchemas(configData);
       if (!mounted) return;
 
-      // Parse task execution configs
-      _concurrencyC.text = _getConfigValueAny(configs, [
-        'max_concurrent_tasks',
-        'max_concurrency',
-      ], '5');
-      _logRetentionC.text = _getConfigValue(configs, 'log_retention_days', '7');
-      _logMaxSizeC.text = _getConfigValueAny(configs, [
-        'max_log_content_size',
-        'log_max_size',
-      ], '102400');
-      _randomDelayC.text = _getConfigValue(configs, 'random_delay', '0');
-      _fileSuffixC.text = _getConfigValueAny(configs, [
-        'random_delay_extensions',
-        'file_suffix',
-      ], 'js py');
-      _editorBackgroundColorC.text = _getConfigValue(
-        configs,
-        'editor_background_color',
-        '',
-      );
-      _autoInstallDeps =
-          _getConfigValue(configs, 'auto_install_deps', 'false') == 'true';
-      _proxyUrlC.text = _getConfigValue(configs, 'proxy_url', '');
-      _updateImageMirrorC.text = _getConfigValue(
-        configs,
-        'update_image_mirror',
-        '',
-      );
-      _binaryUpdateProxyC.text = _getConfigValue(
-        configs,
-        'binary_update_proxy',
-        '',
-      );
+      final values = {for (final schema in schemas) schema.key: schema.effectiveValue};
+      for (final controller in _configControllers.values) {
+        controller.dispose();
+      }
+      _configControllers
+        ..clear()
+        ..addEntries(schemas.where((schema) => !schema.isBool && !schema.isEnum).map(
+          (schema) => MapEntry(schema.key, TextEditingController(text: values[schema.key])),
+        ));
+      _configValues
+        ..clear()
+        ..addAll(values);
 
       setState(() {
         _versionInfo = versionData is Map<String, dynamic> ? versionData : null;
         _panelSettings = panelData is Map<String, dynamic> ? panelData : null;
         _pythonRuntimes = _parsePythonRuntimes(runtimeRaw);
         _pythonDefaultVersion = _parsePythonDefaultVersion(runtimeRaw);
+        _configSchemas = schemas;
+        _initialConfigValues = Map.unmodifiable(values);
         _loading = false;
+        _loadError = null;
       });
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      setState(() => _loading = false);
+      setState(() {
+        _loading = false;
+        _loadError = extractErrorMessage(error, '系统设置加载失败');
+      });
     }
   }
 
@@ -175,32 +135,6 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
       return raw['default_version'].toString();
     }
     return '';
-  }
-
-  String _getConfigValue(
-    Map<String, dynamic> configs,
-    String key,
-    String fallback,
-  ) {
-    final config = configs[key];
-    if (config is Map<String, dynamic>) {
-      return config['value']?.toString() ?? fallback;
-    }
-    return fallback;
-  }
-
-  String _getConfigValueAny(
-    Map<String, dynamic> configs,
-    List<String> keys,
-    String fallback,
-  ) {
-    for (final key in keys) {
-      final value = _getConfigValue(configs, key, '');
-      if (value.trim().isNotEmpty) {
-        return value;
-      }
-    }
-    return fallback;
   }
 
   Future<void> _checkUpdate() async {
@@ -457,92 +391,31 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
     }
   }
 
-  Future<void> _showMirrorOptions({
-    required String title,
-    required List<String> urls,
-    required TextEditingController controller,
-    String? intro,
-  }) async {
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                title,
-                style: Theme.of(
-                  ctx,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              if (intro != null && intro.trim().isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  intro,
-                  style: TextStyle(
-                    fontSize: 12,
-                    height: 1.5,
-                    color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              ...urls.map(
-                (url) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(ctx, url),
-                    style: OutlinedButton.styleFrom(
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                    ),
-                    child: Text(
-                      url,
-                      style: const TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (mounted && selected != null) {
-      setState(() => controller.text = selected);
-    }
-  }
-
   Future<void> _saveTaskConfigs() async {
     setState(() => _savingConfigs = true);
     try {
+      for (final entry in _configControllers.entries) {
+        _configValues[entry.key] = entry.value.text.trim();
+      }
+      final changed = changedSystemConfigValues(
+        _initialConfigValues,
+        _configValues,
+      );
+      if (changed.isEmpty) {
+        if (mounted) {
+          AppGlassNotice.show(
+            context,
+            '配置没有变化',
+            type: AppGlassNoticeType.info,
+          );
+        }
+        return;
+      }
       await DioClient.instance.dio.put(
         ApiEndpoints.configsBatch,
-        data: {
-          'configs': {
-            'max_concurrent_tasks': _concurrencyC.text.trim(),
-            'log_retention_days': _logRetentionC.text.trim(),
-            'max_log_content_size': _logMaxSizeC.text.trim(),
-            'random_delay': _randomDelayC.text.trim(),
-            'random_delay_extensions': _fileSuffixC.text.trim(),
-            'auto_install_deps': _autoInstallDeps ? 'true' : 'false',
-            'editor_background_color': _editorBackgroundColorC.text.trim(),
-            'proxy_url': _proxyUrlC.text.trim(),
-            'update_image_mirror': _updateImageMirrorC.text.trim(),
-            'binary_update_proxy': _binaryUpdateProxyC.text.trim(),
-          },
-        },
+        data: {'configs': changed},
       );
+      _initialConfigValues = Map.unmodifiable(_configValues);
       if (mounted) {
         AppGlassNotice.show(
           context,
@@ -550,25 +423,116 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
           type: AppGlassNoticeType.success,
         );
       }
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
         AppGlassNotice.show(
           context,
-          '保存失败',
+          extractErrorMessage(error, '保存失败'),
           type: AppGlassNoticeType.error,
         );
       }
+      await _load();
+    } finally {
+      if (mounted) {
+        setState(() => _savingConfigs = false);
+      }
     }
-    if (mounted) {
-      setState(() => _savingConfigs = false);
+  }
+
+  List<Widget> _buildConfigSections(bool isLight) {
+    final groups = <String, List<SystemConfigSchema>>{};
+    for (final schema in _configSchemas) {
+      groups.putIfAbsent(schema.group, () => []).add(schema);
     }
+    return [
+      for (final entry in groups.entries) ...[
+        _SectionTitle(entry.key),
+        const SizedBox(height: 8),
+        _Card(
+          isLight: isLight,
+          child: Column(
+            children: [
+              for (var index = 0; index < entry.value.length; index++) ...[
+                _buildConfigControl(entry.value[index], isLight),
+                if (index < entry.value.length - 1) const Divider(height: 24),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
+    ];
+  }
+
+  Widget _buildConfigControl(SystemConfigSchema schema, bool isLight) {
+    final details = <String>[
+      if (schema.description.trim().isNotEmpty) schema.description.trim(),
+      if (schema.defaultValue.isNotEmpty && !schema.isCredential)
+        '默认值：${schema.defaultValue}',
+      if (!schema.registered) '当前配置未注册',
+      if (schema.readonly) '只读',
+    ];
+    Widget control;
+    if (schema.isBool) {
+      final enabled = _configValues[schema.key] == 'true' ||
+          _configValues[schema.key] == '1';
+      control = Row(
+        children: [
+          Expanded(child: _ConfigLabel(schema: schema, details: details)),
+          AppLiquidGlassToggle(
+            value: enabled,
+            onChanged: schema.readonly
+                ? null
+                : (value) => setState(
+                    () => _configValues[schema.key] = value ? 'true' : 'false',
+                  ),
+          ),
+        ],
+      );
+    } else if (schema.isEnum) {
+      final current = _configValues[schema.key] ?? '';
+      final hasCurrent = schema.options.any((option) => option.value == current);
+      control = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _ConfigLabel(schema: schema, details: details),
+          const SizedBox(height: 6),
+          DropdownButtonFormField<String>(
+            initialValue: hasCurrent ? current : null,
+            hint: Text(current.isEmpty ? '请选择' : current),
+            items: schema.options
+                .map((option) => DropdownMenuItem(
+                      value: option.value,
+                      child: Text(option.label),
+                    ))
+                .toList(),
+            onChanged: schema.readonly
+                ? null
+                : (value) {
+                    if (value != null) {
+                      setState(() => _configValues[schema.key] = value);
+                    }
+                  },
+          ),
+        ],
+      );
+    } else {
+      control = _ConfigField(
+        label: schema.label,
+        hint: details.join(' · '),
+        controller: _configControllers[schema.key]!,
+        isLight: isLight,
+        enabled: !schema.readonly,
+        keyboardType: schema.isInt ? TextInputType.number : TextInputType.text,
+        obscureText: schema.isCredential,
+      );
+    }
+    return control;
   }
 
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    
-
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Padding(
@@ -602,6 +566,33 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
                   ? const Center(
                       child: CircularProgressIndicator(
                         color: AppColors.primary,
+                      ),
+                    )
+                  : _loadError != null
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.cloud_off_outlined,
+                              size: 44,
+                              color: AppColors.red500,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _loadError!,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            AppLiquidGlassButton(
+                              label: '重试',
+                              onPressed: _load,
+                              performanceMode: true,
+                            ),
+                          ],
+                        ),
                       ),
                     )
                   : RefreshIndicator(
@@ -847,173 +838,7 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
                             const SizedBox(height: 20),
                           ],
 
-                          // ── 任务运行 ──
-                          _SectionTitle('任务运行'),
-                          const SizedBox(height: 8),
-                          _Card(
-                            isLight: isLight,
-                            child: Column(
-                              children: [
-                                _ConfigField(
-                                  label: '并发数',
-                                  hint: '5',
-                                  controller: _concurrencyC,
-                                  isLight: isLight,
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _ConfigField(
-                                        label: '日志保留(天)',
-                                        hint: '7',
-                                        controller: _logRetentionC,
-                                        isLight: isLight,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: _ConfigField(
-                                        label: '日志上限(字节)',
-                                        hint: '102400',
-                                        controller: _logMaxSizeC,
-                                        isLight: isLight,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _ConfigField(
-                                        label: '随机延迟(秒)',
-                                        hint: '0 不延迟',
-                                        controller: _randomDelayC,
-                                        isLight: isLight,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: _ConfigField(
-                                        label: '延迟文件后缀',
-                                        hint: 'js py',
-                                        controller: _fileSuffixC,
-                                        isLight: isLight,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            '自动安装缺失依赖',
-                                            style: TextStyle(fontSize: 13),
-                                          ),
-                                          Text(
-                                            '运行失败时自动安装',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: isLight
-                                                  ? AppColors.slate500
-                                                  : AppColors.slate400,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    AppLiquidGlassToggle(
-                                      value: _autoInstallDeps,
-                                      onChanged: (v) =>
-                                          setState(() => _autoInstallDeps = v),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // ── 面板外观 ──
-                          _SectionTitle('面板外观'),
-                          const SizedBox(height: 8),
-                          _Card(
-                            isLight: isLight,
-                            child: _ConfigField(
-                              label: '日志背景色',
-                              hint: '#111827 或 rgba(...)，留空默认',
-                              controller: _editorBackgroundColorC,
-                              isLight: isLight,
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // ── 代理设置 ──
-                          _SectionTitle('代理设置'),
-                          const SizedBox(height: 8),
-                          _Card(
-                            isLight: isLight,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _ConfigField(
-                                  label: '代理地址',
-                                  hint: 'http://127.0.0.1:7890，留空不使用代理',
-                                  controller: _proxyUrlC,
-                                  isLight: isLight,
-                                ),
-                                const SizedBox(height: 10),
-                                _InlineHint(
-                                  isLight: isLight,
-                                  text:
-                                      '仅当服务器访问 GitHub、npm、pip、Docker 镜像等外部网络需要代理时填写；留空表示面板直连，不影响局域网访问面板。',
-                                ),
-                                const SizedBox(height: 14),
-                                _MirrorField(
-                                  label: '系统更新镜像源',
-                                  hint: 'https://docker.example.com，留空直连',
-                                  controller: _updateImageMirrorC,
-                                  isLight: isLight,
-                                  onPick: () => _showMirrorOptions(
-                                    title: '系统更新镜像源',
-                                    urls: _dockerMirrorOptions,
-                                    controller: _updateImageMirrorC,
-                                    intro:
-                                        'Docker 部署更新使用。也可以到 https://status.anye.xyz/ 查看更多镜像源状态后手动填写。',
-                                  ),
-                                  onClear: () => setState(
-                                    () => _updateImageMirrorC.clear(),
-                                  ),
-                                ),
-                                const SizedBox(height: 14),
-                                _MirrorField(
-                                  label: '二进制更新加速源',
-                                  hint:
-                                      'https://gh-proxy.example.com/，留空直连 GitHub',
-                                  controller: _binaryUpdateProxyC,
-                                  isLight: isLight,
-                                  onPick: () => _showMirrorOptions(
-                                    title: '二进制更新加速源',
-                                    urls: _binaryProxyOptions,
-                                    controller: _binaryUpdateProxyC,
-                                    intro:
-                                        '二进制部署更新使用，用于加速 GitHub Release 更新包下载。',
-                                  ),
-                                  onClear: () => setState(
-                                    () => _binaryUpdateProxyC.clear(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                          ..._buildConfigSections(isLight),
 
                           const SizedBox(height: 16),
                           SizedBox(
@@ -1095,48 +920,10 @@ class _Card extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    
     return AppCard(
       stableForScrolling: true,
       padding: const EdgeInsets.all(16),
       child: child,
-    );
-  }
-}
-
-class _InlineHint extends StatelessWidget {
-  final bool isLight;
-  final String text;
-
-  const _InlineHint({required this.isLight, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.blue500.withAlpha(12),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.blue500.withAlpha(30)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.info_outline, size: 16, color: AppColors.blue500),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 12,
-                height: 1.5,
-                color: isLight ? AppColors.slate600 : AppColors.slate300,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -1173,12 +960,18 @@ class _ConfigField extends StatelessWidget {
   final String hint;
   final TextEditingController controller;
   final bool isLight;
+  final bool enabled;
+  final TextInputType keyboardType;
+  final bool obscureText;
 
   const _ConfigField({
     required this.label,
     required this.hint,
     required this.controller,
     required this.isLight,
+    this.enabled = true,
+    this.keyboardType = TextInputType.text,
+    this.obscureText = false,
   });
 
   @override
@@ -1193,6 +986,7 @@ class _ConfigField extends StatelessWidget {
         const SizedBox(height: 6),
         TextField(
           controller: controller,
+          enabled: enabled,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(
@@ -1207,7 +1001,10 @@ class _ConfigField extends StatelessWidget {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
           style: const TextStyle(fontSize: 13),
-          keyboardType: TextInputType.text,
+          keyboardType: keyboardType,
+          obscureText: obscureText,
+          enableSuggestions: !obscureText,
+          autocorrect: !obscureText,
         ),
         const SizedBox(height: 2),
         Text(
@@ -1222,63 +1019,32 @@ class _ConfigField extends StatelessWidget {
   }
 }
 
-class _MirrorField extends StatelessWidget {
-  final String label;
-  final String hint;
-  final TextEditingController controller;
-  final bool isLight;
-  final VoidCallback onPick;
-  final VoidCallback onClear;
+class _ConfigLabel extends StatelessWidget {
+  final SystemConfigSchema schema;
+  final List<String> details;
 
-  const _MirrorField({
-    required this.label,
-    required this.hint,
-    required this.controller,
-    required this.isLight,
-    required this.onPick,
-    required this.onClear,
-  });
+  const _ConfigLabel({required this.schema, required this.details});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            TextButton(onPressed: onPick, child: const Text('配置')),
-            if (controller.text.trim().isNotEmpty)
-              TextButton(onPressed: onClear, child: const Text('清空')),
-          ],
+        Text(
+          schema.label,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
         ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(
-              fontSize: 11,
-              color: isLight ? AppColors.slate400 : AppColors.slate500,
+        if (details.isNotEmpty) ...[
+          const SizedBox(height: 3),
+          Text(
+            details.join(' · '),
+            style: TextStyle(
+              fontSize: 10,
+              height: 1.4,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 10,
-            ),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
-          style: const TextStyle(fontSize: 13),
-          keyboardType: TextInputType.url,
-        ),
+        ],
       ],
     );
   }
@@ -1303,50 +1069,49 @@ class _ActionBtn extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    
     return AppLiquidGlassSurface(
       onTap: onTap,
       borderRadius: 12,
       performanceMode: true,
       accentColor: danger ? AppColors.red500 : AppColors.primary,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: danger ? AppColors.red500 : AppColors.primary,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: danger ? AppColors.red500 : null,
-                    ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 20,
+            color: danger ? AppColors.red500 : AppColors.primary,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: danger ? AppColors.red500 : null,
                   ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isLight ? AppColors.slate500 : AppColors.slate400,
-                    ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isLight ? AppColors.slate500 : AppColors.slate400,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            Icon(
-              Icons.chevron_right,
-              size: 18,
-              color: isLight ? AppColors.slate400 : AppColors.slate600,
-            ),
-          ],
-        ),
+          ),
+          Icon(
+            Icons.chevron_right,
+            size: 18,
+            color: isLight ? AppColors.slate400 : AppColors.slate600,
+          ),
+        ],
+      ),
     );
   }
 }

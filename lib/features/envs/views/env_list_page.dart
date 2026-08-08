@@ -10,6 +10,7 @@ import '../../../core/network/api_endpoints.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/env_var.dart';
 import '../../../shared/utils/api_utils.dart';
+import '../../../shared/utils/import_payloads.dart';
 import '../../../shared/widgets/app_card.dart';
 
 final envListProvider = StateNotifierProvider<EnvListNotifier, EnvListState>((
@@ -23,6 +24,8 @@ const _selectedGroupUnset = Object();
 enum _EnvBatchAction { enable, disable, delete }
 
 enum _EnvTransferAction { exportAll, importEnvs }
+
+enum _EnvImportMode { merge, replace }
 
 class EnvListState {
   final List<EnvVar> envs;
@@ -425,24 +428,42 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
       return;
     }
 
-    final file = result.files.first;
-    final multipart = await _toMultipartFile(file);
-    if (multipart == null) {
-      _showMessage('无法读取所选环境变量文件');
-      return;
-    }
-
     setState(() => _transferBusy = true);
     try {
-      final formData = FormData();
-      formData.files.add(MapEntry('file', multipart));
+      final bytes = await readPlatformFileBytes(
+        result.files.first,
+        maxBytes: maxEnvImportBytes,
+      );
+      final envs = parseEnvImportPayload(bytes);
+      if (!mounted) return;
+      final mode = await _showEnvImportModeDialog(envs.length);
+      if (mode == null || !mounted) return;
+      if (mode == _EnvImportMode.replace) {
+        final confirmed = await _confirmReplaceEnvImport(envs.length);
+        if (!confirmed || !mounted) return;
+      }
+
       await DioClient.instance.dio.post(
         ApiEndpoints.envsImport,
-        data: formData,
-        options: Options(contentType: 'multipart/form-data'),
+        data: {
+          'envs': envs,
+          'mode': mode.name,
+        },
       );
       await ref.read(envListProvider.notifier).load();
-      _showMessage('环境变量导入成功');
+      if (!mounted) return;
+      AppGlassNotice.show(
+        context,
+        '已${mode == _EnvImportMode.merge ? '合并' : '替换'}导入 ${envs.length} 个环境变量',
+        type: AppGlassNoticeType.success,
+      );
+    } on ImportPayloadException catch (error) {
+      if (!mounted) return;
+      AppGlassNotice.show(
+        context,
+        error.message,
+        type: AppGlassNoticeType.warning,
+      );
     } catch (error) {
       _showMessage(extractErrorMessage(error, '导入环境变量失败'));
     } finally {
@@ -452,21 +473,88 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
     }
   }
 
-  Future<MultipartFile?> _toMultipartFile(PlatformFile file) async {
-    if (file.path != null && file.path!.isNotEmpty) {
-      return MultipartFile.fromFile(file.path!, filename: file.name);
-    }
-    if (file.readStream != null) {
-      return MultipartFile.fromStream(
-        () => file.readStream!,
-        file.size,
-        filename: file.name,
-      );
-    }
-    if (file.bytes != null) {
-      return MultipartFile.fromBytes(file.bytes!, filename: file.name);
-    }
-    return null;
+  Future<_EnvImportMode?> _showEnvImportModeDialog(int count) async {
+    var mode = _EnvImportMode.merge;
+    return showDialog<_EnvImportMode>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('导入环境变量'),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('文件包含 $count 个环境变量，请选择导入方式。'),
+                const SizedBox(height: 12),
+                RadioListTile<_EnvImportMode>(
+                  value: _EnvImportMode.merge,
+                  groupValue: mode,
+                  title: const Text('合并'),
+                  subtitle: const Text('保留现有变量，并导入文件内容'),
+                  onChanged: (value) {
+                    if (value != null) setDialogState(() => mode = value);
+                  },
+                ),
+                RadioListTile<_EnvImportMode>(
+                  value: _EnvImportMode.replace,
+                  groupValue: mode,
+                  title: const Text('替换'),
+                  subtitle: const Text('使用文件内容替换当前全部环境变量'),
+                  onChanged: (value) {
+                    if (value != null) setDialogState(() => mode = value);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            AppLiquidGlassDialogActions(
+              actions: [
+                AppGlassDialogAction(
+                  label: '取消',
+                  onPressed: () => Navigator.pop(dialogContext),
+                ),
+                AppGlassDialogAction(
+                  label: '继续',
+                  variant: AppLiquidGlassButtonVariant.primary,
+                  onPressed: () => Navigator.pop(dialogContext, mode),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _confirmReplaceEnvImport(int count) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('确认替换全部变量'),
+        content: Text(
+          '当前全部环境变量将由文件中的 $count 个变量替换。此操作可能影响任务运行，请确认已完成必要备份。',
+        ),
+        actions: [
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(dialogContext, false),
+              ),
+              AppGlassDialogAction(
+                label: '确认替换',
+                variant: AppLiquidGlassButtonVariant.danger,
+                onPressed: () => Navigator.pop(dialogContext, true),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
   }
 
   Uint8List? _extractBytes(dynamic data) {

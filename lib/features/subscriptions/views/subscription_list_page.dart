@@ -15,6 +15,25 @@ import '../../../shared/utils/log_background.dart';
 import '../../../shared/utils/time_utils.dart';
 import '../../../shared/widgets/app_card.dart';
 
+String? validateSubscriptionAuth({
+  required String subscriptionType,
+  required String authType,
+  required int? sshKeyId,
+  required String authToken,
+  bool hasExistingToken = false,
+}) {
+  if (subscriptionType != 'git-repo') return null;
+  if (authType == 'ssh' && (sshKeyId == null || sshKeyId <= 0)) {
+    return '请选择 SSH 密钥';
+  }
+  if (authType == 'token' &&
+      authToken.trim().isEmpty &&
+      !hasExistingToken) {
+    return '请填写访问 Token';
+  }
+  return null;
+}
+
 // ── Provider ──
 
 final subscriptionListProvider =
@@ -463,7 +482,10 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
     final blacklistC = TextEditingController();
     final dependOnC = TextEditingController();
     final hookScriptC = TextEditingController();
+    final authUsernameC = TextEditingController();
+    final authTokenC = TextEditingController();
     String selectedType = 'git-repo';
+    String selectedAuthType = '';
     bool forceOverwrite = true;
     int? selectedSshKeyId;
     List<Map<String, dynamic>> sshKeys = [];
@@ -474,10 +496,29 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
       if (data is List) {
         sshKeys = data.whereType<Map<String, dynamic>>().toList();
       }
-      } catch (_) {}
-      if (!mounted) return;
+    } catch (_) {}
+    if (!mounted) {
+      for (final controller in [
+        nameC,
+        urlC,
+        branchC,
+        subPathC,
+        scheduleC,
+        saveDirC,
+        aliasC,
+        whitelistC,
+        blacklistC,
+        dependOnC,
+        hookScriptC,
+        authUsernameC,
+        authTokenC,
+      ]) {
+        controller.dispose();
+      }
+      return;
+    }
 
-      showModalBottomSheet(
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -542,29 +583,90 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                               ],
                             ),
                             const SizedBox(height: 12),
-                            if (selectedType == 'git-repo' && sshKeys.isNotEmpty) ...[
-                              DropdownButtonFormField<int?>(
-                                initialValue: selectedSshKeyId,
-                                decoration: const InputDecoration(
-                                  labelText: 'SSH 密钥 (可选)',
-                                ),
-                                isExpanded: true,
-                                items: [
-                                  const DropdownMenuItem<int?>(
-                                    value: null,
-                                    child: Text('不使用 SSH 密钥'),
+                            if (selectedType == 'git-repo') ...[
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  const Text(
+                                    '鉴权方式',
+                                    style: TextStyle(fontSize: 13),
                                   ),
-                                  ...sshKeys.map((k) => DropdownMenuItem<int?>(
-                                    value: (k['id'] as num?)?.toInt(),
-                                    child: Text(
-                                      k['name']?.toString() ?? '',
-                                      overflow: TextOverflow.ellipsis,
+                                  ...['', 'ssh', 'token'].map(
+                                    (authType) => AppLiquidGlassChoiceChip(
+                                      label: switch (authType) {
+                                        'ssh' => 'SSH',
+                                        'token' => 'Token',
+                                        _ => '无',
+                                      },
+                                      selected: selectedAuthType == authType,
+                                      onSelected: (_) => setSheetState(
+                                        () => selectedAuthType = authType,
+                                      ),
                                     ),
-                                  )),
+                                  ),
                                 ],
-                                onChanged: (v) =>
-                                    setSheetState(() => selectedSshKeyId = v),
                               ),
+                              const SizedBox(height: 12),
+                              if (selectedAuthType == 'ssh' &&
+                                  sshKeys.isNotEmpty)
+                                DropdownButtonFormField<int?>(
+                                  initialValue: selectedSshKeyId,
+                                  decoration: const InputDecoration(
+                                    labelText: 'SSH 密钥',
+                                  ),
+                                  isExpanded: true,
+                                  items: [
+                                    const DropdownMenuItem<int?>(
+                                      value: null,
+                                      child: Text('不使用 SSH 密钥'),
+                                    ),
+                                    if (selectedSshKeyId != null &&
+                                        sshKeys.every(
+                                          (key) =>
+                                              (key['id'] as num?)?.toInt() !=
+                                              selectedSshKeyId,
+                                        ))
+                                      DropdownMenuItem<int?>(
+                                        value: selectedSshKeyId,
+                                        child: Text(
+                                          '当前密钥 #$selectedSshKeyId（不可用）',
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ...sshKeys.map(
+                                      (k) => DropdownMenuItem<int?>(
+                                        value: (k['id'] as num?)?.toInt(),
+                                        child: Text(
+                                          k['name']?.toString() ?? '',
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (v) => setSheetState(
+                                    () => selectedSshKeyId = v,
+                                  ),
+                                ),
+                              if (selectedAuthType == 'token') ...[
+                                TextField(
+                                  controller: authUsernameC,
+                                  decoration: const InputDecoration(
+                                    labelText: '鉴权用户名',
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                TextField(
+                                  controller: authTokenC,
+                                  obscureText: true,
+                                  enableSuggestions: false,
+                                  autocorrect: false,
+                                  decoration: const InputDecoration(
+                                    labelText: '访问 Token',
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 12),
                             ],
                             TextField(
@@ -708,6 +810,24 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                               performanceMode: true,
                               onPressed: () async {
                                 if (nameC.text.trim().isEmpty) return;
+                                final effectiveAuthType =
+                                    selectedType == 'git-repo'
+                                    ? selectedAuthType
+                                    : '';
+                                final authError = validateSubscriptionAuth(
+                                  subscriptionType: selectedType,
+                                  authType: effectiveAuthType,
+                                  sshKeyId: selectedSshKeyId,
+                                  authToken: authTokenC.text,
+                                );
+                                if (authError != null) {
+                                  AppGlassNotice.show(
+                                    this.context,
+                                    authError,
+                                    type: AppGlassNoticeType.warning,
+                                  );
+                                  return;
+                                }
                                 try {
                                   await ref
                                       .read(subscriptionListProvider.notifier)
@@ -725,17 +845,27 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                                         'depend_on': dependOnC.text.trim(),
                                         'hook_script': hookScriptC.text.trim(),
                                         'force_overwrite': forceOverwrite,
-                                        'ssh_key_id': selectedSshKeyId,
+                                        'ssh_key_id': effectiveAuthType == 'ssh'
+                                            ? selectedSshKeyId
+                                            : null,
+                                        'auth_type': effectiveAuthType,
+                                        'auth_username':
+                                            effectiveAuthType == 'token'
+                                            ? authUsernameC.text.trim()
+                                            : '',
+                                        'auth_token': effectiveAuthType == 'token'
+                                            ? authTokenC.text.trim()
+                                            : '',
                                       });
-                                    if (!mounted) {
-                                      return;
-                                    }
-                                    navigator.pop();
-                                    AppGlassNotice.show(
-                                      this.context,
-                                      '订阅已创建',
-                                      type: AppGlassNoticeType.success,
-                                    );
+                                  if (!mounted) {
+                                    return;
+                                  }
+                                  navigator.pop();
+                                  AppGlassNotice.show(
+                                    this.context,
+                                    '订阅已创建',
+                                    type: AppGlassNoticeType.success,
+                                  );
                                 } catch (error) {
                                   if (!mounted) {
                                     return;
@@ -774,6 +904,23 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
         );
       },
     );
+    for (final controller in [
+      nameC,
+      urlC,
+      branchC,
+      subPathC,
+      scheduleC,
+      saveDirC,
+      aliasC,
+      whitelistC,
+      blacklistC,
+      dependOnC,
+      hookScriptC,
+      authUsernameC,
+      authTokenC,
+    ]) {
+      controller.dispose();
+    }
   }
 
   void _showEditDialog(Subscription sub) async {
@@ -788,7 +935,12 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
     final blacklistC = TextEditingController(text: sub.blacklist);
     final dependOnC = TextEditingController(text: sub.dependOn);
     final hookScriptC = TextEditingController(text: sub.hookScript);
+    final authUsernameC = TextEditingController(text: sub.authUsername);
+    final authTokenC = TextEditingController();
     String selectedType = sub.normalizedType;
+    String selectedAuthType = const {'ssh', 'token'}.contains(sub.authType)
+        ? sub.authType
+        : '';
     bool forceOverwrite = sub.forceOverwrite ?? true;
     int? selectedSshKeyId = sub.sshKeyId;
     List<Map<String, dynamic>> sshKeys = [];
@@ -799,10 +951,29 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
       if (data is List) {
         sshKeys = data.whereType<Map<String, dynamic>>().toList();
       }
-      } catch (_) {}
-      if (!mounted) return;
+    } catch (_) {}
+    if (!mounted) {
+      for (final controller in [
+        nameC,
+        urlC,
+        branchC,
+        subPathC,
+        scheduleC,
+        saveDirC,
+        aliasC,
+        whitelistC,
+        blacklistC,
+        dependOnC,
+        hookScriptC,
+        authUsernameC,
+        authTokenC,
+      ]) {
+        controller.dispose();
+      }
+      return;
+    }
 
-      showModalBottomSheet(
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -867,29 +1038,93 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                               ],
                             ),
                             const SizedBox(height: 12),
-                            if (selectedType == 'git-repo' && sshKeys.isNotEmpty) ...[
-                              DropdownButtonFormField<int?>(
-                                initialValue: selectedSshKeyId,
-                                decoration: const InputDecoration(
-                                  labelText: 'SSH 密钥 (可选)',
-                                ),
-                                isExpanded: true,
-                                items: [
-                                  const DropdownMenuItem<int?>(
-                                    value: null,
-                                    child: Text('不使用 SSH 密钥'),
+                            if (selectedType == 'git-repo') ...[
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  const Text(
+                                    '鉴权方式',
+                                    style: TextStyle(fontSize: 13),
                                   ),
-                                  ...sshKeys.map((k) => DropdownMenuItem<int?>(
-                                    value: (k['id'] as num?)?.toInt(),
-                                    child: Text(
-                                      k['name']?.toString() ?? '',
-                                      overflow: TextOverflow.ellipsis,
+                                  ...['', 'ssh', 'token'].map(
+                                    (authType) => AppLiquidGlassChoiceChip(
+                                      label: switch (authType) {
+                                        'ssh' => 'SSH',
+                                        'token' => 'Token',
+                                        _ => '无',
+                                      },
+                                      selected: selectedAuthType == authType,
+                                      onSelected: (_) => setSheetState(
+                                        () => selectedAuthType = authType,
+                                      ),
                                     ),
-                                  )),
+                                  ),
                                 ],
-                                onChanged: (v) =>
-                                    setSheetState(() => selectedSshKeyId = v),
                               ),
+                              const SizedBox(height: 12),
+                              if (selectedAuthType == 'ssh' &&
+                                  sshKeys.isNotEmpty)
+                                DropdownButtonFormField<int?>(
+                                  initialValue: selectedSshKeyId,
+                                  decoration: const InputDecoration(
+                                    labelText: 'SSH 密钥',
+                                  ),
+                                  isExpanded: true,
+                                  items: [
+                                    const DropdownMenuItem<int?>(
+                                      value: null,
+                                      child: Text('不使用 SSH 密钥'),
+                                    ),
+                                    if (selectedSshKeyId != null &&
+                                        sshKeys.every(
+                                          (key) =>
+                                              (key['id'] as num?)?.toInt() !=
+                                              selectedSshKeyId,
+                                        ))
+                                      DropdownMenuItem<int?>(
+                                        value: selectedSshKeyId,
+                                        child: Text(
+                                          '当前密钥 #$selectedSshKeyId（不可用）',
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ...sshKeys.map(
+                                      (k) => DropdownMenuItem<int?>(
+                                        value: (k['id'] as num?)?.toInt(),
+                                        child: Text(
+                                          k['name']?.toString() ?? '',
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (v) => setSheetState(
+                                    () => selectedSshKeyId = v,
+                                  ),
+                                ),
+                              if (selectedAuthType == 'token') ...[
+                                TextField(
+                                  controller: authUsernameC,
+                                  decoration: const InputDecoration(
+                                    labelText: '鉴权用户名',
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                TextField(
+                                  controller: authTokenC,
+                                  obscureText: true,
+                                  enableSuggestions: false,
+                                  autocorrect: false,
+                                  decoration: InputDecoration(
+                                    labelText: '访问 Token',
+                                    hintText: sub.hasAuthToken
+                                        ? '已配置，留空保留原 Token'
+                                        : '输入访问 Token',
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 12),
                             ],
                             TextField(
@@ -1041,34 +1276,68 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                               height: 44,
                               performanceMode: true,
                               onPressed: () async {
+                                final effectiveAuthType =
+                                    selectedType == 'git-repo'
+                                    ? selectedAuthType
+                                    : '';
+                                final authError = validateSubscriptionAuth(
+                                  subscriptionType: selectedType,
+                                  authType: effectiveAuthType,
+                                  sshKeyId: selectedSshKeyId,
+                                  authToken: authTokenC.text,
+                                  hasExistingToken:
+                                      effectiveAuthType == 'token' &&
+                                      sub.hasAuthToken,
+                                );
+                                if (authError != null) {
+                                  AppGlassNotice.show(
+                                    this.context,
+                                    authError,
+                                    type: AppGlassNoticeType.warning,
+                                  );
+                                  return;
+                                }
                                 try {
+                                  final data = <String, dynamic>{
+                                    'name': nameC.text.trim(),
+                                    'type': selectedType,
+                                    'url': urlC.text.trim(),
+                                    'branch': branchC.text.trim(),
+                                    'sub_path': subPathC.text.trim(),
+                                    'schedule': scheduleC.text.trim(),
+                                    'save_dir': saveDirC.text.trim(),
+                                    'alias': aliasC.text.trim(),
+                                    'whitelist': whitelistC.text.trim(),
+                                    'blacklist': blacklistC.text.trim(),
+                                    'depend_on': dependOnC.text.trim(),
+                                    'hook_script': hookScriptC.text.trim(),
+                                    'force_overwrite': forceOverwrite,
+                                    'ssh_key_id': effectiveAuthType == 'ssh'
+                                        ? selectedSshKeyId
+                                        : null,
+                                    'auth_type': effectiveAuthType,
+                                    'auth_username':
+                                        effectiveAuthType == 'token'
+                                        ? authUsernameC.text.trim()
+                                        : '',
+                                  };
+                                  final authToken = authTokenC.text.trim();
+                                  if (effectiveAuthType == 'token' &&
+                                      authToken.isNotEmpty) {
+                                    data['auth_token'] = authToken;
+                                  }
                                   await ref
                                       .read(subscriptionListProvider.notifier)
-                                      .update(sub.id, {
-                                        'name': nameC.text.trim(),
-                                        'type': selectedType,
-                                        'url': urlC.text.trim(),
-                                        'branch': branchC.text.trim(),
-                                        'sub_path': subPathC.text.trim(),
-                                        'schedule': scheduleC.text.trim(),
-                                        'save_dir': saveDirC.text.trim(),
-                                        'alias': aliasC.text.trim(),
-                                        'whitelist': whitelistC.text.trim(),
-                                        'blacklist': blacklistC.text.trim(),
-                                        'depend_on': dependOnC.text.trim(),
-                                        'hook_script': hookScriptC.text.trim(),
-                                        'force_overwrite': forceOverwrite,
-                                        'ssh_key_id': selectedSshKeyId,
-                                      });
-                                    if (!mounted) {
-                                      return;
-                                    }
-                                    navigator.pop();
-                                    AppGlassNotice.show(
-                                      this.context,
-                                      '订阅已保存',
-                                      type: AppGlassNoticeType.success,
-                                    );
+                                      .update(sub.id, data);
+                                  if (!mounted) {
+                                    return;
+                                  }
+                                  navigator.pop();
+                                  AppGlassNotice.show(
+                                    this.context,
+                                    '订阅已保存',
+                                    type: AppGlassNoticeType.success,
+                                  );
                                 } catch (error) {
                                   if (!mounted) {
                                     return;
@@ -1096,6 +1365,23 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
         );
       },
     );
+    for (final controller in [
+      nameC,
+      urlC,
+      branchC,
+      subPathC,
+      scheduleC,
+      saveDirC,
+      aliasC,
+      whitelistC,
+      blacklistC,
+      dependOnC,
+      hookScriptC,
+      authUsernameC,
+      authTokenC,
+    ]) {
+      controller.dispose();
+    }
   }
 }
 

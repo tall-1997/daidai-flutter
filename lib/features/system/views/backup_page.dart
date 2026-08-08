@@ -56,6 +56,7 @@ class _BackupFileRecord {
 class _BackupSelection {
   final bool configs;
   final bool tasks;
+  final bool taskViews;
   final bool subscriptions;
   final bool envVars;
   final bool logs;
@@ -65,6 +66,7 @@ class _BackupSelection {
   const _BackupSelection({
     required this.configs,
     required this.tasks,
+    required this.taskViews,
     required this.subscriptions,
     required this.envVars,
     required this.logs,
@@ -75,6 +77,7 @@ class _BackupSelection {
   const _BackupSelection.defaults()
     : configs = true,
       tasks = true,
+      taskViews = true,
       subscriptions = true,
       envVars = true,
       logs = true,
@@ -84,6 +87,7 @@ class _BackupSelection {
   bool get any =>
       configs ||
       tasks ||
+      taskViews ||
       subscriptions ||
       envVars ||
       logs ||
@@ -93,6 +97,7 @@ class _BackupSelection {
   _BackupSelection copyWith({
     bool? configs,
     bool? tasks,
+    bool? taskViews,
     bool? subscriptions,
     bool? envVars,
     bool? logs,
@@ -102,6 +107,7 @@ class _BackupSelection {
     return _BackupSelection(
       configs: configs ?? this.configs,
       tasks: tasks ?? this.tasks,
+      taskViews: taskViews ?? this.taskViews,
       subscriptions: subscriptions ?? this.subscriptions,
       envVars: envVars ?? this.envVars,
       logs: logs ?? this.logs,
@@ -114,6 +120,7 @@ class _BackupSelection {
     return _BackupSelection(
       configs: json['configs'] != false,
       tasks: json['tasks'] != false,
+      taskViews: json['task_views'] != false,
       subscriptions: json['subscriptions'] != false,
       envVars: json['env_vars'] != false,
       logs: json['logs'] != false,
@@ -125,6 +132,7 @@ class _BackupSelection {
   Map<String, dynamic> toJson() => {
     'configs': configs,
     'tasks': tasks,
+    'task_views': taskViews,
     'subscriptions': subscriptions,
     'env_vars': envVars,
     'logs': logs,
@@ -139,6 +147,9 @@ class _BackupSelection {
     }
     if (tasks) {
       result.add('定时任务');
+    }
+    if (taskViews) {
+      result.add('任务视图');
     }
     if (subscriptions) {
       result.add('订阅管理');
@@ -228,6 +239,11 @@ class _BackupSelectionOption {
 const _backupSelectionOptions = [
   _BackupSelectionOption('configs', '配置项', '系统设置、Open API、通知渠道与安全配置'),
   _BackupSelectionOption('tasks', '定时任务', '任务定义、标签、执行参数与依赖关系'),
+  _BackupSelectionOption(
+    'task_views',
+    '任务视图',
+    '任务视图名称、过滤规则、排序与隐藏状态',
+  ),
   _BackupSelectionOption('subscriptions', '订阅管理', '订阅配置与 SSH 密钥'),
   _BackupSelectionOption('env_vars', '环境变量', '面板环境变量与分组信息'),
   _BackupSelectionOption('logs', '日志文件', '任务日志记录、日志目录与面板运行日志'),
@@ -865,6 +881,8 @@ class _BackupPageState extends ConsumerState<BackupPage> {
         return selection.configs;
       case 'tasks':
         return selection.tasks;
+      case 'task_views':
+        return selection.taskViews;
       case 'subscriptions':
         return selection.subscriptions;
       case 'env_vars':
@@ -890,6 +908,8 @@ class _BackupPageState extends ConsumerState<BackupPage> {
         return selection.copyWith(configs: value);
       case 'tasks':
         return selection.copyWith(tasks: value);
+      case 'task_views':
+        return selection.copyWith(taskViews: value);
       case 'subscriptions':
         return selection.copyWith(subscriptions: value);
       case 'env_vars':

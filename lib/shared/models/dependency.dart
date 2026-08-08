@@ -43,8 +43,10 @@ class Dependency {
         return '失败';
       case 'cancelled':
         return '已取消';
-      default:
+      case 'installed':
         return '已安装';
+      default:
+        return '未知状态($status)';
     }
   }
 

@@ -92,9 +92,12 @@ class TaskNotifier extends StateNotifier<TaskListState> {
       final total = paginated.total;
 
       state = state.copyWith(tasks: items, total: total, loading: false);
-    } catch (e) {
+    } catch (error) {
       if (requestId != _loadRequestId) return;
-      state = state.copyWith(loading: false, error: '加载失败');
+      state = state.copyWith(
+        loading: false,
+        error: extractErrorMessage(error, '任务加载失败'),
+      );
     }
   }
 
