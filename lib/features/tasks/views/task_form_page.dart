@@ -244,7 +244,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
     try {
       final response = await DioClient.instance.dio.get(
         ApiEndpoints.tasks,
-        queryParameters: {'page': 1, 'page_size': 200},
+        queryParameters: {'all': 1},
       );
       final paginated = extractPaginated(response.data);
       final groups =

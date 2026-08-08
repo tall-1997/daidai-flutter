@@ -1,176 +1,167 @@
-# 上游功能与问题候选清单
+# 上游功能与 Bug 审计
 
-本文档用于对比当前 Flutter 客户端、上游 `Dumb-Panel-APP` 和后端 `daidai-panel` 的公开能力，列出可增加功能与待修复问题，供后续决策。
+本文档对比当前 Flutter 客户端、上游 `Dumb-Panel-APP` 和后端 `daidai-panel`，记录已确认的功能差异、API 适配状态与缺陷。
 
-## 分析范围
+## 分析基线
 
-- 当前项目：`tall-1997/daidai-flutter`
-- 原始 Flutter 客户端：`Dumb-Panel-APP`，仓库地址 `https://github.com/linzixuanzz/Dumb-Panel-APP`
-- 后端服务：`daidai-panel`，仓库地址 `https://github.com/linzixuanzz/daidai-panel`
-- 当前客户端版本：`v0.1.8`
-- 后端 README 最新稳定版：`v2.3.9`
-- 原始 APP README 版本：`v1.2.3`，适配面板 `v2.3.0`
+| 项目 | 版本 | Commit |
+| --- | --- | --- |
+| 当前客户端 `tall-1997/daidai-flutter` | `0.1.56+56` | `92355e70de69af43fb9499b3bbd98bb7bbf9ba65` |
+| 上游客户端 `linzixuanzz/Dumb-Panel-APP` | `1.2.6+19` | `03b9ef655d8b80393c7faa865099d63cd35562a4` |
+| 后端 `linzixuanzz/daidai-panel` | `v3.0.0` | `28636ea58da134ad6e1e440cb937726336700cdc` |
 
-## 上游能力摘要
+审计日期：2026-08-08。
 
-### Dumb-Panel-APP
+当前环境没有 Flutter/Dart SDK，结论来自源码和接口契约静态复核，尚未执行 `flutter analyze`、`flutter test` 或真机联调。
 
-- 定位：呆呆面板 Flutter 客户端，用于移动端管理面板、任务、脚本、环境变量、订阅、依赖、通知、安全设置与备份恢复。
-- 公开描述：The Daimian Panel Android app provides quick, easy control of your devices on the go.
-- README 重点：修复系统管理区域重复入口、优化 NAS/Nginx Proxy Manager/公网域名反代登录错误提示、登录 4xx 优先显示明确失败原因。
-- 可参考点：错误提示、登录失败处理、系统管理入口整理。
+## 后端 v3.0.0 适配状态
 
-### daidai-panel
+### 已适配
 
-- 定位：Go + Vue3 + SQLite 的轻量级定时任务管理面板。
-- 核心能力：定时任务、脚本管理、执行日志、环境变量、订阅管理、依赖管理、18 种通知渠道、Open API、系统安全、数据备份、系统监控。
-- 后端扩展能力：Docker 多架构、Windows 单机版、Android Magisk 模块、`ddp` 运维 CLI、多 Python 版本运行时、Watchtower 更新链路。
-- 可参考点：后端已经具备的 API 能力与部署/运维能力，可逐步映射到移动端入口。
+- API 前缀：后端同时注册 `/api` 和 `/api/v1`，当前客户端继续使用多数 `/api` 路径可兼容。
+- 任务全量查询：任务列表使用 `all=1`，后端安全上限为 5000 条，见 `lib/features/tasks/providers/task_provider.dart:67-94`。
+- 任务排队状态：客户端将状态 `0.5` 映射为“排队中”，见 `lib/shared/models/task.dart:70-79`。
+- Refresh Token：客户端从 `Authorization` 头发送 Refresh Token，并支持轮换及并发刷新协调。
+- SSE 基础能力：通用客户端支持 Bearer Token、401 刷新、CRLF、多行 `data` 聚合和断线重连。
+- 会话数据：后端为会话和登录日志返回 `client_type`、`client_type_label`、`client_name`，当前页面可继续展示现有字段。
+- 分页响应：客户端公共解析器支持后端的 `data`、`total`、`page`、`page_size` 包装。
 
-## 当前客户端已覆盖能力
+### 本轮已补齐功能
 
-- 登录与认证：服务器地址配置、初始化检测、用户名密码登录、TOTP、极验验证码、本地可信会话、自动登录。
-- 主导航：仪表盘、任务、日志、环境变量、更多，GoRouter 认证守卫。
-- 仪表盘：系统信息、资源使用、任务统计、最近日志、趋势、面板标题/版本、App 更新检测。
-- 定时任务：列表、搜索筛选、运行/停止、启停、删除、批量操作、置顶、复制、创建编辑、通知绑定、实时日志。
-- 日志：列表、分页、搜索筛选、单条/批量删除、清理、SSE 实时日志。
-- 脚本：文件树、读写、创建、上传、重命名、移动、复制、删除、版本列表、回滚。
-- 环境变量：列表、分组、搜索、启停、删除、批量、创建更新、排序。
-- 依赖：pip/npm、Python runtime、安装、删除、批量删除、重装、取消、状态、镜像配置、流式日志。
-- 订阅：列表、启停、拉取、停止拉取、删除、创建更新、SSH Key、拉取流、订阅日志。
-- 通知：后端通知渠道管理、本地通知权限/测试。
-- 安全：登录日志、会话、IP 白名单、2FA、登录统计、审计日志。
-- Open API：应用列表、创建、启停、重置密钥、删除、查看密钥、调用日志。
-- 系统：配置、更新检查、面板日志、备份列表、创建、上传、下载、恢复、恢复进度。
-- App 体验：应用锁、主题、背景图片、Liquid Glass UI。
+1. 原始日志票据下载
+   - 后端新增 `GET /logs/:id/raw-ticket` 和 `GET /tasks/:id/log-files/:filename/raw-ticket`，签发两分钟有效的资源绑定票据。
+   - 客户端已增加票据模型、接口端点和流式文件下载服务。
+   - 执行日志和任务日志文件页面已提供原始字节下载入口，文件保存到应用文档目录下的 `downloads`。
 
-## 建议优先增加的功能
+2. 会话客户端分类展示
+   - 后端已返回 `client_type_label` 和 `client_name`。
+   - 会话页已显示客户端类型标签、客户端名称和稳定类型图标。
 
-### P0：优先决策
+3. 后端列表契约复核
+   - 后端分页默认每页 20 条，`page_size` 有效范围为 1 至 100。
+   - 任务和环境变量支持 `all=1|true|yes`，最多返回 5000 条。
+   - 用户、SSH 密钥、通知渠道、平台令牌和 Open API 应用接口直接返回完整列表，客户端保持单次请求。
 
-1. 任务导入/导出入口
-   - 价值：README 已描述任务支持导入导出，后端端点也已定义，移动端补齐后更完整。
-   - 后端能力：`tasksExport`、`tasksImport`。
-   - 当前参考：`lib/core/network/api_endpoints.dart` 中已有任务导入导出端点。
-   - 建议：在任务页右上角菜单增加“导入任务 / 导出任务”。
+## 本轮已修复 Bug
 
-2. 环境变量导入/导出入口
-   - 价值：后端支持青龙格式兼容，移动端适合做迁移/备份入口。
-   - 后端能力：`envsExport`、`envsExportAll`、`envsExportFiles`、`envsImport`。
-   - 当前参考：`lib/core/network/api_endpoints.dart` 中已有环境变量导入导出端点。
-   - 建议：在环境变量页增加“导入 / 导出 / 导出全部”。
+### P1：SSE 终态后持续重连
 
-3. 默认服务器协议修复
-   - 问题：README 默认地址是 `http://127.0.0.1:5700`，登录页无协议时当前会自动补 `https://`，本地面板首次连接可能失败。
-   - 当前参考：`lib/features/login/views/login_page.dart`。
-   - 建议：当用户输入 `127.0.0.1`、`localhost`、内网 IP 或带端口的本地地址时默认补 `http://`；公网域名可继续补 `https://`。
+位置：
 
-4. App 更新安装包缓存校验
-   - 问题：当前更新 APK 复用主要按文件大小判断，大于 1MB 就可能复用旧包。
-   - 当前参考：`lib/core/services/app_update_service.dart`。
-   - 建议：缓存校验绑定 asset name、asset size 或 digest，避免旧包/损坏包被复用。
+- `lib/core/network/sse_client.dart:138-159`
+- `lib/core/network/sse_client.dart:181-198`
+- 受影响调用包括任务日志、执行日志、依赖日志和订阅拉取流。
 
-### P1：建议增加
+触发条件：服务端发送 `event: done`，数据为 `finished`、`installed`、`failed`、`not_running`、`closed` 或 `timeout`，随后正常关闭响应流，调用方启用 `autoReconnect`。
 
-5. Cron 表达式解析与模板入口
-   - 价值：移动端创建任务时降低 Cron 填写成本。
-   - 后端能力：`cronParse`、`cronTemplates`。
-   - 建议：任务表单中新增“常用模板”和“解析预览”。
+原因：客户端只对 `done/reconnect` 显式安排重连，流正常结束时又对所有自动重连连接无条件调用 `scheduleReconnect()`，缺少“已收到业务终态”标记。
 
-6. 任务统计与任务日志文件入口
-   - 价值：后端提供 `taskStats`、`taskLogFiles`，可在任务详情页展示历史执行趋势与日志文件列表。
-   - 建议：任务详情或任务卡片增加“统计/历史日志”。
+影响：完成后的连接每秒重建，持续消耗网络、电量和后端连接；重新连接可能再次返回完整历史日志并造成重复内容。
 
-7. Open API Token 独立管理
-   - 价值：README 描述了 API Token 和应用管理，当前 Open API 页更偏 App 管理。
-   - 后端能力：`openApiToken`。
-   - 建议：Open API 页增加 Token 区块，支持查看、重置、复制、状态提示。
+修复状态：`SseClient` 已记录业务终态、立即关闭连接并阻止 EOF 重连；异常 EOF、网络错误和 `done/reconnect` 保持自动重连。调用页面统一使用协议判断函数处理带可选空白的数据。
 
-8. 通知主动发送入口
-   - 价值：后端有 `notificationSend`，可用于移动端测试或手动触发通知。
-   - 建议：通知页增加“发送测试内容”，支持选择渠道和输入标题/正文。
+### P1：安全日志加载失败后跳页
 
-9. 后端部署状态/运行时状态页
-   - 价值：后端支持 Docker、Windows 单机、Magisk、`ddp` CLI、多 Python runtime。移动端可展示当前部署方式、Python/Node 可用性、更新托管状态。
-   - 建议：系统设置页增加“部署与运行时”信息卡。
+位置：
 
-### P2：可后续考虑
+- 登录日志：`lib/features/security/views/security_page.dart:151-181`
+- 审计日志：`lib/features/security/views/security_page.dart:1375-1400`
 
-10. 数据量大的列表统一分页/加载更多
-    - 问题：部分列表固定 page size，数据超过固定条数后可能截断。
-    - 涉及：依赖列表、登录日志、Open API 调用日志等。
-    - 建议：抽象统一分页列表组件。
+触发条件：加载下一页前执行 `_page++`，该页请求发生超时、断网或服务端错误，用户继续滚动。
 
-11. 本地通知点击跳转
-    - 问题：当前本地通知点击处理存在扩展注释，未形成完整跳转链路。
-    - 建议：任务执行完成通知点击后进入对应任务或日志页。
+影响：下一次请求直接访问后续页，失败页的数据在当前会话中缺失。
 
-12. 多语言/国际化
-    - 价值：Release 已开始双语说明，后续 App 可支持中英文 UI。
-    - 建议：先抽离常见按钮、错误提示、更新弹窗文案。
+修复状态：登录日志和审计日志已改为请求成功后提交目标页码，并增加重复请求门禁。
 
-## 建议优先修复的 bug 或风险
+### P1：Open API 调用日志加载失败后跳页
 
-### P0：优先修复
+位置：
 
-1. 登录默认协议导致本地地址失败
-   - 现象：输入或默认 `127.0.0.1:5700` 时会补成 `https://127.0.0.1:5700`。
-   - 影响：本地 Docker/Windows/Magisk 面板通常是 HTTP，首次连接会失败。
-   - 建议修复：本地地址默认 HTTP；其他地址保持 HTTPS 或让用户明确选择协议。
+- `lib/features/openapi/views/open_api_page.dart:1055-1076`
+- `lib/features/openapi/views/open_api_page.dart:1112-1158`
 
-2. 更新 APK 缓存复用过宽
-   - 现象：已下载文件只要大于 1MB 即复用。
-   - 影响：可能安装旧包，或下载中断但文件超过阈值时复用。
-   - 建议修复：校验文件名、Content-Length、Release asset size、digest。
+原因与安全日志一致：`_loadMore()` 先递增页码，异常路径没有回滚。
 
-3. Dashboard 加载被非核心接口拖累
-   - 现象：系统信息、dashboard、panelSettings、systemVersion 使用同一 `Future.wait`。
-   - 影响：任一非核心接口失败会导致整页加载失败。
-   - 建议修复：核心数据与附属数据分离加载，失败时局部降级。
+影响：调用日志产生数据断层，底部加载指示器可能持续触发更后面的页。
 
-### P1：建议修复
+修复状态：调用日志已改为请求成功后提交目标页码，并增加重复请求门禁。
 
-4. SSE Token 过期后不会自动刷新
-   - 现象：注释提到刷新 Token，实际逻辑只回调认证失败并返回。
-   - 影响：长时间看日志时 Token 过期会中断。
-   - 建议修复：复用 REST 认证刷新逻辑，刷新成功后重连 SSE。
+### P2：任务分组候选只扫描前 20 条任务
 
-5. SSE 多行 `data:` 事件未聚合
-   - 现象：每一行 `data:` 都立即回调。
-   - 影响：标准 SSE 多行事件或多行 JSON/日志可能被拆分。
-   - 建议修复：按空行聚合完整事件后再回调。
+位置：`lib/features/tasks/views/task_form_page.dart:243-260`。
 
-6. 本地通知权限检查会触发权限请求
-   - 现象：`_checkPermission()` 调用 `requestPermissions()`，页面构建时可能弹权限请求。
-   - 影响：用户进入页面就被打扰，重建时体验不稳定。
-   - 建议修复：拆成“只读检查”和“主动申请”两个方法。
+客户端发送 `page_size=200`。后端 v3.0.0 接受的最大值为 100，越界后回退为 20，客户端又只读取第一页。因此仅出现在后续任务中的分组不会成为表单候选，用户仍可手动输入。
 
-7. 异常静默导致无法区分空数据与加载失败
-   - 影响范围：环境变量、依赖、脚本树、安全日志等。
-   - 建议修复：页面显示错误卡片，保留重试按钮和原始错误摘要。
+修复状态：任务分组候选已使用 `all=1` 获取完整任务集合。
 
-### P2：可排期修复
+### P2：订阅日志页面存在异步销毁竞态
 
-8. 应用锁生命周期触发异常被吞掉
-   - 现象：使用 `rootElement!` 获取 ProviderContainer，异常静默。
-   - 影响：特殊生命周期下应用锁可能未触发，且无排查线索。
-   - 建议修复：改成显式持有全局 ProviderContainer 或更稳定的生命周期桥接。
+位置：`lib/features/subscriptions/views/subscription_list_page.dart:1353-1364`。
 
-9. `AuthService` 中存在旧式/未使用 API 包装
-   - 现象：功能层多直接使用 `DioClient + ApiEndpoints`，`AuthService` 内保留一些旧路径/旧方法封装。
-   - 影响：后续复用时容易误调旧接口。
-   - 建议修复：标记 deprecated、删除未使用包装，或统一迁移到 provider/service 分层。
+页面初始化先等待日志背景色，再调用 `_load()`。用户在等待期间离开页面时，后续 `_load()` 会在首次 `setState()` 前缺少 `mounted` 检查，可能触发 `setState() called after dispose()`。
 
-## 建议决策顺序
+修复状态：背景色异步读取和后续加载均已增加生命周期门禁。
 
-1. 先确认是否修复登录默认协议和更新包缓存校验，这两项直接影响安装和首次连接体验。
-2. 再确认是否补齐任务/环境变量导入导出，这两项后端已有接口且用户价值高。
-3. 再确认是否做 Cron 模板、Open API Token、通知主动发送等增强功能。
-4. 最后统一排期 SSE、分页、错误展示、应用锁生命周期等稳定性改造。
+### P2：平台令牌加载失败永久显示加载态
 
-## 需要你决定的事项
+位置：`lib/features/security/views/platform_tokens_page.dart:22-33`。
 
-- 是否优先修复 P0 bug：登录默认协议、更新包缓存校验、Dashboard 降级加载。
-- 是否新增 P0 功能：任务导入导出、环境变量导入导出。
-- 是否需要每个功能先写需求/设计文档，再逐项实现。
-- 是否将 README 中已描述但 App 尚未完整支持的能力临时标注为“部分支持”。
+首次 `Future.wait` 任一请求失败时，方法直接抛出，`_loading` 保持 `true`，页面没有错误状态或重试入口。新增、编辑、启停和删除操作也缺少统一错误反馈。
+
+修复状态：平台令牌页面已增加 generation 隔离、错误状态、重试入口、操作忙状态和统一错误反馈。
+
+### P2：SSE 字段格式兼容范围偏窄
+
+位置：`lib/core/network/sse_client.dart:170-179`。
+
+解析器只识别 `event: ` 和 `data: `，标准 SSE 允许 `event:value`、`data:value` 以及字段值前可选的单个空格。当前后端固定输出带空格格式，因此这属于协议健壮性缺口。
+
+Android Runtime 页面在 `lib/features/deps/views/android_runtime_page.dart:61-71` 维护另一套更简化的行解析器，也仅识别 `data: `，并通过日志文本符号判断失败。
+
+修复状态：通用客户端和 Android Runtime 均使用标准字段解析，兼容字段值前可选空格、CRLF 和多行 `data`；Android Runtime 根据 `done` 结果判断安装状态。
+
+## 已排除候选
+
+- 头像认证：后端 `GET /auth/avatar/:filename` 是公开静态资源路由，个人资料页使用普通 `NetworkImage` 可以加载。`more_page.dart` 构造空 Authorization 头属于可清理实现，当前不会阻断公开头像。
+- 通用 SSE Token 刷新：当前 `SseClient` 已复用 `TokenRefreshCoordinator`，401 后最多刷新一次并重连。
+- SSE 多行数据：当前通用解析器已按空行聚合多行 `data`。
+- 任务列表分页：当前任务列表使用 `all=1`，空 `loadMore()` 属于失效交互残留，5000 条安全上限内不会产生分页缺失。
+- 任务排队状态：当前客户端已支持状态 `0.5`。
+
+## 与上游 App v1.2.6 的功能差异
+
+### 当前客户端新增
+
+- 任务视图管理、过滤规则和排序规则。
+- 任务导入导出。
+- 服务端 Cron 模板和表达式解析预览。
+- 本地任务完成通知、通知权限设置和点击深链。
+- 个人头像、用户名和密码管理。
+- 环境变量批量改名、置顶和多格式导出工具。
+- Android/Magisk Runtime 管理。
+- pip/npm 已安装清单、依赖导出和顺序批量重装。
+- 平台令牌管理与 SSH 私钥管理。
+- 配置脚本编辑器和系统健康诊断。
+- 可持久化主题、背景图片和模糊强度。
+- Android 差分更新、安装包 MD5/SHA-256 校验及完整包回退。
+- Refresh Token 轮换、并发刷新协调和服务器切换隔离。
+- 未保存脚本直接调试运行。
+
+### 上游客户端独有
+
+- 任务卡左滑快捷操作：启停、置顶、复制、编辑和删除。
+- Flutter Web/PWA 平台外壳。
+
+当前项目已明确移除任务卡侧滑操作，并聚焦 Android/iOS 移动客户端，这两项属于产品范围差异。
+
+## 已清理残留
+
+- 已移除 `lib/core/network/api_endpoints.dart` 中无调用点的 `/api/local/*` 端点。
+- 已移除任务列表的空 `loadMore()` 调用和 Provider 空实现。
+- 已移除公开头像请求构造的空 `Authorization` 头。
+
+## 剩余验证
+
+1. 在具备 Flutter SDK 的环境执行 `dart format .`、`flutter analyze` 和 `flutter test`。
+2. 执行 Android 与 iOS 构建，确认原始日志票据接口和移动端文件保存行为。
+3. 使用 Flutter profile 与 DevTools 验证浅色/深色、快速滚动、分组展开和窄屏场景的帧耗时。

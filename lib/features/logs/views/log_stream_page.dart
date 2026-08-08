@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/sse_client.dart';
+import '../../../core/network/sse_protocol.dart';
+import '../../../core/services/raw_log_download_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/task_log.dart';
 import '../../../shared/utils/api_utils.dart';
@@ -23,10 +27,15 @@ class _LogStreamPageState extends State<LogStreamPage> {
   final _sseClient = SseClient();
   final _scrollController = ScrollController();
   final _lines = <String>[];
+  final _pendingLines = <String>[];
+
+  Timer? _flushTimer;
 
   bool _loading = true;
   bool _done = false;
   bool _autoScroll = true;
+  bool _downloadingRaw = false;
+  bool _hasRawLog = false;
   int? _taskId;
   String _status = '加载中...';
   Color? _logBackgroundColor;
@@ -75,6 +84,7 @@ class _LogStreamPageState extends State<LogStreamPage> {
 
       setState(() {
         _taskId = log.taskId;
+        _hasRawLog = (log.logPath?.trim().isNotEmpty ?? false);
         _lines
           ..clear()
           ..addAll(historyLines);
@@ -116,10 +126,18 @@ class _LogStreamPageState extends State<LogStreamPage> {
         }
 
         if (event.event == 'done') {
-          setState(() {
-            _done = true;
-            _status = event.data == 'finished' ? '已完成' : event.data;
-          });
+          if (isReconnectSseEvent(event.event, event.data)) {
+            _flushTimer?.cancel();
+            _flushTimer = null;
+            setState(() {
+              _lines.addAll(_pendingLines);
+              _pendingLines.clear();
+              _done = false;
+              _status = '正在重连...';
+            });
+            return;
+          }
+          _finishStream(event.data == 'finished' ? '已完成' : event.data);
           return;
         }
 
@@ -128,33 +146,57 @@ class _LogStreamPageState extends State<LogStreamPage> {
           return;
         }
 
-        setState(() {
-          _lines.addAll(newLines);
-          _status = '运行中';
-        });
-        if (_autoScroll) {
-          _scrollToBottom();
-        }
+        _pendingLines.addAll(newLines);
+        _flushTimer ??= Timer(
+          const Duration(milliseconds: 32),
+          _flushPendingLines,
+        );
       },
       onDone: () {
-        if (!mounted) {
+        if (!mounted || _done) {
           return;
         }
-        setState(() {
-          _done = true;
-          _status = '连接结束';
-        });
+        _finishStream('连接结束');
       },
       onError: (_) {
         if (!mounted) {
           return;
         }
-        setState(() {
-          _done = true;
-          _status = '连接错误';
-        });
+        _finishStream('连接错误');
       },
     );
+  }
+
+  void _flushPendingLines() {
+    _flushTimer = null;
+    if (!mounted || _pendingLines.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _lines.addAll(_pendingLines);
+      _pendingLines.clear();
+      _status = '运行中';
+      _done = false;
+    });
+    if (_autoScroll) {
+      _scrollToBottom();
+    }
+  }
+
+  void _finishStream(String status) {
+    _flushTimer?.cancel();
+    _flushTimer = null;
+    final hasPendingLines = _pendingLines.isNotEmpty;
+    setState(() {
+      _lines.addAll(_pendingLines);
+      _pendingLines.clear();
+      _done = true;
+      _status = status;
+    });
+    if (_autoScroll && hasPendingLines) {
+      _scrollToBottom();
+    }
   }
 
   List<String> _splitLines(String content) {
@@ -178,8 +220,34 @@ class _LogStreamPageState extends State<LogStreamPage> {
     });
   }
 
+  Future<void> _downloadRawLog() async {
+    if (_downloadingRaw || !_hasRawLog) return;
+    setState(() => _downloadingRaw = true);
+    try {
+      final path = await RawLogDownloadService.download(
+        ticketPath: ApiEndpoints.logRawTicket(widget.logId),
+      );
+      if (!mounted) return;
+      AppGlassNotice.show(
+        context,
+        '原始日志已保存到 $path',
+        type: AppGlassNoticeType.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      AppGlassNotice.show(
+        context,
+        extractErrorMessage(error, '下载原始日志失败'),
+        type: AppGlassNoticeType.error,
+      );
+    } finally {
+      if (mounted) setState(() => _downloadingRaw = false);
+    }
+  }
+
   @override
   void dispose() {
+    _flushTimer?.cancel();
     _sseClient.close();
     _scrollController.dispose();
     super.dispose();
@@ -239,6 +307,18 @@ class _LogStreamPageState extends State<LogStreamPage> {
                 );
               },
             ),
+          if (_hasRawLog)
+            IconButton(
+              icon: _downloadingRaw
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.download_outlined),
+              tooltip: '下载原始日志',
+              onPressed: _downloadingRaw ? null : _downloadRawLog,
+            ),
           IconButton(
             icon: Icon(_autoScroll ? Icons.vertical_align_bottom : Icons.pause),
             tooltip: _autoScroll ? '自动滚动: 开' : '自动滚动: 关',
@@ -271,25 +351,23 @@ class _LogStreamPageState extends State<LogStreamPage> {
                 ),
                 child: Scrollbar(
                   controller: _scrollController,
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(12),
-                    child: SelectableText.rich(
-                      AnsiTextParser.buildTextSpan(
-                        _lines.join('\n'),
-                        baseStyle: TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 13,
-                          color: logTheme.foreground,
-                          height: 1.5,
+                  child: SelectionArea(
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(12),
+                      itemCount: _lines.length,
+                      itemBuilder: (_, index) => Text.rich(
+                        AnsiTextParser.buildTextSpan(
+                          _lines[index],
+                          baseStyle: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 13,
+                            color: logTheme.foreground,
+                            height: 1.5,
+                          ),
+                          brightness: logTheme.brightness,
                         ),
-                        brightness: logTheme.brightness,
                       ),
-                      contextMenuBuilder: (context, editableTextState) {
-                        return AdaptiveTextSelectionToolbar.editableText(
-                          editableTextState: editableTextState,
-                        );
-                      },
                     ),
                   ),
                 ),

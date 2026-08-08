@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/auth/auth_provider.dart';
-import '../../../core/network/dio_client.dart';
 import '../../../core/services/app_update_service.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/theme/app_theme.dart';
@@ -318,10 +317,6 @@ class _MorePageState extends ConsumerState<MorePage> {
             width: size,
             height: size,
             fit: BoxFit.cover,
-            headers: {
-              'Authorization':
-                  'Bearer ${DioClient.instance.dio.options.headers['Authorization']?.toString().replaceFirst('Bearer ', '') ?? ''}',
-            },
             errorBuilder: (_, error, stackTrace) =>
                 _buildFallbackAvatar(user, size),
           ),

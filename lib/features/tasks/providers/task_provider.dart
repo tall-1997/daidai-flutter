@@ -98,10 +98,6 @@ class TaskNotifier extends StateNotifier<TaskListState> {
     }
   }
 
-  Future<void> loadMore() async {
-    return;
-  }
-
   void setKeyword(String keyword) {
     state = state.copyWith(keyword: keyword);
     load(refresh: true);

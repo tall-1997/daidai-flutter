@@ -11,7 +11,9 @@ import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/network/sse_client.dart';
+import '../../../core/network/sse_protocol.dart';
 import '../../../core/services/local_notification_service.dart';
+import '../../../core/services/raw_log_download_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/task.dart';
 import '../../../shared/models/task_log.dart';
@@ -89,11 +91,6 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      ref.read(taskProvider.notifier).loadMore();
-    }
-
     _scrollSaveDebounce?.cancel();
     _scrollSaveDebounce = Timer(const Duration(milliseconds: 400), () {
       if (!_scrollController.hasClients) {
@@ -452,6 +449,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
           content: _TaskLogFileList(
             files: linkedFiles,
             onOpen: (logId) => Navigator.pop(dialogContext, logId),
+            onDownloadRaw: (file) => _downloadTaskLogFile(task, file),
           ),
           actions: [
             TextButton(
@@ -465,6 +463,28 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       context.push('/logs/$selectedLogId/stream');
     } catch (error) {
       await _showActionError(error, '加载任务日志文件失败');
+    }
+  }
+
+  Future<void> _downloadTaskLogFile(Task task, _TaskLogFile file) async {
+    try {
+      final path = await RawLogDownloadService.download(
+        ticketPath: ApiEndpoints.taskLogFileRawTicket(
+          task.id,
+          file.filename.isEmpty ? file.path : file.filename,
+        ),
+        queryParameters: file.path.trim().isEmpty
+            ? null
+            : {'path': file.path},
+      );
+      if (!mounted) return;
+      AppGlassNotice.show(
+        context,
+        '原始日志已保存到 $path',
+        type: AppGlassNoticeType.success,
+      );
+    } catch (error) {
+      await _showActionError(error, '下载原始日志失败');
     }
   }
 
@@ -2018,8 +2038,13 @@ class _TaskLogFile {
 class _TaskLogFileList extends StatelessWidget {
   final List<_TaskLogFile> files;
   final ValueChanged<int> onOpen;
+  final Future<void> Function(_TaskLogFile file) onDownloadRaw;
 
-  const _TaskLogFileList({required this.files, required this.onOpen});
+  const _TaskLogFileList({
+    required this.files,
+    required this.onOpen,
+    required this.onDownloadRaw,
+  });
 
   String _formatSize(int size) {
     if (size < 1024) return '$size B';
@@ -2083,12 +2108,13 @@ class _TaskLogFileList extends StatelessWidget {
                     ],
                   ),
                 ),
+                IconButton(
+                  tooltip: '下载原始日志',
+                  onPressed: () => onDownloadRaw(file),
+                  icon: const Icon(Icons.download_outlined, size: 20),
+                ),
                 if (canOpen)
-                  const Icon(
-                    Icons.chevron_right,
-                    size: 20,
-                    color: AppColors.slate400,
-                  ),
+                  const Icon(Icons.chevron_right, size: 20, color: AppColors.slate400),
               ],
             ),
           );
@@ -3182,12 +3208,14 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
   final ScrollController _scrollController = ScrollController();
   final _sseClient = SseClient();
   final _lines = <String>[];
+  final _pendingLines = <String>[];
   final _historyReplayBuffer = <String>[];
   bool _loading = true;
   bool _done = false;
   bool _autoScroll = true;
   String _statusText = '连接中...';
   Timer? _pollTimer;
+  Timer? _sseFlushTimer;
   int _pollAttempts = 0;
   bool _pollRequestRunning = false;
   Color? _logBackgroundColor;
@@ -3202,6 +3230,8 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
   @override
   void dispose() {
     _pollTimer?.cancel();
+    _sseFlushTimer?.cancel();
+    _pendingLines.clear();
     _sseClient.close();
     _scrollController.dispose();
     super.dispose();
@@ -3253,6 +3283,9 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
       return;
     }
 
+    _sseFlushTimer?.cancel();
+    _sseFlushTimer = null;
+    _pendingLines.clear();
     setState(() {
       _loading = false;
       _lines
@@ -3337,20 +3370,17 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
       onEvent: (event) {
         if (!mounted) return;
         if (event.event == 'done') {
-          if (event.data == 'reconnect') {
-            setState(() {
-              _done = false;
-              _statusText = '运行中';
-            });
+          if (isReconnectSseEvent(event.event, event.data)) {
+            _flushPendingLines(done: false, statusText: '运行中');
             _historyReplayBuffer
               ..clear()
               ..addAll(_lines);
             return;
           }
-          setState(() {
-            _done = event.data == 'finished';
-            _statusText = _statusFromStreamDone(event.data);
-          });
+          _flushPendingLines(
+            done: true,
+            statusText: _statusFromStreamDone(event.data),
+          );
           _sendTaskCompletionNotification(widget.taskId, event.data);
           return;
         }
@@ -3359,28 +3389,53 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
         if (newLines.isEmpty) return;
         final dedupedLines = _consumeReplayLines(newLines);
         if (dedupedLines.isEmpty) return;
-        setState(() {
-          _lines.addAll(dedupedLines);
-          _done = false;
-          _statusText = '运行中';
-        });
-        if (_autoScroll) _scrollToBottom();
+        _pendingLines.addAll(dedupedLines);
+        _sseFlushTimer ??= Timer(
+          const Duration(milliseconds: 32),
+          _flushPendingLines,
+        );
       },
       onDone: () {
         if (!mounted) return;
         if (_done) return;
-        setState(() => _statusText = '连接结束');
+        _flushPendingLines(statusText: '连接结束');
       },
       onError: (_) {
         if (!mounted) return;
         if (!_done) {
-          setState(() => _statusText = '连接错误');
+          _flushPendingLines(statusText: '连接错误');
           _pollTimer?.cancel();
           _pollTimer = null;
           _startPolling();
         }
       },
     );
+  }
+
+  void _flushPendingLines({bool? done, String? statusText}) {
+    _sseFlushTimer?.cancel();
+    _sseFlushTimer = null;
+    final pendingLines = List<String>.of(_pendingLines);
+    _pendingLines.clear();
+    if (!mounted) return;
+    if (pendingLines.isEmpty && done == null && statusText == null) return;
+
+    setState(() {
+      _lines.addAll(pendingLines);
+      if (done != null) {
+        _done = done;
+      } else if (pendingLines.isNotEmpty) {
+        _done = false;
+      }
+      if (statusText != null) {
+        _statusText = statusText;
+      } else if (pendingLines.isNotEmpty) {
+        _statusText = '运行中';
+      }
+    });
+    if (_autoScroll && pendingLines.isNotEmpty) {
+      _scrollToBottom();
+    }
   }
 
   List<String> _consumeReplayLines(List<String> incomingLines) {
@@ -3429,7 +3484,15 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
       case 'finished':
         return '已完成';
       case 'timeout':
-        return '等待日志...';
+        return '已超时';
+      case 'failed':
+        return '执行失败';
+      case 'not_running':
+        return '未运行';
+      case 'closed':
+        return '连接已关闭';
+      case 'installed':
+        return '安装完成';
       case 'reconnect':
         return '运行中';
       default:
@@ -3438,6 +3501,7 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
   }
 
   void _sendTaskCompletionNotification(int taskId, String data) async {
+    data = data.trim();
     if (data == 'reconnect') return;
     final enabled = await LocalNotificationService()
         .getChannelEnabled(NotificationChannel.task);
@@ -3562,26 +3626,29 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
                 ),
                 child: Scrollbar(
                   controller: _scrollController,
-                  child: SingleChildScrollView(
+                  child: ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.all(12),
-                    child: SelectableText.rich(
-                      AnsiTextParser.buildTextSpan(
-                        _lines.join('\n'),
-                        baseStyle: TextStyle(
-                          color: logTheme.foreground,
-                          fontFamily: 'monospace',
-                          fontSize: 12,
-                          height: 1.6,
+                    itemCount: _lines.length,
+                    itemBuilder: (context, index) {
+                      return SelectableText.rich(
+                        AnsiTextParser.buildTextSpan(
+                          _lines[index],
+                          baseStyle: TextStyle(
+                            color: logTheme.foreground,
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                            height: 1.6,
+                          ),
+                          brightness: logTheme.brightness,
                         ),
-                        brightness: logTheme.brightness,
-                      ),
-                      contextMenuBuilder: (context, editableTextState) {
-                        return AdaptiveTextSelectionToolbar.editableText(
-                          editableTextState: editableTextState,
-                        );
-                      },
-                    ),
+                        contextMenuBuilder: (context, editableTextState) {
+                          return AdaptiveTextSelectionToolbar.editableText(
+                            editableTextState: editableTextState,
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
               ),

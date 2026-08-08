@@ -1043,6 +1043,7 @@ class OpenApiLogsPage extends ConsumerStatefulWidget {
 class _OpenApiLogsPageState extends ConsumerState<OpenApiLogsPage> {
   List<Map<String, dynamic>> _logs = [];
   bool _loading = true;
+  bool _requestInFlight = false;
   int _page = 1;
   int _total = 0;
 
@@ -1053,26 +1054,29 @@ class _OpenApiLogsPageState extends ConsumerState<OpenApiLogsPage> {
   }
 
   Future<void> _load({bool refresh = true}) async {
-    if (_loading && !refresh) return;
-    if (refresh) _page = 1;
+    if (_requestInFlight) return;
+    final targetPage = refresh ? 1 : _page + 1;
+    _requestInFlight = true;
     setState(() => _loading = true);
     try {
-      final result = await _loadOpenApiLogPage(widget.appId, _page);
+      final result = await _loadOpenApiLogPage(widget.appId, targetPage);
       if (!mounted) return;
       setState(() {
         _logs = refresh ? result.items : [..._logs, ...result.items];
         _total = result.total;
+        _page = targetPage;
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
+    } finally {
+      _requestInFlight = false;
     }
   }
 
   void _loadMore() {
     if (_loading || _logs.length >= _total) return;
-    _page++;
     _load(refresh: false);
   }
 

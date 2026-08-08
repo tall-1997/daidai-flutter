@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/sse_client.dart';
+import '../../../core/network/sse_protocol.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/dependency.dart';
 import '../../../shared/models/python_runtime_info.dart';
@@ -1615,8 +1618,58 @@ class DepLogStreamPage extends ConsumerStatefulWidget {
 class _DepLogStreamPageState extends ConsumerState<DepLogStreamPage> {
   final _sseClient = SseClient();
   final _scrollController = ScrollController();
+  final _pendingLogEvents = <({String? event, String data})>[];
+  Timer? _logFlushTimer;
   DependencyLogState _logState = const DependencyLogState();
   Color? _logBackgroundColor;
+
+  void _queueLogEvent(String? event, String data) {
+    _pendingLogEvents.add((event: event, data: data));
+    if (isTerminalSseEvent(event, data)) {
+      _flushPendingLogEvents();
+      return;
+    }
+    _logFlushTimer ??= Timer(
+      const Duration(milliseconds: 32),
+      _flushPendingLogEvents,
+    );
+  }
+
+  void _flushPendingLogEvents() {
+    _logFlushTimer?.cancel();
+    _logFlushTimer = null;
+    if (!mounted || _pendingLogEvents.isEmpty) return;
+
+    final events = List.of(_pendingLogEvents);
+    _pendingLogEvents.clear();
+    setState(() {
+      for (final event in events) {
+        final reconnect = isReconnectSseEvent(event.event, event.data);
+        final terminal = isTerminalSseEvent(event.event, event.data);
+        _logState = _logState.add(event.data).transition(
+          DependencyLogPhase.streaming,
+        );
+        if (terminal) {
+          _logState = _logState.transition(
+            dependencyLogDonePhase(event.data),
+            message: event.data,
+          );
+        } else if (reconnect) {
+          _logState = _logState.transition(
+            DependencyLogPhase.reconnecting,
+            message: '连接已中断，正在恢复日志',
+          );
+        }
+      }
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.jumpTo(
+          _scrollController.position.maxScrollExtent,
+        );
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -1632,31 +1685,10 @@ class _DepLogStreamPageState extends ConsumerState<DepLogStreamPage> {
       autoReconnect: true,
       onEvent: (event) {
         if (!mounted) return;
-        setState(() {
-          _logState = _logState.add(event.data).transition(
-            DependencyLogPhase.streaming,
-          );
-          if (event.event == 'done' && event.data != 'reconnect') {
-            _logState = _logState.transition(
-              dependencyLogDonePhase(event.data),
-              message: event.data,
-            );
-          } else if (event.event == 'done' && event.data == 'reconnect') {
-            _logState = _logState.transition(
-              DependencyLogPhase.reconnecting,
-              message: '连接已中断，正在恢复日志',
-            );
-          }
-        });
-        Future.delayed(const Duration(milliseconds: 50), () {
-          if (_scrollController.hasClients) {
-            _scrollController.jumpTo(
-              _scrollController.position.maxScrollExtent,
-            );
-          }
-        });
+        _queueLogEvent(event.event, event.data);
       },
       onDone: () {
+        _flushPendingLogEvents();
         if (mounted && !_logState.terminal) {
           setState(() {
             _logState = _logState.transition(
@@ -1667,6 +1699,7 @@ class _DepLogStreamPageState extends ConsumerState<DepLogStreamPage> {
         }
       },
       onReconnecting: () {
+        _flushPendingLogEvents();
         if (mounted && !_logState.terminal) {
           setState(() {
             _logState = _logState.transition(
@@ -1677,6 +1710,7 @@ class _DepLogStreamPageState extends ConsumerState<DepLogStreamPage> {
         }
       },
       onError: (error) {
+        _flushPendingLogEvents();
         if (mounted) {
           setState(() {
             _logState = _logState.transition(
@@ -1691,6 +1725,8 @@ class _DepLogStreamPageState extends ConsumerState<DepLogStreamPage> {
 
   @override
   void dispose() {
+    _logFlushTimer?.cancel();
+    _pendingLogEvents.clear();
     _sseClient.close();
     _scrollController.dispose();
     super.dispose();

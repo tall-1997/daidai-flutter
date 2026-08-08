@@ -129,6 +129,7 @@ class _LoginLogsTabState extends ConsumerState<_LoginLogsTab>
     with AutomaticKeepAliveClientMixin {
   List<Map<String, dynamic>> _logs = [];
   bool _loading = true;
+  bool _requestInFlight = false;
   int _page = 1;
   int _total = 0;
   final TextEditingController _usernameController = TextEditingController();
@@ -149,14 +150,15 @@ class _LoginLogsTabState extends ConsumerState<_LoginLogsTab>
   }
 
   Future<void> _load({bool refresh = true}) async {
-    if (_loading && !refresh) return;
-    if (refresh) _page = 1;
+    if (_requestInFlight) return;
+    final targetPage = refresh ? 1 : _page + 1;
+    _requestInFlight = true;
     setState(() => _loading = true);
     try {
       final resp = await DioClient.instance.dio.get(
         ApiEndpoints.loginLogs,
         queryParameters: {
-          'page': _page,
+          'page': targetPage,
           'page_size': 100,
           if (_usernameController.text.trim().isNotEmpty)
             'username': _usernameController.text.trim(),
@@ -167,17 +169,19 @@ class _LoginLogsTabState extends ConsumerState<_LoginLogsTab>
       setState(() {
         _logs = refresh ? paginated.items : [..._logs, ...paginated.items];
         _total = paginated.total;
+        _page = targetPage;
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
+    } finally {
+      _requestInFlight = false;
     }
   }
 
   void _loadMore() {
     if (_loading || _logs.length >= _total) return;
-    _page++;
     _load(refresh: false);
   }
 
@@ -584,8 +588,8 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
                     ),
                     child: Row(
                     children: [
-                      const Icon(
-                        Icons.devices,
+                      Icon(
+                        _sessionClientIcon(s['client_type']?.toString()),
                         size: 18,
                         color: AppColors.primary,
                       ),
@@ -615,7 +619,7 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '客户端: ${s['client_name'] ?? s['client_type_label'] ?? '未知'}',
+                              '${s['client_type_label'] ?? _sessionClientLabel(s['client_type']?.toString())} · ${s['client_name'] ?? _sessionClientFallback(s['user_agent']?.toString())}',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: widget.isLight
@@ -659,6 +663,21 @@ class _SessionsTabState extends ConsumerState<_SessionsTab>
             ),
     );
   }
+}
+
+IconData _sessionClientIcon(String? type) {
+  return type?.toLowerCase() == 'app' ? Icons.phone_android : Icons.language;
+}
+
+String _sessionClientLabel(String? type) {
+  return type?.toLowerCase() == 'app' ? 'App端' : '网页端';
+}
+
+String _sessionClientFallback(String? userAgent) {
+  final value = userAgent?.trim() ?? '';
+  if (value.isEmpty) return '客户端未知';
+  final separator = value.indexOf(' ');
+  return separator > 0 ? value.substring(0, separator) : value;
 }
 
 // ── IP Whitelist Tab ──
@@ -1360,6 +1379,7 @@ class _AuditLogsTabState extends ConsumerState<_AuditLogsTab>
     with AutomaticKeepAliveClientMixin {
   List<Map<String, dynamic>> _logs = [];
   bool _loading = true;
+  bool _requestInFlight = false;
   int _page = 1;
   int _total = 0;
 
@@ -1373,30 +1393,33 @@ class _AuditLogsTabState extends ConsumerState<_AuditLogsTab>
   }
 
   Future<void> _load({bool refresh = true}) async {
-    if (_loading && !refresh) return;
-    if (refresh) _page = 1;
+    if (_requestInFlight) return;
+    final targetPage = refresh ? 1 : _page + 1;
+    _requestInFlight = true;
     setState(() => _loading = true);
     try {
       final resp = await DioClient.instance.dio.get(
         ApiEndpoints.auditLogs,
-        queryParameters: {'page': _page, 'page_size': 100},
+        queryParameters: {'page': targetPage, 'page_size': 100},
       );
       final paginated = extractPaginated(resp.data);
       if (!mounted) return;
       setState(() {
         _logs = refresh ? paginated.items : [..._logs, ...paginated.items];
         _total = paginated.total;
+        _page = targetPage;
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
+    } finally {
+      _requestInFlight = false;
     }
   }
 
   void _loadMore() {
     if (_loading || _logs.length >= _total) return;
-    _page++;
     _load(refresh: false);
   }
 

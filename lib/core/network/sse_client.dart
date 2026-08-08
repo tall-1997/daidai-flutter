@@ -5,6 +5,7 @@ import 'app_user_agent.dart';
 import '../network/dio_client.dart';
 import '../storage/secure_storage.dart';
 import '../auth/token_refresh_coordinator.dart';
+import 'sse_protocol.dart';
 
 class SseEvent {
   final String? event;
@@ -27,6 +28,9 @@ class SseClient {
     void Function()? onReconnecting,
     bool autoReconnect = false,
   }) async {
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    _disposeConnection();
     _closed = false;
     final generation = ++_generation;
     await _doConnect(
@@ -111,6 +115,7 @@ class SseClient {
       String? currentEvent;
       final dataLines = <String>[];
       var reconnectScheduled = false;
+      var terminalEventReceived = false;
 
       void scheduleReconnect() {
         if (!autoReconnect ||
@@ -136,8 +141,9 @@ class SseClient {
       }
 
       void emitEvent() {
-        if (dataLines.isEmpty) {
+        if (terminalEventReceived || dataLines.isEmpty) {
           currentEvent = null;
+          dataLines.clear();
           return;
         }
         final data = dataLines.join('\n');
@@ -145,17 +151,20 @@ class SseClient {
         if (generation != _generation) {
           return;
         }
-        onEvent(event);
-
-        if (currentEvent == 'done' &&
-            data == 'reconnect' &&
-            autoReconnect &&
-            !_closed) {
-          scheduleReconnect();
+        final terminal = isTerminalSseEvent(currentEvent, data);
+        final reconnect = isReconnectSseEvent(currentEvent, data);
+        if (terminal) {
+          terminalEventReceived = true;
         }
-
         currentEvent = null;
         dataLines.clear();
+        onEvent(event);
+
+        if (terminal) {
+          _disposeConnection();
+        } else if (reconnect && autoReconnect && !_closed) {
+          scheduleReconnect();
+        }
       }
 
       final subscription = response.stream
@@ -168,13 +177,17 @@ class SseClient {
               buffer = lines.removeLast(); // 保留不完整的行
 
               for (final rawLine in lines) {
+                if (terminalEventReceived) break;
                 final line = _normalizeSseLine(rawLine);
-                if (line.startsWith('event: ')) {
-                  currentEvent = line.substring(7).trim();
-                } else if (line.startsWith('data: ')) {
-                  dataLines.add(line.substring(6));
-                } else if (line.isEmpty) {
+                if (line.isEmpty) {
                   emitEvent();
+                  continue;
+                }
+                final field = parseSseField(line);
+                if (field?.name == 'event') {
+                  currentEvent = field!.value.trim();
+                } else if (field?.name == 'data') {
+                  dataLines.add(field!.value);
                 }
               }
             },
@@ -182,16 +195,19 @@ class SseClient {
               if (generation != _generation) return;
               if (buffer.isNotEmpty) {
                 final line = _normalizeSseLine(buffer);
-                if (line.startsWith('data: ')) {
-                  dataLines.add(line.substring(6));
-                } else if (line.startsWith('event: ')) {
-                  currentEvent = line.substring(7).trim();
+                final field = parseSseField(line);
+                if (field?.name == 'data') {
+                  dataLines.add(field!.value);
+                } else if (field?.name == 'event') {
+                  currentEvent = field!.value.trim();
                 }
                 buffer = '';
               }
               emitEvent();
               if (_closed) return;
-              if (autoReconnect) {
+              if (terminalEventReceived) {
+                _disposeConnection();
+              } else if (autoReconnect) {
                 scheduleReconnect();
               } else {
                 _disposeConnection();
@@ -209,7 +225,9 @@ class SseClient {
             },
             cancelOnError: true,
           );
-      if (generation == _generation) {
+      if (generation == _generation &&
+          !terminalEventReceived &&
+          !reconnectScheduled) {
         _subscription = subscription;
       } else {
         await subscription.cancel();

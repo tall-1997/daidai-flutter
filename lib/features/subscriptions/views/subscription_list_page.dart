@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/sse_client.dart';
+import '../../../core/network/sse_protocol.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/subscription.dart';
 import '../../../shared/utils/api_utils.dart';
@@ -1354,12 +1355,19 @@ class _SubscriptionLogsPageState extends ConsumerState<SubscriptionLogsPage> {
   void initState() {
     super.initState();
     Future.microtask(() async {
-      _logBackgroundColor = await loadPanelLogBackgroundColor();
+      final logBackgroundColor = await loadPanelLogBackgroundColor();
+      if (!mounted) {
+        return;
+      }
+      _logBackgroundColor = logBackgroundColor;
       await _load();
     });
   }
 
   Future<void> _load({int? page}) async {
+    if (!mounted) {
+      return;
+    }
     final targetPage = page ?? _page;
     setState(() => _loading = true);
     try {
@@ -1634,9 +1642,59 @@ class _SubscriptionPullStreamPageState
   final _sseClient = SseClient();
   final _logs = <String>[];
   final _scrollController = ScrollController();
+  final _pendingLogEvents = <({String? event, String data})>[];
+  Timer? _logFlushTimer;
   bool _done = false;
   String? _statusMessage;
   Color? _logBackgroundColor;
+
+  void _queueLogEvent(String? event, String data) {
+    _pendingLogEvents.add((event: event, data: data));
+    if (isTerminalSseEvent(event, data)) {
+      _flushPendingLogEvents();
+      return;
+    }
+    _logFlushTimer ??= Timer(
+      const Duration(milliseconds: 32),
+      _flushPendingLogEvents,
+    );
+  }
+
+  void _flushPendingLogEvents() {
+    _logFlushTimer?.cancel();
+    _logFlushTimer = null;
+    if (!mounted || _pendingLogEvents.isEmpty) return;
+
+    final events = List.of(_pendingLogEvents);
+    _pendingLogEvents.clear();
+    setState(() {
+      for (final event in events) {
+        final data = event.data.trim();
+        final reconnect = isReconnectSseEvent(event.event, event.data);
+        final terminal = isTerminalSseEvent(event.event, event.data);
+        if (terminal &&
+            data == 'not_running' &&
+            _logs.isEmpty) {
+          _statusMessage = '当前没有正在运行的拉取任务';
+        } else {
+          _logs.add(event.data);
+        }
+        if (terminal) {
+          _done = true;
+        } else if (reconnect) {
+          _done = false;
+          _statusMessage = '正在恢复日志连接';
+        }
+      }
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.jumpTo(
+          _scrollController.position.maxScrollExtent,
+        );
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -1657,30 +1715,14 @@ class _SubscriptionPullStreamPageState
       autoReconnect: true,
       onEvent: (event) {
         if (!mounted) return;
-        setState(() {
-          if (event.event == 'done' &&
-              event.data == 'not_running' &&
-              _logs.isEmpty) {
-            _statusMessage = '当前没有正在运行的拉取任务';
-          } else {
-            _logs.add(event.data);
-          }
-          if (event.event == 'done' && event.data != 'reconnect') {
-            _done = true;
-          }
-        });
-        Future.delayed(const Duration(milliseconds: 50), () {
-          if (_scrollController.hasClients) {
-            _scrollController.jumpTo(
-              _scrollController.position.maxScrollExtent,
-            );
-          }
-        });
+        _queueLogEvent(event.event, event.data);
       },
       onDone: () {
+        _flushPendingLogEvents();
         if (mounted) setState(() => _done = true);
       },
       onError: (_) {
+        _flushPendingLogEvents();
         if (mounted) {
           setState(() {
             _done = true;
@@ -1693,6 +1735,8 @@ class _SubscriptionPullStreamPageState
 
   @override
   void dispose() {
+    _logFlushTimer?.cancel();
+    _pendingLogEvents.clear();
     _sseClient.close();
     _scrollController.dispose();
     super.dispose();
