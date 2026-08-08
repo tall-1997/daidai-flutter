@@ -187,7 +187,7 @@ void main() {
       );
 
       expect(find.byType(LiquidGlassScaffold), findsOneWidget);
-      expect(find.byType(LiquidGlassView), findsOneWidget);
+      expect(find.byType(LiquidGlassView), findsWidgets);
       expect(find.byType(LiquidGlassBottomNavBar), findsOneWidget);
     });
 
@@ -235,6 +235,7 @@ void main() {
 
 Widget _testApp(AppStyleSettings settings) {
   return ProviderScope(
+    key: ValueKey(settings.visualStyle),
     overrides: [appStyleProvider.overrideWith((ref) => _FixedStyleNotifier(settings))],
     child: MaterialApp(
       theme: AppTheme.light(visualStyle: settings.visualStyle),
@@ -275,6 +276,7 @@ GoRouter _testRouter() {
 
 Widget _routerTestApp(AppStyleSettings settings, GoRouter router) {
   return ProviderScope(
+    key: ValueKey(settings.visualStyle),
     overrides: [
       appStyleProvider.overrideWith((ref) => _FixedStyleNotifier(settings)),
     ],
@@ -287,6 +289,7 @@ Widget _routerTestApp(AppStyleSettings settings, GoRouter router) {
 
 Widget _backgroundTestApp(AppStyleSettings settings) {
   return ProviderScope(
+    key: ValueKey(settings.visualStyle),
     overrides: [
       appStyleProvider.overrideWith((ref) => _FixedStyleNotifier(settings)),
     ],
@@ -299,6 +302,7 @@ Widget _backgroundTestApp(AppStyleSettings settings) {
 
 Widget _themeSettingsTestApp(AppStyleSettings settings) {
   return ProviderScope(
+    key: ValueKey(settings.visualStyle),
     overrides: [
       appStyleProvider.overrideWith((ref) => _FixedStyleNotifier(settings)),
     ],

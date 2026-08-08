@@ -115,7 +115,10 @@ class AppListTile extends ConsumerWidget {
                 borderRadius: 14,
                 performanceMode: true,
               ),
-              child: _buildTile(isLight),
+              child: Material(
+                color: Colors.transparent,
+                child: _buildTile(isLight),
+              ),
             ),
     );
   }
