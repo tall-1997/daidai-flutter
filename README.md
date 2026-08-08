@@ -1,6 +1,6 @@
 # 呆呆面板 Flutter
 
-呆呆面板 Flutter 是面向 Android 和 iOS 的移动端客户端，用于连接[呆呆面板](https://github.com/linzixuanzz/daidai-panel)服务并在手机端管理定时任务、脚本、环境变量、依赖、安全设置和开放 API。项目基于 [Dumb-Panel-APP](https://github.com/linzixuanzz/Dumb-Panel-APP) 演进而来，采用 Riverpod 状态管理和 GoRouter 路由，界面风格为液态玻璃 (Liquid Glass)。
+呆呆面板 Flutter 是面向 Android 和 iOS 的移动端客户端，用于连接[呆呆面板](https://github.com/linzixuanzz/daidai-panel)服务并在手机端管理定时任务、脚本、环境变量、依赖、安全设置和开放 API。项目基于 [Dumb-Panel-APP](https://github.com/linzixuanzz/Dumb-Panel-APP) 演进而来，采用 Riverpod 状态管理和 GoRouter 路由，提供低 GPU 占用的 Pure Flat 默认界面与可选的 Liquid Glass 视觉风格。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B.svg?logo=flutter)](https://flutter.dev)
@@ -11,11 +11,30 @@
 
 ## 版本
 
-- App 版本：`v0.1.56`
+- App 版本：`v0.1.60`
 - Dart SDK：`>=3.11.3`
 - 适配面板：`v2.3.0+`
 
 ## 更新说明
+
+### v0.1.60
+
+- 新增 Pure Flat 纯扁平视觉风格，并设为新安装及升级后的默认风格。
+- Pure Flat 使用 Material 控件、不透明内容表面和无模糊背景原图，降低常用页面的 GPU 渲染负担。
+- 主题设置支持在 Pure Flat 与 Liquid Glass 间切换，视觉风格与浅色、深色、跟随系统模式相互独立。
+- Liquid Glass 保留背景模糊、折射和现有玻璃控件，切换后继续使用已保存的模糊强度。
+- 增加视觉状态持久化、启动加载竞态和双渲染路径回归测试。
+
+### v0.1.59
+
+- 修复 HTTPS 域名场景下登录长时间无响应的问题。
+- 增强 TLS、DNS、连接超时和面板健康响应诊断。
+- 优化首次连接的初始化状态检查与登录阶段提示。
+
+### v0.1.58
+
+- 完成 daidai-panel v3.0.1 上游契约兼容与数据安全更新。
+- 修复任务和环境变量导入，补齐终止状态、通知配置、订阅鉴权与动态系统配置。
 
 ### v0.1.56
 
