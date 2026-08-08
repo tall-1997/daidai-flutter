@@ -362,9 +362,10 @@ class AppStyleSlider extends ConsumerWidget {
         value: value,
         layout: LiquidGlassSliderLayout(width: constraints.maxWidth),
         activeColor: activeColor,
-        inactiveColor: inactiveColor,
+        inactiveColor:
+            inactiveColor ?? Theme.of(context).colorScheme.outlineVariant,
         pixelRatio: 0.8,
-        onChanged: onChanged,
+        onChanged: onChanged ?? (_) {},
       ),
     );
   }
