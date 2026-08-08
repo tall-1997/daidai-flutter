@@ -5,6 +5,7 @@ import 'package:daidai_app/shared/widgets/app_background.dart';
 import 'package:daidai_app/shared/widgets/app_card.dart';
 import 'package:daidai_app/shared/widgets/main_scaffold.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -171,6 +172,37 @@ void main() {
       expect(find.byType(LiquidGlassScaffold), findsNothing);
       expect(find.byType(LiquidGlassView), findsNothing);
       expect(find.byType(LiquidGlassBottomNavBar), findsNothing);
+    });
+
+    testWidgets('Pure Flat background extends behind the status bar', (
+      tester,
+    ) async {
+      final router = _testRouter();
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        _routerTestApp(
+          const AppStyleSettings(visualStyle: AppVisualStyle.pureFlat),
+          router,
+        ),
+      );
+
+      final overlayFinder = find.byKey(const ValueKey('pure-flat-system-ui'));
+      final overlay = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
+        overlayFinder,
+      );
+      expect(overlay.value.statusBarColor, Colors.transparent);
+      expect(overlay.value.systemStatusBarContrastEnforced, isFalse);
+
+      final scaffoldFinder = find.ancestor(
+        of: find.byType(NavigationBar),
+        matching: find.byType(Scaffold),
+      );
+      final scaffold = tester.widget<Scaffold>(scaffoldFinder.first);
+      final body = scaffold.body! as Stack;
+      expect(body.children.first, isNot(isA<SafeArea>()));
+      expect(body.children.last, isA<SafeArea>());
+      expect(find.byType(LiquidGlassView), findsNothing);
     });
 
     testWidgets('Liquid Glass main shell retains liquid glass page widgets', (

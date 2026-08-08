@@ -220,25 +220,35 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
           Container(color: Theme.of(context).scaffoldBackgroundColor);
     }
 
+    final flatOverlayStyle = SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+      systemStatusBarContrastEnforced: false,
+    );
     final content = PopScope<void>(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) => _handleBackPress(didPop),
       child: isFlat
-          ? Scaffold(
-              backgroundColor: Colors.transparent,
-              body: SafeArea(
-                child: Stack(
+          ? AnnotatedRegion<SystemUiOverlayStyle>(
+              key: const ValueKey('pure-flat-system-ui'),
+              value: flatOverlayStyle,
+              child: Scaffold(
+                backgroundColor: Colors.transparent,
+                body: Stack(
                   fit: StackFit.expand,
                   children: [
                     backgroundWidget,
-                    Material(
-                      type: MaterialType.transparency,
-                      child: SizedBox.expand(child: widget.child),
+                    SafeArea(
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: SizedBox.expand(child: widget.child),
+                      ),
                     ),
                   ],
                 ),
+                bottomNavigationBar: _buildFlatBottomBar(context, idx),
               ),
-              bottomNavigationBar: _buildFlatBottomBar(context, idx),
             )
           : LiquidGlassScaffold(
               pixelRatio: 0.65,
