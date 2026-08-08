@@ -11,6 +11,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/task_log.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../shared/utils/ansi_text.dart';
+import '../../../shared/utils/bounded_log_buffer.dart';
 import '../../../shared/utils/log_background.dart';
 import '../../../shared/widgets/app_card.dart';
 
@@ -85,9 +86,7 @@ class _LogStreamPageState extends State<LogStreamPage> {
       setState(() {
         _taskId = log.taskId;
         _hasRawLog = (log.logPath?.trim().isNotEmpty ?? false);
-        _lines
-          ..clear()
-          ..addAll(historyLines);
+        replaceBoundedLogEntries(_lines, historyLines);
         _done = !log.isRunning;
         _loading = false;
         _status = log.isRunning ? '连接中...' : log.statusText;
@@ -130,7 +129,7 @@ class _LogStreamPageState extends State<LogStreamPage> {
             _flushTimer?.cancel();
             _flushTimer = null;
             setState(() {
-              _lines.addAll(_pendingLines);
+              appendBoundedLogEntries(_lines, _pendingLines);
               _pendingLines.clear();
               _done = false;
               _status = '正在重连...';
@@ -146,7 +145,7 @@ class _LogStreamPageState extends State<LogStreamPage> {
           return;
         }
 
-        _pendingLines.addAll(newLines);
+        appendBoundedLogEntries(_pendingLines, newLines);
         _flushTimer ??= Timer(
           const Duration(milliseconds: 32),
           _flushPendingLines,
@@ -174,7 +173,7 @@ class _LogStreamPageState extends State<LogStreamPage> {
     }
 
     setState(() {
-      _lines.addAll(_pendingLines);
+      appendBoundedLogEntries(_lines, _pendingLines);
       _pendingLines.clear();
       _status = '运行中';
       _done = false;
@@ -189,7 +188,7 @@ class _LogStreamPageState extends State<LogStreamPage> {
     _flushTimer = null;
     final hasPendingLines = _pendingLines.isNotEmpty;
     setState(() {
-      _lines.addAll(_pendingLines);
+      appendBoundedLogEntries(_lines, _pendingLines);
       _pendingLines.clear();
       _done = true;
       _status = status;

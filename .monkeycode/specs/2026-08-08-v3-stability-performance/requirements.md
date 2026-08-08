@@ -2,7 +2,7 @@
 
 ## Introduction
 
-本需求覆盖 daidai-flutter 对 daidai-panel v3.0.0 的稳定性修复、功能补齐、残留清理和运行性能优化。交付保持当前 Android/iOS 产品范围与完整 Liquid Glass 视觉。
+本需求覆盖 daidai-flutter 对 daidai-panel v3.0.0 的稳定性修复、功能补齐、残留清理和运行性能优化。交付保持当前 Android/iOS 产品范围，以 Pure Flat 作为默认低成本渲染路径，并保留用户可选的 Liquid Glass 视觉。
 
 ## Glossary
 
@@ -12,6 +12,9 @@
 - **Reconnect event**: SSE 中 event 为 `done` 且 data 为 `reconnect` 的事件。
 - **Complete list**: 后端响应 total 范围内的全部列表项。
 - **Raw log**: Panel 磁盘中未经终端语义折叠的日志字节。
+- **Bounded log buffer**: 同时限制日志行数和字符总量的内存缓冲区。
+- **Foreground page**: App 位于前台且当前路由可见的页面。
+- **Request overlap**: 同一数据源的前一项请求仍在执行时开始后一项请求。
 
 ## Requirements
 
@@ -105,7 +108,7 @@
 2. App SHALL remove unreferenced local-panel endpoint declarations.
 3. App SHALL remove task scroll callbacks that invoke an empty pagination operation.
 4. App SHALL preserve task queued-state rendering, refresh-token rotation and standard multi-line SSE behavior.
-5. App SHALL retain current Liquid Glass visual structure and theme options.
+5. App SHALL retain Pure Flat as the default visual style and Liquid Glass as a user-selectable theme option.
 
 ### Requirement 9: Verification
 
@@ -117,3 +120,59 @@
 2. App SHALL provide tests for pagination page commit and rollback behavior.
 3. App SHALL provide parsing tests for raw-log ticket and session classification data.
 4. WHEN Flutter tooling is available, the delivery pipeline SHALL run formatting, analyze, tests, Android build and iOS build.
+
+### Requirement 10: Bounded runtime memory
+
+**User Story:** AS a mobile user, I want long-running log pages to retain a stable memory footprint, so that extended operations remain responsive.
+
+#### Acceptance Criteria
+
+1. WHEN a real-time log page appends output, App SHALL retain output within a shared maximum line count and maximum character count.
+2. WHEN retained output exceeds either limit, App SHALL discard the oldest complete lines until both limits are satisfied.
+3. WHEN a page closes, App SHALL release pending log events, timers, stream connections, subscriptions and controllers owned by the page.
+4. WHEN App decodes a configurable background image, App SHALL constrain the decoded dimensions to the current display requirements.
+
+### Requirement 11: Polling concurrency and lifecycle
+
+**User Story:** AS a mobile user, I want polling to reflect page visibility and request state, so that network, CPU and battery use remain controlled.
+
+#### Acceptance Criteria
+
+1. WHILE a request for a polling data source is active, App SHALL defer another request for the same data source.
+2. WHEN App enters a non-resumed lifecycle state, App SHALL pause page-owned periodic polling.
+3. WHEN App resumes and a polling page remains visible, App SHALL perform one refresh and resume the configured interval.
+4. WHEN a polling page has no active operation, App SHALL use an idle interval of at least five seconds.
+5. WHEN a refresh supersedes a pagination request, App SHALL restore a consistent loading state for the active request generation.
+
+### Requirement 12: Low-cost rendering paths
+
+**User Story:** AS a user on a resource-constrained device, I want visual effects to use predictable GPU resources, so that navigation and scrolling remain smooth.
+
+#### Acceptance Criteria
+
+1. WHILE Pure Flat is selected, App SHALL render page backgrounds, lock overlays and content surfaces without backdrop blur, refraction or real-time scene capture.
+2. WHILE Liquid Glass is selected, App SHALL limit page-level scene capture to one capture owner per visible route.
+3. WHEN App displays a content surface in Pure Flat, App SHALL use an opaque fill, zero elevation and at most one border.
+4. WHEN App navigates between application routes, App SHALL use a fade transition or an immediate transition.
+5. WHEN App renders an indeterminate progress animation, App SHALL keep the animation scoped to an active visible operation.
+
+### Requirement 13: Platform process isolation
+
+**User Story:** AS an Android user, I want privileged operations to preserve interface responsiveness, so that system commands cannot block the application frame thread.
+
+#### Acceptance Criteria
+
+1. WHEN Android starts a Root subprocess, App SHALL perform process creation, stream consumption and process waiting outside the platform main thread.
+2. WHILE a Root subprocess produces standard output and standard error, App SHALL consume both streams concurrently.
+3. IF a Root subprocess exceeds its operation timeout, App SHALL terminate the operation and return a bounded error result.
+4. WHEN a Root subprocess completes, App SHALL close process streams and release operation resources.
+
+### Requirement 14: Device performance verification
+
+**User Story:** AS a maintainer, I want repeatable profile evidence on constrained hardware, so that performance changes remain measurable.
+
+#### Acceptance Criteria
+
+1. WHEN a release candidate is profiled on a 60 Hz Android target, App SHALL record UI frame time, raster frame time and peak memory for primary lists and live logs.
+2. WHEN App remains in the background for a representative idle period, the verification record SHALL include polling activity and battery-impact observations.
+3. WHEN a rendering optimization changes image or glass processing, the verification record SHALL compare visual output in Pure Flat and Liquid Glass.

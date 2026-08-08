@@ -10,12 +10,30 @@ import io.flutter.plugin.common.MethodChannel
 import com.yzq.bsdiff.BsDiffTool
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 class MainActivity : FlutterActivity() {
     private val ROOT_CHANNEL = "com.daidai.app/root"
     private val INSTALL_CHANNEL = "com.daidai.panel/app_install"
     private val updateExecutor = Executors.newSingleThreadExecutor()
+    private val rootExecutor = ThreadPoolExecutor(
+        1,
+        1,
+        0L,
+        TimeUnit.MILLISECONDS,
+        ArrayBlockingQueue(8)
+    )
+    private val rootStreamExecutor = Executors.newFixedThreadPool(2)
+    private val destroyed = AtomicBoolean(false)
+    private val activeRootProcess = AtomicReference<Process?>(null)
+    private val maxRootOutputCharacters = 200_000
 
     private var isRootChecked = false
     private var isRootAvailable = false
@@ -26,17 +44,12 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, ROOT_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "isRooted" -> {
-                    result.success(isRooted())
+                    submitRootOperation(result) { Result.success(isRooted()) }
                 }
                 "executeAsRoot" -> {
                     val command = call.argument<String>("command")
                     if (command != null) {
-                        val output = executeAsRoot(command)
-                        if (output.isSuccess) {
-                            result.success(output.getOrNull())
-                        } else {
-                            result.error("ROOT_ERROR", output.exceptionOrNull()?.message, null)
-                        }
+                        submitRootOperation(result) { executeAsRoot(command) }
                     } else {
                         result.error("INVALID_ARGS", "Command is required", null)
                     }
@@ -44,12 +57,7 @@ class MainActivity : FlutterActivity() {
                 "readFileAsRoot" -> {
                     val path = call.argument<String>("path")
                     if (path != null) {
-                        val content = readFileAsRoot(path)
-                        if (content.isSuccess) {
-                            result.success(content.getOrNull())
-                        } else {
-                            result.error("ROOT_ERROR", content.exceptionOrNull()?.message, null)
-                        }
+                        submitRootOperation(result) { readFileAsRoot(path) }
                     } else {
                         result.error("INVALID_ARGS", "Path is required", null)
                     }
@@ -57,12 +65,7 @@ class MainActivity : FlutterActivity() {
                 "listDirectoryAsRoot" -> {
                     val path = call.argument<String>("path")
                     if (path != null) {
-                        val entries = listDirectoryAsRoot(path)
-                        if (entries.isSuccess) {
-                            result.success(entries.getOrNull())
-                        } else {
-                            result.error("ROOT_ERROR", entries.exceptionOrNull()?.message, null)
-                        }
+                        submitRootOperation(result) { listDirectoryAsRoot(path) }
                     } else {
                         result.error("INVALID_ARGS", "Path is required", null)
                     }
@@ -154,6 +157,38 @@ class MainActivity : FlutterActivity() {
 
     }
 
+    override fun onDestroy() {
+        destroyed.set(true)
+        activeRootProcess.getAndSet(null)?.destroy()
+        rootExecutor.shutdownNow()
+        rootStreamExecutor.shutdownNow()
+        updateExecutor.shutdownNow()
+        super.onDestroy()
+    }
+
+    private fun <T> deliverRootResult(result: MethodChannel.Result, output: Result<T>) {
+        if (destroyed.get()) return
+        runOnUiThread {
+            if (destroyed.get()) return@runOnUiThread
+            if (output.isSuccess) {
+                result.success(output.getOrNull())
+            } else {
+                result.error("ROOT_ERROR", output.exceptionOrNull()?.message, null)
+            }
+        }
+    }
+
+    private fun <T> submitRootOperation(
+        result: MethodChannel.Result,
+        operation: () -> Result<T>
+    ) {
+        try {
+            rootExecutor.execute { deliverRootResult(result, operation()) }
+        } catch (_: RejectedExecutionException) {
+            result.error("ROOT_BUSY", "Too many pending root operations", null)
+        }
+    }
+
     private fun installApk(path: String) {
         val apkFile = File(path)
         if (!apkFile.exists()) {
@@ -240,9 +275,8 @@ class MainActivity : FlutterActivity() {
             if (suExists) {
                 try {
                     val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
-                    val result = process.inputStream.bufferedReader().readText()
-                    process.waitFor()
-                    result.contains("uid=0")
+                    val result = consumeProcess(process)
+                    result.isSuccess && result.getOrNull()?.contains("uid=0") == true
                 } catch (e: Exception) {
                     suExists
                 }
@@ -257,17 +291,87 @@ class MainActivity : FlutterActivity() {
     private fun executeAsRoot(command: String): Result<String> {
         return try {
             val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
-            val output = process.inputStream.bufferedReader().readText()
-            val error = process.errorStream.bufferedReader().readText()
-            val exitCode = process.waitFor()
-
-            if (exitCode == 0) {
-                Result.success(output.trim())
-            } else {
-                Result.failure(Exception("Root command failed: $error"))
-            }
+            consumeProcess(process)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    private fun consumeProcess(process: Process): Result<String> {
+        activeRootProcess.set(process)
+        var outputFuture: Future<String>? = null
+        var errorFuture: Future<String>? = null
+
+        return try {
+            val outputTask = rootStreamExecutor.submit<String> {
+                process.inputStream.bufferedReader().use(::readBoundedOutput)
+            }
+            outputFuture = outputTask
+            val errorTask = rootStreamExecutor.submit<String> {
+                process.errorStream.bufferedReader().use(::readBoundedOutput)
+            }
+            errorFuture = errorTask
+
+            if (!waitForProcess(process, 30_000)) {
+                terminateProcess(process)
+                outputTask.cancel(true)
+                errorTask.cancel(true)
+                return Result.failure(Exception("Root command timed out"))
+            }
+
+            val output = outputTask.get(1, TimeUnit.SECONDS)
+            val error = errorTask.get(1, TimeUnit.SECONDS)
+            if (process.exitValue() == 0) {
+                Result.success(output.trim())
+            } else {
+                Result.failure(Exception("Root command failed: ${error.trim()}"))
+            }
+        } catch (e: Exception) {
+            terminateProcess(process)
+            outputFuture?.cancel(true)
+            errorFuture?.cancel(true)
+            Result.failure(e)
+        } finally {
+            activeRootProcess.compareAndSet(process, null)
+            runCatching { process.inputStream.close() }
+            runCatching { process.errorStream.close() }
+            runCatching { process.outputStream.close() }
+        }
+    }
+
+    private fun readBoundedOutput(reader: java.io.BufferedReader): String {
+        val output = StringBuilder()
+        val buffer = CharArray(8_192)
+        while (true) {
+            val count = reader.read(buffer)
+            if (count < 0) break
+            output.append(buffer, 0, count)
+            if (output.length > maxRootOutputCharacters) {
+                output.delete(0, output.length - maxRootOutputCharacters)
+            }
+        }
+        return output.toString()
+    }
+
+    private fun waitForProcess(process: Process, timeoutMillis: Long): Boolean {
+        val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis)
+        while (System.nanoTime() < deadline && !destroyed.get()) {
+            try {
+                process.exitValue()
+                return true
+            } catch (_: IllegalThreadStateException) {
+                Thread.sleep(50)
+            }
+        }
+        return false
+    }
+
+    private fun terminateProcess(process: Process) {
+        process.destroy()
+        if (waitForProcess(process, 1_000)) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            process.destroyForcibly()
+            waitForProcess(process, 1_000)
         }
     }
 

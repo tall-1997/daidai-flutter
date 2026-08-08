@@ -187,7 +187,7 @@ void main() {
       );
 
       expect(find.byType(LiquidGlassScaffold), findsOneWidget);
-      expect(find.byType(LiquidGlassView), findsWidgets);
+      expect(find.byType(LiquidGlassView), findsNothing);
     });
 
     testWidgets('AppBackground selects the matching render path', (

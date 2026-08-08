@@ -12,6 +12,7 @@ import '../../../shared/models/dependency.dart';
 import '../../../shared/models/python_runtime_info.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../shared/utils/ansi_text.dart';
+import '../../../shared/utils/bounded_log_buffer.dart';
 import '../../../shared/utils/log_background.dart';
 import '../../../shared/utils/time_utils.dart';
 import '../../../shared/widgets/app_card.dart';
@@ -1619,12 +1620,21 @@ class _DepLogStreamPageState extends ConsumerState<DepLogStreamPage> {
   final _sseClient = SseClient();
   final _scrollController = ScrollController();
   final _pendingLogEvents = <({String? event, String data})>[];
+  int _pendingLogCharacters = 0;
   Timer? _logFlushTimer;
   DependencyLogState _logState = const DependencyLogState();
   Color? _logBackgroundColor;
 
   void _queueLogEvent(String? event, String data) {
-    _pendingLogEvents.add((event: event, data: data));
+    final boundedData = <String>[];
+    appendBoundedLogEntries(boundedData, [data]);
+    final safeData = boundedData.join('\n');
+    if (_pendingLogEvents.length >= defaultMaxLogLines ||
+        _pendingLogCharacters + safeData.length > defaultMaxLogCharacters) {
+      _flushPendingLogEvents();
+    }
+    _pendingLogEvents.add((event: event, data: safeData));
+    _pendingLogCharacters += safeData.length;
     if (isTerminalSseEvent(event, data)) {
       _flushPendingLogEvents();
       return;
@@ -1642,6 +1652,7 @@ class _DepLogStreamPageState extends ConsumerState<DepLogStreamPage> {
 
     final events = List.of(_pendingLogEvents);
     _pendingLogEvents.clear();
+    _pendingLogCharacters = 0;
     setState(() {
       for (final event in events) {
         final reconnect = isReconnectSseEvent(event.event, event.data);
@@ -1727,6 +1738,7 @@ class _DepLogStreamPageState extends ConsumerState<DepLogStreamPage> {
   void dispose() {
     _logFlushTimer?.cancel();
     _pendingLogEvents.clear();
+    _pendingLogCharacters = 0;
     _sseClient.close();
     _scrollController.dispose();
     super.dispose();

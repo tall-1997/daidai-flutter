@@ -141,7 +141,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/boot',
-        builder: (_, state) => const AppBootPage(),
+        pageBuilder: (_, state) =>
+            const NoTransitionPage(child: AppBootPage()),
       ),
       GoRoute(
         path: '/server-config',
@@ -153,7 +154,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/login',
-        builder: (_, state) => const LoginPage(),
+        pageBuilder: (_, state) => const NoTransitionPage(child: LoginPage()),
       ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,

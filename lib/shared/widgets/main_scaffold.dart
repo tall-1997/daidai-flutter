@@ -176,11 +176,21 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     final blur = styleSettings.blurIntensity.clamp(0.0, 50.0);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isFlat = styleSettings.visualStyle == AppVisualStyle.pureFlat;
+    final mediaQuery = MediaQuery.of(context);
+    final cacheWidth =
+        (mediaQuery.size.width * mediaQuery.devicePixelRatio).round();
+    final cacheHeight =
+        (mediaQuery.size.height * mediaQuery.devicePixelRatio).round();
 
     Widget backgroundWidget;
     if (bg != null) {
-      final imageWidget = Image.file(
-        File(bg),
+      final imageWidget = Image(
+        image: ResizeImage(
+          FileImage(File(bg)),
+          width: cacheWidth,
+          height: cacheHeight,
+          policy: ResizeImagePolicy.fit,
+        ),
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
@@ -190,20 +200,17 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
       );
       if (!isFlat && blur > 0) {
         backgroundWidget = SizedBox.expand(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              imageWidget,
-              BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-                child: ColoredBox(
-                  color: isDark
-                      ? AppColors.darkPage.withAlpha(72)
-                      : Colors.white.withAlpha(28),
-                ),
+          child: Stack(fit: StackFit.expand, children: [
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+              child: imageWidget,
+            ),
+            ColoredBox(
+              color: isDark
+                  ? AppColors.darkPage.withAlpha(72)
+                  : Colors.white.withAlpha(28),
               ),
-            ],
-          ),
+          ]),
         );
       } else {
         backgroundWidget = imageWidget;
@@ -233,20 +240,20 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
               ),
               bottomNavigationBar: _buildFlatBottomBar(context, idx),
             )
-      : LiquidGlassScaffold(
+          : LiquidGlassScaffold(
               pixelRatio: 0.65,
               realTimeCapture: true,
               useSync: false,
               safeArea: true,
-              body: LiquidGlassView(
-                pixelRatio: 0.7,
-                realTimeCapture: false,
-                useSync: true,
-                backgroundWidget: backgroundWidget,
-                child: Material(
-                  type: MaterialType.transparency,
-                  child: SizedBox.expand(child: widget.child),
-                ),
+              body: Stack(
+                fit: StackFit.expand,
+                children: [
+                  backgroundWidget,
+                  Material(
+                    type: MaterialType.transparency,
+                    child: SizedBox.expand(child: widget.child),
+                  ),
+                ],
               ),
               bottomNavigationBar: _buildBottomBar(context, idx),
             ),

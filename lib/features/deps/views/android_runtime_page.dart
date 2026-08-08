@@ -8,6 +8,7 @@ import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/sse_protocol.dart';
 import '../../../shared/utils/api_utils.dart';
+import '../../../shared/utils/bounded_log_buffer.dart';
 import '../../../shared/widgets/app_async_state.dart';
 import '../../../shared/widgets/app_card.dart';
 
@@ -69,7 +70,9 @@ class _AndroidRuntimePageState extends State<AndroidRuntimePage> {
       if (currentEvent == 'done') {
         terminalResult = message.trim().toLowerCase();
       }
-      if (mounted) setState(() => _logs.add(message));
+      if (mounted) {
+        setState(() => appendBoundedLogEntries(_logs, [message]));
+      }
       currentEvent = null;
       dataLines.clear();
     }

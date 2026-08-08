@@ -14,6 +14,7 @@ import '../../../core/storage/secure_storage.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../shared/utils/ansi_text.dart';
+import '../../../shared/utils/bounded_log_buffer.dart';
 import '../../../shared/utils/log_background.dart';
 import '../../../shared/utils/time_utils.dart';
 import '../../tasks/views/task_form_page.dart';
@@ -2738,7 +2739,8 @@ class _ScriptDebugRunSheet extends StatefulWidget {
   State<_ScriptDebugRunSheet> createState() => _ScriptDebugRunSheetState();
 }
 
-class _ScriptDebugRunSheetState extends State<_ScriptDebugRunSheet> {
+class _ScriptDebugRunSheetState extends State<_ScriptDebugRunSheet>
+    with WidgetsBindingObserver {
   final ScrollController _scrollController = ScrollController();
   final List<String> _logs = [];
   bool _loading = true;
@@ -2747,11 +2749,15 @@ class _ScriptDebugRunSheetState extends State<_ScriptDebugRunSheet> {
   String _statusText = '启动中...';
   Timer? _pollTimer;
   bool _pollRequestRunning = false;
+  bool _appResumed = true;
   Color? _logBackgroundColor;
 
   @override
   void initState() {
     super.initState();
+    _appResumed =
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    WidgetsBinding.instance.addObserver(this);
     Future.microtask(() async {
       final color = await loadPanelLogBackgroundColor();
       if (mounted) {
@@ -2759,14 +2765,34 @@ class _ScriptDebugRunSheetState extends State<_ScriptDebugRunSheet> {
       }
     });
     _loadLogs();
+    _startPolling();
+  }
+
+  void _startPolling() {
+    if (_done || !_appResumed || _pollTimer != null) return;
     _pollTimer = Timer.periodic(const Duration(seconds: 1), (_) => _loadLogs());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pollTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _appResumed = state == AppLifecycleState.resumed;
+    if (!_appResumed) {
+      _pollTimer?.cancel();
+      _pollTimer = null;
+      return;
+    }
+    if (!_done) {
+      _loadLogs();
+      _startPolling();
+    }
   }
 
   Future<void> _loadLogs() async {
@@ -2797,9 +2823,7 @@ class _ScriptDebugRunSheetState extends State<_ScriptDebugRunSheet> {
       }
 
       setState(() {
-        _logs
-          ..clear()
-          ..addAll(nextLogs);
+        replaceBoundedLogEntries(_logs, nextLogs);
         _done = done;
         _loading = false;
         _statusText = _buildStatusText(status, exitCode, done);
@@ -2811,6 +2835,7 @@ class _ScriptDebugRunSheetState extends State<_ScriptDebugRunSheet> {
 
       if (done) {
         _pollTimer?.cancel();
+        _pollTimer = null;
       }
     } catch (_) {
       if (!mounted) {

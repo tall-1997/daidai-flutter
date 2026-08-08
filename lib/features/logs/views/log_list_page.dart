@@ -64,7 +64,11 @@ class LogListState {
 class LogListNotifier extends StateNotifier<LogListState> {
   LogListNotifier() : super(const LogListState());
   int _page = 1;
-  int _loadRequestId = 0;
+  bool _loadInFlight = false;
+  bool _refreshInFlight = false;
+  bool _refreshQueued = false;
+  bool _silentRefreshQueued = false;
+  int _queryGeneration = 0;
 
   Map<String, dynamic> _currentQueryParams({
     required int page,
@@ -83,18 +87,25 @@ class LogListNotifier extends StateNotifier<LogListState> {
     return params;
   }
 
-  Future<void> load({bool refresh = false}) async {
-    final requestId = ++_loadRequestId;
-    if (refresh) _page = 1;
+  Future<void> load({bool refresh = false, int? targetPage}) async {
+    if (_loadInFlight || _refreshInFlight) {
+      if (refresh) _refreshQueued = true;
+      return;
+    }
+
+    _loadInFlight = true;
+    final generation = _queryGeneration;
+    final requestedPage = refresh ? 1 : targetPage ?? _page;
     state = state.copyWith(loading: true, error: null);
     try {
       final response = await DioClient.instance.dio.get(
         ApiEndpoints.logs,
-        queryParameters: _currentQueryParams(page: _page),
+        queryParameters: _currentQueryParams(page: requestedPage),
       );
       final paginated = extractPaginated(response.data);
       final items = paginated.items.map((e) => TaskLog.fromJson(e)).toList();
-      if (requestId != _loadRequestId) return;
+      if (generation != _queryGeneration) return;
+      _page = requestedPage;
       state = state.copyWith(
         logs: refresh ? items : [...state.logs, ...items],
         total: paginated.total,
@@ -102,23 +113,33 @@ class LogListNotifier extends StateNotifier<LogListState> {
         error: null,
       );
     } catch (error) {
-      if (requestId != _loadRequestId) return;
-      if (!refresh && _page > 1) _page--;
+      if (generation != _queryGeneration) return;
       state = state.copyWith(
         loading: false,
         error: extractErrorMessage(error, '日志加载失败'),
       );
+    } finally {
+      _loadInFlight = false;
+      await _runQueuedRefresh();
     }
   }
 
   Future<void> loadMore() async {
-    if (state.loading || state.logs.length >= state.total) return;
-    _page++;
-    await load();
+    if (_loadInFlight ||
+        _refreshInFlight ||
+        state.logs.length >= state.total) {
+      return;
+    }
+    await load(targetPage: _page + 1);
   }
 
   Future<void> refreshFirstPage() async {
-    final requestId = ++_loadRequestId;
+    if (_loadInFlight || _refreshInFlight) {
+      _silentRefreshQueued = true;
+      return;
+    }
+    _refreshInFlight = true;
+    final generation = _queryGeneration;
     try {
       final response = await DioClient.instance.dio.get(
         ApiEndpoints.logs,
@@ -126,29 +147,50 @@ class LogListNotifier extends StateNotifier<LogListState> {
       );
       final paginated = extractPaginated(response.data);
       final firstPage = paginated.items.map(TaskLog.fromJson).toList();
-      if (requestId != _loadRequestId) return;
+      if (generation != _queryGeneration) return;
       final firstPageIds = firstPage.map((log) => log.id).toSet();
       final merged = [
         ...firstPage,
-        ...state.logs.where((log) => !firstPageIds.contains(log.id)),
-      ];
+        ...state.logs
+            .where((log) => !firstPageIds.contains(log.id)),
+      ].take(paginated.total).toList();
       state = state.copyWith(logs: merged, total: paginated.total, error: null);
     } catch (_) {
       // 自动刷新失败时保留当前分页和滚动内容。
+    } finally {
+      _refreshInFlight = false;
+      await _runQueuedRefresh();
+    }
+  }
+
+  Future<void> _runQueuedRefresh() async {
+    if (_loadInFlight || _refreshInFlight) return;
+    if (_refreshQueued) {
+      _refreshQueued = false;
+      _silentRefreshQueued = false;
+      await load(refresh: true);
+      return;
+    }
+    if (_silentRefreshQueued) {
+      _silentRefreshQueued = false;
+      await refreshFirstPage();
     }
   }
 
   void setKeyword(String keyword) {
+    _queryGeneration++;
     state = state.copyWith(keyword: keyword);
     load(refresh: true);
   }
 
   void setTaskIdFilter(String taskId) {
+    _queryGeneration++;
     state = state.copyWith(taskIdFilter: taskId);
     load(refresh: true);
   }
 
   void setStatusFilter(int? status) {
+    _queryGeneration++;
     state = state.copyWith(
       statusFilter: status,
       resetStatusFilter: status == null,
@@ -223,17 +265,22 @@ class LogListPage extends ConsumerStatefulWidget {
   ConsumerState<LogListPage> createState() => _LogListPageState();
 }
 
-class _LogListPageState extends ConsumerState<LogListPage> {
+class _LogListPageState extends ConsumerState<LogListPage>
+    with WidgetsBindingObserver {
   final _scrollController = ScrollController();
   final _searchController = TextEditingController();
   Timer? _refreshTimer;
   Timer? _debounce;
   bool _selectionMode = false;
+  bool _appResumed = true;
   final Set<int> _selectedIds = <int>{};
 
   @override
   void initState() {
     super.initState();
+    _appResumed =
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    WidgetsBinding.instance.addObserver(this);
     Future.microtask(
       () => ref.read(logListProvider.notifier).load(refresh: true),
     );
@@ -247,6 +294,7 @@ class _LogListPageState extends ConsumerState<LogListPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _debounce?.cancel();
     _refreshTimer?.cancel();
     _searchController.dispose();
@@ -256,7 +304,7 @@ class _LogListPageState extends ConsumerState<LogListPage> {
 
   void _syncAutoRefresh(LogListState state) {
     final hasRunning = state.logs.any((log) => log.isRunning);
-    if (hasRunning) {
+    if (hasRunning && _appResumed) {
       _refreshTimer ??= Timer.periodic(const Duration(seconds: 5), (_) {
         ref.read(logListProvider.notifier).refreshFirstPage();
       });
@@ -264,6 +312,20 @@ class _LogListPageState extends ConsumerState<LogListPage> {
       _refreshTimer?.cancel();
       _refreshTimer = null;
     }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _appResumed = state == AppLifecycleState.resumed;
+    if (!_appResumed) {
+      _refreshTimer?.cancel();
+      _refreshTimer = null;
+      return;
+    }
+
+    final notifier = ref.read(logListProvider.notifier);
+    notifier.refreshFirstPage();
+    _syncAutoRefresh(ref.read(logListProvider));
   }
 
   void _resetScroll() {

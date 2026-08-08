@@ -11,6 +11,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/subscription.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../shared/utils/ansi_text.dart';
+import '../../../shared/utils/bounded_log_buffer.dart';
 import '../../../shared/utils/log_background.dart';
 import '../../../shared/utils/time_utils.dart';
 import '../../../shared/widgets/app_card.dart';
@@ -1929,13 +1930,22 @@ class _SubscriptionPullStreamPageState
   final _logs = <String>[];
   final _scrollController = ScrollController();
   final _pendingLogEvents = <({String? event, String data})>[];
+  int _pendingLogCharacters = 0;
   Timer? _logFlushTimer;
   bool _done = false;
   String? _statusMessage;
   Color? _logBackgroundColor;
 
   void _queueLogEvent(String? event, String data) {
-    _pendingLogEvents.add((event: event, data: data));
+    final boundedData = <String>[];
+    appendBoundedLogEntries(boundedData, [data]);
+    final safeData = boundedData.join('\n');
+    if (_pendingLogEvents.length >= defaultMaxLogLines ||
+        _pendingLogCharacters + safeData.length > defaultMaxLogCharacters) {
+      _flushPendingLogEvents();
+    }
+    _pendingLogEvents.add((event: event, data: safeData));
+    _pendingLogCharacters += safeData.length;
     if (isTerminalSseEvent(event, data)) {
       _flushPendingLogEvents();
       return;
@@ -1953,6 +1963,7 @@ class _SubscriptionPullStreamPageState
 
     final events = List.of(_pendingLogEvents);
     _pendingLogEvents.clear();
+    _pendingLogCharacters = 0;
     setState(() {
       for (final event in events) {
         final data = event.data.trim();
@@ -1963,7 +1974,7 @@ class _SubscriptionPullStreamPageState
             _logs.isEmpty) {
           _statusMessage = '当前没有正在运行的拉取任务';
         } else {
-          _logs.add(event.data);
+          appendBoundedLogEntries(_logs, [event.data]);
         }
         if (terminal) {
           _done = true;
@@ -2023,6 +2034,7 @@ class _SubscriptionPullStreamPageState
   void dispose() {
     _logFlushTimer?.cancel();
     _pendingLogEvents.clear();
+    _pendingLogCharacters = 0;
     _sseClient.close();
     _scrollController.dispose();
     super.dispose();

@@ -19,6 +19,7 @@ import '../../../shared/models/task.dart';
 import '../../../shared/models/task_log.dart';
 import '../../../shared/utils/ansi_text.dart';
 import '../../../shared/utils/api_utils.dart';
+import '../../../shared/utils/bounded_log_buffer.dart';
 import '../../../shared/utils/import_payloads.dart';
 import '../../../shared/utils/time_utils.dart';
 import '../../../shared/utils/log_background.dart';
@@ -3217,12 +3218,13 @@ class TaskDetailSheet extends StatelessWidget {
   }
 }
 
-class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
+class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage>
+    with WidgetsBindingObserver {
   final ScrollController _scrollController = ScrollController();
   final _sseClient = SseClient();
   final _lines = <String>[];
   final _pendingLines = <String>[];
-  final _historyReplayBuffer = <String>[];
+  final _historyReplayCursor = LogReplayCursor();
   bool _loading = true;
   bool _done = false;
   bool _autoScroll = true;
@@ -3231,23 +3233,43 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
   Timer? _sseFlushTimer;
   int _pollAttempts = 0;
   bool _pollRequestRunning = false;
+  bool _appResumed = true;
+  bool _pollingDesired = false;
   Color? _logBackgroundColor;
 
   @override
   void initState() {
     super.initState();
+    _appResumed =
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    WidgetsBinding.instance.addObserver(this);
     _loadAppearance();
     Future.microtask(_init);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pollTimer?.cancel();
     _sseFlushTimer?.cancel();
     _pendingLines.clear();
     _sseClient.close();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _appResumed = state == AppLifecycleState.resumed;
+    if (!_appResumed) {
+      _pollTimer?.cancel();
+      _pollTimer = null;
+      return;
+    }
+    if (!_done && _pollingDesired) {
+      _pollLiveSnapshot();
+      _startPolling();
+    }
   }
 
   Future<void> _init() async {
@@ -3301,9 +3323,7 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
     _pendingLines.clear();
     setState(() {
       _loading = false;
-      _lines
-        ..clear()
-        ..addAll(logs);
+      replaceBoundedLogEntries(_lines, logs);
       _done = done && !shouldKeepPolling;
       _statusText = shouldKeepPolling
           ? '等待日志...'
@@ -3315,68 +3335,75 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
     }
 
     if (isRunning) {
+      _pollingDesired = false;
       _pollTimer?.cancel();
       _connectSSE(widget.taskId);
       return;
     }
 
     if (shouldKeepPolling) {
+      _pollingDesired = true;
       _startPolling();
       return;
     }
 
+    _pollingDesired = false;
     _pollTimer?.cancel();
   }
 
   void _startPolling() {
-    if (_pollTimer != null) {
+    _pollingDesired = true;
+    if (_pollTimer != null || !_appResumed) {
       return;
     }
     _pollAttempts = 0;
-    _pollTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
-      if (_pollRequestRunning) return;
-      _pollRequestRunning = true;
-      _pollAttempts++;
-      if (!mounted) {
-        _pollTimer?.cancel();
-        _pollTimer = null;
-        _pollRequestRunning = false;
-        return;
-      }
-      try {
-        final resp = await DioClient.instance.dio.get(
-          ApiEndpoints.taskLiveLogs(widget.taskId),
-        );
-        final data = extractData(resp.data);
-        if (data is Map<String, dynamic>) {
-          _applyLiveSnapshot(data);
-        }
-      } catch (_) {
-      } finally {
-        _pollRequestRunning = false;
-      }
-
-      if (_pollAttempts >= 15 && mounted && _statusText == '等待日志...') {
-        _pollTimer?.cancel();
-        _pollTimer = null;
-        setState(() {
-          _done = _lines.isNotEmpty;
-          _statusText = _lines.isEmpty ? '暂无日志' : '已完成';
-        });
-        if (_lines.isNotEmpty) {
-          _sendTaskCompletionNotification(widget.taskId, 'finished');
-        }
-      }
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _pollLiveSnapshot();
     });
+  }
+
+  Future<void> _pollLiveSnapshot() async {
+    if (_pollRequestRunning || !_appResumed) return;
+    _pollRequestRunning = true;
+    _pollAttempts++;
+    if (!mounted) {
+      _pollTimer?.cancel();
+      _pollTimer = null;
+      _pollRequestRunning = false;
+      return;
+    }
+    try {
+      final resp = await DioClient.instance.dio.get(
+        ApiEndpoints.taskLiveLogs(widget.taskId),
+      );
+      final data = extractData(resp.data);
+      if (data is Map<String, dynamic>) {
+        _applyLiveSnapshot(data);
+      }
+    } catch (_) {
+    } finally {
+      _pollRequestRunning = false;
+    }
+
+    if (_pollAttempts >= 15 && mounted && _statusText == '等待日志...') {
+      _pollingDesired = false;
+      _pollTimer?.cancel();
+      _pollTimer = null;
+      setState(() {
+        _done = true;
+        _statusText = _lines.isEmpty ? '暂无日志' : '已完成';
+      });
+      if (_lines.isNotEmpty) {
+        _sendTaskCompletionNotification(widget.taskId, 'finished');
+      }
+    }
   }
 
   void _connectSSE(int taskId) {
     _sseClient.close();
     _pollTimer?.cancel();
     _pollTimer = null;
-    _historyReplayBuffer
-      ..clear()
-      ..addAll(_lines);
+    _historyReplayCursor.reset(_lines, seekFullReplay: true);
     _sseClient.connect(
       path: ApiEndpoints.logStream(taskId),
       autoReconnect: true,
@@ -3385,11 +3412,12 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
         if (event.event == 'done') {
           if (isReconnectSseEvent(event.event, event.data)) {
             _flushPendingLines(done: false, statusText: '运行中');
-            _historyReplayBuffer
-              ..clear()
-              ..addAll(_lines);
+            _historyReplayCursor.reset(_lines, seekFullReplay: true);
             return;
           }
+          _pollingDesired = false;
+          _pollTimer?.cancel();
+          _pollTimer = null;
           _flushPendingLines(
             done: true,
             statusText: _statusFromStreamDone(event.data),
@@ -3402,7 +3430,7 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
         if (newLines.isEmpty) return;
         final dedupedLines = _consumeReplayLines(newLines);
         if (dedupedLines.isEmpty) return;
-        _pendingLines.addAll(dedupedLines);
+        appendBoundedLogEntries(_pendingLines, dedupedLines);
         _sseFlushTimer ??= Timer(
           const Duration(milliseconds: 32),
           _flushPendingLines,
@@ -3434,7 +3462,7 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
     if (pendingLines.isEmpty && done == null && statusText == null) return;
 
     setState(() {
-      _lines.addAll(pendingLines);
+      appendBoundedLogEntries(_lines, pendingLines);
       if (done != null) {
         _done = done;
       } else if (pendingLines.isNotEmpty) {
@@ -3452,23 +3480,7 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage> {
   }
 
   List<String> _consumeReplayLines(List<String> incomingLines) {
-    if (_historyReplayBuffer.isEmpty) {
-      return incomingLines;
-    }
-
-    final result = <String>[];
-    for (final line in incomingLines) {
-      if (_historyReplayBuffer.isNotEmpty &&
-          line == _historyReplayBuffer.first) {
-        _historyReplayBuffer.removeAt(0);
-        continue;
-      }
-
-      _historyReplayBuffer.clear();
-      result.add(line);
-    }
-
-    return result;
+    return _historyReplayCursor.consume(incomingLines);
   }
 
   String _statusFromLiveTask(double? status, {required bool done}) {
