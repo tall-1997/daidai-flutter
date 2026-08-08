@@ -8,6 +8,13 @@ import '../../../core/network/dio_client.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../dashboard/providers/dashboard_provider.dart';
+import '../../deps/views/dep_list_page.dart';
+import '../../envs/views/env_list_page.dart';
+import '../../logs/views/log_list_page.dart';
+import '../../scripts/views/script_list_page.dart';
+import '../../tasks/providers/task_provider.dart';
+import '../../tasks/providers/task_view_provider.dart';
+import '../../users/views/user_list_page.dart';
 
 class ServerConfigPage extends ConsumerStatefulWidget {
   const ServerConfigPage({super.key, this.manageMode = false});
@@ -165,6 +172,13 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
     DioClient.instance.setBaseUrl(finalUrl);
     if (!mounted) return;
     ref.invalidate(dashboardProvider);
+    ref.invalidate(taskProvider);
+    ref.invalidate(taskViewProvider);
+    ref.invalidate(depListProvider);
+    ref.invalidate(logListProvider);
+    ref.invalidate(envListProvider);
+    ref.invalidate(scriptProvider);
+    ref.invalidate(userListProvider);
     ref.read(authProvider.notifier).setUnauthenticated();
     context.go(skipAutoLogin ? '/login?manual=1' : '/boot');
   }

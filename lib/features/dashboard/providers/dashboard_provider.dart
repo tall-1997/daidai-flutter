@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/network/panel_capability_registry.dart';
 import '../../../shared/utils/api_utils.dart';
 
 String _formatBytes(dynamic bytes) {
@@ -91,7 +94,16 @@ class DashboardData {
 class DashboardNotifier extends StateNotifier<DashboardData> {
   DashboardNotifier() : super(const DashboardData());
 
+  int _loadId = 0;
+  String? _scope;
+
   Future<void> load() async {
+    final loadId = ++_loadId;
+    final scope = PanelCapabilityRegistry.currentScope;
+    if (_scope != scope) {
+      _scope = scope;
+      state = const DashboardData();
+    }
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = DioClient.instance.dio;
@@ -104,29 +116,8 @@ class DashboardNotifier extends StateNotifier<DashboardData> {
       final sysMap = sysData is Map
           ? Map<String, dynamic>.from(sysData)
           : <String, dynamic>{};
-
-      dynamic panelData;
-      try {
-        final panelResp = await dio.get(ApiEndpoints.panelSettings);
-        panelData = extractData(panelResp.data);
-      } catch (_) {}
-      if (panelData is Map) {
-        final title = panelData['panel_title']?.toString() ?? '';
-        if (title.isNotEmpty) {
-          sysMap['panel_title'] = title;
-        }
-      }
-
-      dynamic versionData;
-      try {
-        final versionResp = await dio.get(ApiEndpoints.systemVersion);
-        versionData = extractData(versionResp.data);
-      } catch (_) {}
-      if (versionData is Map) {
-        final version = versionData['version']?.toString() ?? '';
-        if (version.isNotEmpty) {
-          sysMap['panel_version'] = version;
-        }
+      if (loadId != _loadId || scope != PanelCapabilityRegistry.currentScope) {
+        return;
       }
       state = state.copyWith(
         system: sysMap,
@@ -135,8 +126,65 @@ class DashboardNotifier extends StateNotifier<DashboardData> {
             : const {},
         loading: false,
       );
+      unawaited(_loadEnhancements(loadId, scope, sysMap));
     } catch (e) {
+      if (loadId != _loadId || scope != PanelCapabilityRegistry.currentScope) {
+        return;
+      }
       state = state.copyWith(loading: false, error: '加载失败');
+    }
+  }
+
+  Future<void> _loadEnhancements(
+    int loadId,
+    String scope,
+    Map<String, dynamic> system,
+  ) async {
+    final results = await Future.wait([
+      _loadEnhancement(
+        PanelCapability.panelSettings,
+        ApiEndpoints.panelSettings,
+        scope,
+      ),
+      _loadEnhancement(
+        PanelCapability.systemVersion,
+        ApiEndpoints.systemVersion,
+        scope,
+      ),
+    ]);
+    if (loadId != _loadId || scope != PanelCapabilityRegistry.currentScope) {
+      return;
+    }
+    final nextSystem = Map<String, dynamic>.from(system);
+    final panelData = results[0];
+    if (panelData is Map) {
+      final title = panelData['panel_title']?.toString() ?? '';
+      if (title.isNotEmpty) nextSystem['panel_title'] = title;
+    }
+    final versionData = results[1];
+    if (versionData is Map) {
+      final version = versionData['version']?.toString() ?? '';
+      if (version.isNotEmpty) nextSystem['panel_version'] = version;
+    }
+    state = state.copyWith(system: nextSystem);
+  }
+
+  Future<dynamic> _loadEnhancement(
+    PanelCapability capability,
+    String endpoint,
+    String scope,
+  ) async {
+    if (!PanelCapabilityRegistry.shouldProbe(capability, scope: scope) &&
+        PanelCapabilityRegistry.isUnsupported(capability, scope: scope)) {
+      return null;
+    }
+    try {
+      final response = await DioClient.instance.dio.get(endpoint);
+      PanelCapabilityRegistry.recordSupported(capability, scope: scope);
+      return extractData(response.data);
+    } catch (error) {
+      PanelCapabilityRegistry.recordFailure(capability, error, scope: scope);
+      return null;
     }
   }
 }

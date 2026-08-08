@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/storage/secure_storage.dart';
-import '../../dashboard/providers/dashboard_provider.dart';
 
 class AppBootPage extends ConsumerStatefulWidget {
   const AppBootPage({super.key});
@@ -45,9 +44,6 @@ class _AppBootPageState extends ConsumerState<AppBootPage> {
     // 7 天可信会话内，直接进首页，不再重复请求登录接口。
     final authState = ref.read(authProvider);
     if (authState.status == AuthStatus.authenticated) {
-      try {
-        ref.invalidate(dashboardProvider);
-      } catch (_) {}
       _go('/dashboard');
       return;
     }
@@ -119,11 +115,6 @@ class _AppBootPageState extends ConsumerState<AppBootPage> {
         ),
       );
       if (!mounted) return;
-
-      try {
-        ref.invalidate(dashboardProvider);
-        await ref.read(dashboardProvider.notifier).load();
-      } catch (_) {}
 
       _go('/dashboard');
       return;

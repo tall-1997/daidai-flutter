@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../auth/auth_token_snapshot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../shared/models/user.dart';
 
@@ -90,6 +91,7 @@ class SecureStorage {
     try {
       await _storage.write(key: _accessTokenKey, value: accessToken);
       await _storage.write(key: _refreshTokenKey, value: refreshToken);
+      AuthTokenSnapshot.setAccessToken(accessToken);
     } catch (error, stackTrace) {
       await _restoreValue(_accessTokenKey, previousAccessToken);
       await _restoreValue(_refreshTokenKey, previousRefreshToken);
@@ -103,12 +105,15 @@ class SecureStorage {
   static Future<String?> getRefreshToken() =>
       _storage.read(key: _refreshTokenKey);
 
-  static Future<void> saveAccessToken(String token) =>
-      _storage.write(key: _accessTokenKey, value: token);
+  static Future<void> saveAccessToken(String token) async {
+    await _storage.write(key: _accessTokenKey, value: token);
+    AuthTokenSnapshot.setAccessToken(token);
+  }
 
   static Future<void> clearTokens() async {
     await _storage.delete(key: _accessTokenKey);
     await _storage.delete(key: _refreshTokenKey);
+    AuthTokenSnapshot.clear();
   }
 
   static Future<void> saveTrustedLoginSession({
@@ -200,6 +205,7 @@ class SecureStorage {
       for (final entry in previousValues.entries) {
         await _restoreValue(entry.key, entry.value);
       }
+      AuthTokenSnapshot.setAccessToken(previousValues[_accessTokenKey]);
       Error.throwWithStackTrace(error, stackTrace);
     }
   }

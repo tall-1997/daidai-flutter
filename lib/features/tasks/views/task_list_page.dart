@@ -78,11 +78,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   void initState() {
     super.initState();
     Future.microtask(() async {
-      try {
-        await ref.read(taskViewProvider.notifier).load();
-      } catch (_) {
-        // 任务视图属于增强能力，失败时仍加载核心任务列表。
-      }
+      unawaited(ref.read(taskViewProvider.notifier).load());
       await _restoreTaskUiState();
       if (!mounted) {
         return;
@@ -651,7 +647,10 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     if (selectedGroup != null) {
       ref
           .read(taskProvider.notifier)
-          .setLabelFilter(selectedGroup.trim().isEmpty ? null : selectedGroup);
+          .setLabelFilter(
+            selectedGroup.trim().isEmpty ? null : selectedGroup,
+            reload: false,
+          );
     }
   }
 
@@ -830,25 +829,47 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   const SizedBox(width: 8),
                   Row(
                     children: [
-                      PopupMenuButton<int?>(
-                        tooltip: '任务视图',
-                        onSelected: (id) {
-                          if (id == -1) {
-                            context.push('/task-views');
-                            return;
-                          }
-                          final views = ref.read(taskViewProvider).items;
-                          final view = views.where((item) => item.id == id).firstOrNull;
-                          ref.read(taskProvider.notifier).setView(view?.filters, view?.sortRules);
-                        },
-                        itemBuilder: (_) => [
-                          const PopupMenuItem<int?>(value: null, child: Text('全部任务')),
-                          ...ref.watch(taskViewProvider).items.where((v) => !v.hidden).map((v) => PopupMenuItem<int?>(value: v.id, child: Text(v.name))),
-                          const PopupMenuDivider(),
-                          const PopupMenuItem<int?>(value: -1, child: Text('管理视图')),
-                        ],
-                        child: const _TaskGlassIconTarget(icon: Icons.view_list_outlined),
-                      ),
+                      if (ref.watch(taskViewProvider).supported)
+                        PopupMenuButton<int?>(
+                          tooltip: '任务视图',
+                          onSelected: (id) {
+                            if (id == -1) {
+                              context.push('/task-views');
+                              return;
+                            }
+                            final views = ref.read(taskViewProvider).items;
+                            final view = views
+                                .where((item) => item.id == id)
+                                .firstOrNull;
+                            ref
+                                .read(taskProvider.notifier)
+                                .setView(view?.filters, view?.sortRules);
+                          },
+                          itemBuilder: (_) => [
+                            const PopupMenuItem<int?>(
+                              value: null,
+                              child: Text('全部任务'),
+                            ),
+                            ...ref
+                                .watch(taskViewProvider)
+                                .items
+                                .where((view) => !view.hidden)
+                                .map(
+                                  (view) => PopupMenuItem<int?>(
+                                    value: view.id,
+                                    child: Text(view.name),
+                                  ),
+                                ),
+                            const PopupMenuDivider(),
+                            const PopupMenuItem<int?>(
+                              value: -1,
+                              child: Text('管理视图'),
+                            ),
+                          ],
+                          child: const _TaskGlassIconTarget(
+                            icon: Icons.view_list_outlined,
+                          ),
+                        ),
                       if (!_taskSortMode)
                         _TaskHeaderChipButton(
                           label: _selectionMode ? '取消' : '批量',

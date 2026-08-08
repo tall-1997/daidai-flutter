@@ -8,7 +8,6 @@ import '../../../core/network/dio_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/utils/api_utils.dart';
-import '../../dashboard/providers/dashboard_provider.dart';
 import '../widgets/geetest_captcha_dialog.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -251,11 +250,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ),
         );
       }
-
-      try {
-        ref.invalidate(dashboardProvider);
-        await ref.read(dashboardProvider.notifier).load();
-      } catch (_) {}
 
       if (mounted) {
         context.go('/dashboard');

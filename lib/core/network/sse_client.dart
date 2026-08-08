@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../auth/auth_token_snapshot.dart';
 import 'app_user_agent.dart';
 import '../network/dio_client.dart';
 import '../storage/secure_storage.dart';
@@ -58,7 +59,7 @@ class SseClient {
     if (_closed || generation != _generation) return;
 
     final baseUrl = DioClient.instance.baseUrl;
-    final token = await SecureStorage.getAccessToken();
+    final token = AuthTokenSnapshot.accessToken;
     if (_closed || generation != _generation) return;
     final url = Uri.parse('$baseUrl$path');
 

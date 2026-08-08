@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/network/panel_capability_registry.dart';
 import '../../../core/network/sse_client.dart';
 import '../../../core/network/sse_protocol.dart';
 import '../../../core/theme/app_theme.dart';
@@ -35,6 +36,7 @@ class DepListState {
   final String pythonDefaultVersion;
   final List<PythonRuntimeInfo> pythonRuntimes;
   final bool runtimeLoading;
+  final bool runtimeSupported;
   final String? error;
 
   const DepListState({
@@ -46,6 +48,7 @@ class DepListState {
     this.pythonDefaultVersion = '3.12',
     this.pythonRuntimes = const [],
     this.runtimeLoading = false,
+    this.runtimeSupported = true,
     this.error,
   });
 
@@ -58,6 +61,7 @@ class DepListState {
     String? pythonDefaultVersion,
     List<PythonRuntimeInfo>? pythonRuntimes,
     bool? runtimeLoading,
+    bool? runtimeSupported,
     String? error,
     bool clearError = false,
   }) {
@@ -71,6 +75,7 @@ class DepListState {
       pythonDefaultVersion: pythonDefaultVersion ?? this.pythonDefaultVersion,
       pythonRuntimes: pythonRuntimes ?? this.pythonRuntimes,
       runtimeLoading: runtimeLoading ?? this.runtimeLoading,
+      runtimeSupported: runtimeSupported ?? this.runtimeSupported,
       error: clearError ? null : error ?? this.error,
     );
   }
@@ -140,8 +145,10 @@ class DepMirrorConfig {
 }
 
 class DepListNotifier extends StateNotifier<DepListState> {
+  String? _scope;
   DepListNotifier() : super(const DepListState());
   int _loadRequestId = 0;
+  int _runtimeRequestId = 0;
   int _page = 1;
 
   Future<({List<Dependency> items, int total})> fetchByType(
@@ -174,6 +181,8 @@ class DepListNotifier extends StateNotifier<DepListState> {
     String? pythonVersion,
     bool refresh = true,
   }) async {
+    final scope = PanelCapabilityRegistry.currentScope;
+    _ensureScope(scope);
     final requestId = ++_loadRequestId;
     if (refresh) _page = 1;
     final nextType = type ?? state.selectedType;
@@ -221,12 +230,30 @@ class DepListNotifier extends StateNotifier<DepListState> {
   }
 
   Future<void> loadPythonRuntimes() async {
+    final scope = PanelCapabilityRegistry.currentScope;
+    _ensureScope(scope);
+    final requestId = ++_runtimeRequestId;
+    if (PanelCapabilityRegistry.isUnsupported(
+      PanelCapability.pythonRuntimes,
+      scope: scope,
+    )) {
+      state = state.copyWith(runtimeLoading: false, runtimeSupported: false);
+      return;
+    }
     state = state.copyWith(runtimeLoading: true);
     try {
       final resp = await DioClient.instance.dio.get(
         ApiEndpoints.depsPythonRuntimes,
       );
       final raw = resp.data;
+      if (requestId != _runtimeRequestId ||
+          scope != PanelCapabilityRegistry.currentScope) {
+        return;
+      }
+      PanelCapabilityRegistry.recordSupported(
+        PanelCapability.pythonRuntimes,
+        scope: scope,
+      );
       final map = raw is Map<String, dynamic>
           ? raw
           : raw is Map
@@ -258,10 +285,33 @@ class DepListNotifier extends StateNotifier<DepListState> {
             ? state.selectedPythonVersion
             : defaultVersion,
         runtimeLoading: false,
+        runtimeSupported: true,
       );
-    } catch (_) {
-      state = state.copyWith(runtimeLoading: false);
+    } catch (error) {
+      if (requestId != _runtimeRequestId ||
+          scope != PanelCapabilityRegistry.currentScope) {
+        return;
+      }
+      final capabilityState = PanelCapabilityRegistry.recordFailure(
+        PanelCapability.pythonRuntimes,
+        error,
+        scope: scope,
+      );
+      state = state.copyWith(
+        runtimeLoading: false,
+        runtimeSupported:
+            capabilityState != PanelCapabilityState.unsupported,
+      );
     }
+  }
+
+  void _ensureScope(String scope) {
+    if (_scope == scope) return;
+    _scope = scope;
+    _loadRequestId++;
+    _runtimeRequestId++;
+    _page = 1;
+    state = const DepListState();
   }
 
   Future<void> setDefaultPythonRuntime(String version) async {
@@ -377,34 +427,62 @@ class _DepListPageState extends ConsumerState<DepListPage> {
   }
 
   Future<void> _loadPageData() async {
-    await ref.read(depListProvider.notifier).loadPythonRuntimes();
+    final selectedType = ref.read(depListProvider).selectedType;
+    final initialPythonVersion = ref
+        .read(depListProvider)
+        .selectedPythonVersion;
     await Future.wait([
+      ref.read(depListProvider.notifier).loadPythonRuntimes(),
       ref.read(depListProvider.notifier).load(),
-      _loadCounts(),
+      _loadCounts(skipType: selectedType),
     ]);
+    if (mounted) {
+      final state = ref.read(depListProvider);
+      if (state.selectedPythonVersion != initialPythonVersion) {
+        if (selectedType == 'python') {
+          await ref.read(depListProvider.notifier).load();
+        } else {
+          final python = await ref
+              .read(depListProvider.notifier)
+              .fetchByType(
+                'python',
+                pythonVersion: state.selectedPythonVersion,
+              );
+          if (mounted) _counts = {..._counts, 'python': python.total};
+        }
+      }
+      if (!mounted) return;
+      final latestState = ref.read(depListProvider);
+      setState(() {
+        _counts = {..._counts, selectedType: latestState.total};
+      });
+    }
     _trimSelection();
   }
 
-  Future<void> _loadCounts() async {
+  Future<void> _loadCounts({String? skipType}) async {
     final notifier = ref.read(depListProvider.notifier);
     final state = ref.read(depListProvider);
     try {
-      final results = await Future.wait([
-        notifier.fetchByType('nodejs'),
-        notifier.fetchByType(
-          'python',
-          pythonVersion: state.selectedPythonVersion,
+      final types = ['nodejs', 'python', 'linux']
+          .where((type) => type != skipType)
+          .toList();
+      final results = await Future.wait(
+        types.map(
+          (type) => notifier.fetchByType(
+            type,
+            pythonVersion: type == 'python' ? state.selectedPythonVersion : null,
+          ),
         ),
-        notifier.fetchByType('linux'),
-      ]);
+      );
       if (!mounted) {
         return;
       }
       setState(() {
         _counts = {
-          'nodejs': results[0].total,
-          'python': results[1].total,
-          'linux': results[2].total,
+          ..._counts,
+          for (var index = 0; index < types.length; index++)
+            types[index]: results[index].total,
         };
         _countLoading = false;
       });
@@ -1214,7 +1292,7 @@ class _DepListPageState extends ConsumerState<DepListPage> {
               ),
             ),
             const SizedBox(height: 10),
-            if (state.selectedType == 'python') ...[
+            if (state.selectedType == 'python' && state.runtimeSupported) ...[
               _buildPythonRuntimePanel(state, isLight),
               const SizedBox(height: 10),
             ],

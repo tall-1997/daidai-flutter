@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:daidai_app/core/auth/auth_interceptor.dart';
+import 'package:daidai_app/core/auth/auth_token_snapshot.dart';
 import 'package:daidai_app/core/network/api_endpoints.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,7 +29,27 @@ class _UnauthorizedAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+class _SuccessAdapter implements HttpClientAdapter {
+  Map<String, dynamic>? receivedHeaders;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    receivedHeaders = Map<String, dynamic>.from(options.headers);
+    return ResponseBody.fromString('{}', 200);
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
 void main() {
+  setUp(AuthTokenSnapshot.clear);
+  tearDown(AuthTokenSnapshot.clear);
+
   group('AuthInterceptor public authentication paths', () {
     test('recognizes login bootstrap endpoints', () {
       expect(AuthInterceptor.isPublicAuthPath(ApiEndpoints.checkInit), isTrue);
@@ -52,6 +73,18 @@ void main() {
     test('keeps protected endpoints authenticated', () {
       expect(AuthInterceptor.isPublicAuthPath(ApiEndpoints.user), isFalse);
       expect(AuthInterceptor.isPublicAuthPath(ApiEndpoints.dashboard), isFalse);
+    });
+
+    test('reads protected request token from memory snapshot', () async {
+      final adapter = _SuccessAdapter();
+      final dio = Dio(BaseOptions(baseUrl: 'https://panel.example.com'))
+        ..httpClientAdapter = adapter
+        ..interceptors.add(AuthInterceptor());
+      AuthTokenSnapshot.setAccessToken('memory-token');
+
+      await dio.get(ApiEndpoints.dashboard);
+
+      expect(adapter.receivedHeaders?['Authorization'], 'Bearer memory-token');
     });
 
     test('removes stale auth and forwards a login 401 directly', () async {

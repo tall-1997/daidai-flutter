@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/models/user.dart';
 import '../storage/secure_storage.dart';
 import 'auth_service.dart';
+import 'auth_token_snapshot.dart';
 
 enum AuthStatus { unknown, unauthenticated, authenticated }
 
@@ -55,6 +56,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         token.isEmpty ||
         serverUrl == null ||
         serverUrl.isEmpty) {
+      AuthTokenSnapshot.clear();
       state = const AuthState(status: AuthStatus.unauthenticated);
       return;
     }
@@ -63,10 +65,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       serverUrl: serverUrl,
     );
     if (!trusted) {
+      AuthTokenSnapshot.clear();
       state = const AuthState(status: AuthStatus.unauthenticated);
       return;
     }
 
+    AuthTokenSnapshot.setAccessToken(token);
     final user = await SecureStorage.getUser();
     state = state.copyWith(
       status: AuthStatus.authenticated,
@@ -77,6 +81,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> restoreSession() async {
     final token = await SecureStorage.getAccessToken();
+    AuthTokenSnapshot.setAccessToken(token);
     if (token == null || token.isEmpty) {
       state = const AuthState(status: AuthStatus.unauthenticated);
       return;

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/network/panel_capability_registry.dart';
 import '../../../shared/models/task.dart';
 import '../../../shared/models/task_log.dart';
 import '../../../shared/utils/api_utils.dart';
@@ -63,8 +64,14 @@ class TaskListState {
 class TaskNotifier extends StateNotifier<TaskListState> {
   TaskNotifier() : super(const TaskListState());
   int _loadRequestId = 0;
+  String? _scope;
 
   Future<void> load({bool refresh = false}) async {
+    final scope = PanelCapabilityRegistry.currentScope;
+    if (_scope != scope) {
+      _scope = scope;
+      state = const TaskListState();
+    }
     final requestId = ++_loadRequestId;
     state = state.copyWith(loading: true, error: null);
     try {
@@ -88,12 +95,18 @@ class TaskNotifier extends StateNotifier<TaskListState> {
       );
       final paginated = extractPaginated(response.data);
       final items = paginated.items.map((e) => Task.fromJson(e)).toList();
-      if (requestId != _loadRequestId) return;
+      if (requestId != _loadRequestId ||
+          scope != PanelCapabilityRegistry.currentScope) {
+        return;
+      }
       final total = paginated.total;
 
       state = state.copyWith(tasks: items, total: total, loading: false);
     } catch (error) {
-      if (requestId != _loadRequestId) return;
+      if (requestId != _loadRequestId ||
+          scope != PanelCapabilityRegistry.currentScope) {
+        return;
+      }
       state = state.copyWith(
         loading: false,
         error: extractErrorMessage(error, '任务加载失败'),
@@ -111,9 +124,9 @@ class TaskNotifier extends StateNotifier<TaskListState> {
     load(refresh: true);
   }
 
-  void setLabelFilter(String? label) {
+  void setLabelFilter(String? label, {bool reload = true}) {
     state = state.copyWith(labelFilter: label);
-    load(refresh: true);
+    if (reload) load(refresh: true);
   }
   void setView(String? filters,String? sortRules){state=state.copyWith(viewFilters:filters,viewSortRules:sortRules);load(refresh:true);}
 
