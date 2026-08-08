@@ -21,6 +21,7 @@ class AppBackground extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final blur = settings.blurIntensity.clamp(0.0, 50.0);
+    final isFlat = settings.visualStyle == AppVisualStyle.pureFlat;
     final baseColor = Theme.of(context).scaffoldBackgroundColor;
     final Widget background = hasBg
         ? Stack(
@@ -34,7 +35,7 @@ class AppBackground extends ConsumerWidget {
                   color: Theme.of(context).scaffoldBackgroundColor,
                 ),
               ),
-              if (blur > 0)
+              if (!isFlat && blur > 0)
                 BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
                   child: ColoredBox(
@@ -46,6 +47,19 @@ class AppBackground extends ConsumerWidget {
             ],
           )
         : ColoredBox(color: baseColor);
+
+    if (isFlat) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          background,
+          Material(
+            type: MaterialType.transparency,
+            child: SizedBox.expand(child: child),
+          ),
+        ],
+      );
+    }
 
     return LiquidGlassView(
       pixelRatio: 0.7,

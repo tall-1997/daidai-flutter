@@ -9,6 +9,7 @@ import 'core/services/local_notification_service.dart';
 import 'core/services/app_update_service.dart';
 import 'core/storage/secure_storage.dart';
 import 'core/router/app_router.dart';
+import 'core/theme/theme_provider.dart';
 import 'features/app_lock/providers/app_lock_provider.dart';
 
 /// 全局 WidgetsBindingObserver 回调 - 处理后台返回时的应用锁和通知
@@ -68,6 +69,9 @@ void main() async {
 
   final container = ProviderContainer();
   _AppLifecycleHandler.instance.attachContainer(container);
+
+  // Restore the visual style before style-dependent widgets are rendered.
+  await container.read(appStyleProvider.notifier).initialized;
 
   // 添加生命周期观察者用于后台通知和应用锁
   _appLifecycleObserver();

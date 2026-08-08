@@ -1904,7 +1904,8 @@ class _EnvValueSheetEditor extends ConsumerWidget {
                       hintText: '在这里编辑完整变量值',
                       alignLabelWithHint: true,
                       filled: true,
-                      fillColor: glassFillColor(isLight: isLight),
+                      fillColor:
+                          Theme.of(context).inputDecorationTheme.fillColor,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),

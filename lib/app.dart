@@ -16,8 +16,8 @@ class DaidaiApp extends ConsumerWidget {
     return MaterialApp.router(
       title: '呆呆面板',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
+      theme: AppTheme.light(visualStyle: styleSettings.visualStyle),
+      darkTheme: AppTheme.dark(visualStyle: styleSettings.visualStyle),
       themeMode: styleSettings.themeMode,
       routerConfig: router,
       locale: const Locale('zh', 'CN'),

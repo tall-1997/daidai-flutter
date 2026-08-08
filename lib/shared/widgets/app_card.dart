@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:liquid_glass_easy/liquid_glass_easy.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/theme_provider.dart';
 
 class AppCard extends ConsumerWidget {
   final Widget child;
@@ -25,19 +26,42 @@ class AppCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    Widget card = LiquidGlassLens(
-      style: appLiquidGlassStyle(
-        isLight: isLight,
-        borderRadius: borderRadius,
-        performanceMode: stableForScrolling,
-      ),
-      child: Padding(
-        padding: padding ?? const EdgeInsets.all(16),
-        child: child,
+    final isFlat = ref.watch(
+      appStyleProvider.select(
+        (settings) => settings.visualStyle == AppVisualStyle.pureFlat,
       ),
     );
+    Widget card = isFlat
+        ? Material(
+            color: isLight ? Colors.white : AppColors.slate900,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(borderRadius),
+              side: BorderSide(
+                color: isLight ? AppColors.slate200 : AppColors.slate700,
+              ),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onTap,
+              child: Padding(
+                padding: padding ?? const EdgeInsets.all(16),
+                child: child,
+              ),
+            ),
+          )
+        : LiquidGlassLens(
+            style: appLiquidGlassStyle(
+              isLight: isLight,
+              borderRadius: borderRadius,
+              performanceMode: stableForScrolling,
+            ),
+            child: Padding(
+              padding: padding ?? const EdgeInsets.all(16),
+              child: child,
+            ),
+          );
 
-    if (onTap != null) {
+    if (!isFlat && onTap != null) {
       card = GestureDetector(onTap: onTap, child: card);
     }
 
@@ -65,35 +89,57 @@ class AppListTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLight = Theme.of(context).brightness == Brightness.light;
+    final isFlat = ref.watch(
+      appStyleProvider.select(
+        (settings) => settings.visualStyle == AppVisualStyle.pureFlat,
+      ),
+    );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: LiquidGlassLens(
-        style: appLiquidGlassStyle(
-          isLight: isLight,
-          borderRadius: 14,
-          performanceMode: true,
-        ),
-        child: ListTile(
-          leading: Icon(icon, size: 20),
-          title: Text(title),
-          trailing: trailing ??
-              Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: isLight ? AppColors.slate400 : AppColors.slate600,
+      child: isFlat
+          ? Material(
+              color: isLight ? Colors.white : AppColors.slate900,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(
+                  color: isLight ? AppColors.slate200 : AppColors.slate700,
+                ),
               ),
-          onTap: onTap,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+              clipBehavior: Clip.antiAlias,
+              child: _buildTile(isLight),
+            )
+          : LiquidGlassLens(
+              style: appLiquidGlassStyle(
+                isLight: isLight,
+                borderRadius: 14,
+                performanceMode: true,
+              ),
+              child: _buildTile(isLight),
             ),
-        ),
+    );
+  }
+
+  Widget _buildTile(bool isLight) {
+    return ListTile(
+      leading: Icon(icon, size: 20),
+      title: Text(title),
+      trailing:
+          trailing ??
+          Icon(
+            Icons.chevron_right,
+            size: 18,
+            color: isLight ? AppColors.slate400 : AppColors.slate600,
+          ),
+      onTap: onTap,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
       ),
     );
   }
 }
 
-class AppGlassIconButton extends StatelessWidget {
+class AppGlassIconButton extends ConsumerWidget {
   final IconData icon;
   final VoidCallback? onTap;
   final String? tooltip;
@@ -110,8 +156,13 @@ class AppGlassIconButton extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isLight = Theme.of(context).brightness == Brightness.light;
+    final isFlat = ref.watch(
+      appStyleProvider.select(
+        (settings) => settings.visualStyle == AppVisualStyle.pureFlat,
+      ),
+    );
     final button = SizedBox(
       width: 44,
       height: 44,
@@ -119,23 +170,33 @@ class AppGlassIconButton extends StatelessWidget {
         child: SizedBox(
           width: 36,
           height: 36,
-          child: LiquidGlassLens(
-            style: appLiquidGlassStyle(
-              isLight: isLight,
-              borderRadius: 18,
-              accentColor: accentColor,
-              selected: true,
-            ),
-            child: Material(
-              color: Colors.transparent,
-              shape: const CircleBorder(),
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: onTap,
-                child: Icon(icon, size: iconSize, color: accentColor),
-              ),
-            ),
-          ),
+          child: isFlat
+              ? Material(
+                  color: isLight ? AppColors.slate100 : AppColors.slate800,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: onTap,
+                    child: Icon(icon, size: iconSize, color: accentColor),
+                  ),
+                )
+              : LiquidGlassLens(
+                  style: appLiquidGlassStyle(
+                    isLight: isLight,
+                    borderRadius: 18,
+                    accentColor: accentColor,
+                    selected: true,
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: onTap,
+                      child: Icon(icon, size: iconSize, color: accentColor),
+                    ),
+                  ),
+                ),
         ),
       ),
     );
@@ -146,7 +207,7 @@ class AppGlassIconButton extends StatelessWidget {
   }
 }
 
-class AppLiquidGlassSurface extends StatelessWidget {
+class AppLiquidGlassSurface extends ConsumerWidget {
   final Widget child;
   final VoidCallback? onTap;
   final EdgeInsetsGeometry padding;
@@ -167,8 +228,37 @@ class AppLiquidGlassSurface extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isLight = Theme.of(context).brightness == Brightness.light;
+    final isFlat = ref.watch(
+      appStyleProvider.select(
+        (settings) => settings.visualStyle == AppVisualStyle.pureFlat,
+      ),
+    );
+    if (isFlat) {
+      final accent = accentColor ?? AppColors.primary;
+      return Material(
+        color: selected
+            ? Color.alphaBlend(
+                accent.withAlpha(isLight ? 20 : 32),
+                isLight ? Colors.white : AppColors.slate900,
+              )
+            : (isLight ? Colors.white : AppColors.slate900),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(borderRadius),
+          side: BorderSide(
+            color: selected
+                ? accent.withAlpha(isLight ? 120 : 160)
+                : (isLight ? AppColors.slate200 : AppColors.slate700),
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(padding: padding, child: child),
+        ),
+      );
+    }
     return LiquidGlassLens(
       style: appLiquidGlassStyle(
         isLight: isLight,
@@ -238,7 +328,49 @@ class AppLiquidGlassInput extends StatelessWidget {
   }
 }
 
-class AppLiquidGlassToggle extends StatelessWidget {
+class AppStyleSlider extends ConsumerWidget {
+  final double value;
+  final ValueChanged<double>? onChanged;
+  final Color activeColor;
+  final Color? inactiveColor;
+
+  const AppStyleSlider({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.activeColor = AppColors.primary,
+    this.inactiveColor,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isFlat = ref.watch(
+      appStyleProvider.select(
+        (settings) => settings.visualStyle == AppVisualStyle.pureFlat,
+      ),
+    );
+    if (isFlat) {
+      return Slider(
+        value: value,
+        onChanged: onChanged,
+        activeColor: activeColor,
+        inactiveColor: inactiveColor,
+      );
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) => LiquidGlassSlider(
+        value: value,
+        layout: LiquidGlassSliderLayout(width: constraints.maxWidth),
+        activeColor: activeColor,
+        inactiveColor: inactiveColor,
+        pixelRatio: 0.8,
+        onChanged: onChanged,
+      ),
+    );
+  }
+}
+
+class AppLiquidGlassToggle extends ConsumerWidget {
   final bool value;
   final ValueChanged<bool>? onChanged;
   final Color activeColor;
@@ -251,8 +383,20 @@ class AppLiquidGlassToggle extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final enabled = onChanged != null;
+    final isFlat = ref.watch(
+      appStyleProvider.select(
+        (settings) => settings.visualStyle == AppVisualStyle.pureFlat,
+      ),
+    );
+    if (isFlat) {
+      return Switch(
+        value: value,
+        onChanged: onChanged,
+        activeTrackColor: activeColor,
+      );
+    }
     return Opacity(
       opacity: enabled ? 1 : 0.45,
       child: IgnorePointer(
@@ -273,7 +417,7 @@ class AppLiquidGlassToggle extends StatelessWidget {
 
 enum AppLiquidGlassButtonVariant { primary, secondary, danger, warning }
 
-class AppLiquidGlassButton extends StatelessWidget {
+class AppLiquidGlassButton extends ConsumerWidget {
   final String label;
   final IconData? icon;
   final VoidCallback? onPressed;
@@ -296,8 +440,13 @@ class AppLiquidGlassButton extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isLight = Theme.of(context).brightness == Brightness.light;
+    final isFlat = ref.watch(
+      appStyleProvider.select(
+        (settings) => settings.visualStyle == AppVisualStyle.pureFlat,
+      ),
+    );
     final color = switch (variant) {
       AppLiquidGlassButtonVariant.primary => AppColors.primary,
       AppLiquidGlassButtonVariant.secondary =>
@@ -305,6 +454,37 @@ class AppLiquidGlassButton extends StatelessWidget {
       AppLiquidGlassButtonVariant.danger => AppColors.red500,
       AppLiquidGlassButtonVariant.warning => AppColors.amber500,
     };
+    if (isFlat) {
+      final foreground = onPressed == null ? AppColors.slate400 : color;
+      return SizedBox(
+        width: width,
+        height: height,
+        child: OutlinedButton.icon(
+          onPressed: loading ? null : onPressed,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: foreground,
+            backgroundColor: isLight ? Colors.white : AppColors.slate900,
+            side: BorderSide(color: foreground.withAlpha(110)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(height / 2),
+            ),
+          ),
+          icon: loading
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: color,
+                  ),
+                )
+              : icon == null
+              ? const SizedBox.shrink()
+              : Icon(icon, size: 18),
+          label: Text(label),
+        ),
+      );
+    }
     if (loading) {
       return SizedBox(
         width: width,

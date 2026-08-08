@@ -134,6 +134,40 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     );
   }
 
+  Widget _buildFlatBottomBar(BuildContext context, int index) {
+    return NavigationBar(
+      selectedIndex: index,
+      onDestinationSelected: _onTabSelected,
+      destinations: const [
+        NavigationDestination(
+          icon: Icon(Icons.space_dashboard_outlined),
+          selectedIcon: Icon(Icons.space_dashboard),
+          label: '主页',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.schedule_outlined),
+          selectedIcon: Icon(Icons.schedule),
+          label: '任务',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.terminal_outlined),
+          selectedIcon: Icon(Icons.terminal),
+          label: '日志',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.key_outlined),
+          selectedIcon: Icon(Icons.key),
+          label: '变量',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.menu_outlined),
+          selectedIcon: Icon(Icons.menu),
+          label: '更多',
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final idx = _currentIndex(context);
@@ -141,6 +175,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     final bg = styleSettings.backgroundImagePath;
     final blur = styleSettings.blurIntensity.clamp(0.0, 50.0);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isFlat = styleSettings.visualStyle == AppVisualStyle.pureFlat;
 
     Widget backgroundWidget;
     if (bg != null) {
@@ -153,7 +188,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
           color: Theme.of(context).scaffoldBackgroundColor,
         ),
       );
-      if (blur > 0) {
+      if (!isFlat && blur > 0) {
         backgroundWidget = SizedBox.expand(
           child: Stack(
             fit: StackFit.expand,
@@ -178,26 +213,44 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
           Container(color: Theme.of(context).scaffoldBackgroundColor);
     }
 
-    return PopScope<void>(
+    final content = PopScope<void>(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) => _handleBackPress(didPop),
-      child: LiquidGlassScaffold(
-        pixelRatio: 0.65,
-        realTimeCapture: true,
-        useSync: false,
-        safeArea: true,
-        body: LiquidGlassView(
-          pixelRatio: 0.7,
-          realTimeCapture: false,
-          useSync: true,
-          backgroundWidget: backgroundWidget,
-          child: Material(
-            type: MaterialType.transparency,
-            child: SizedBox.expand(child: widget.child),
-          ),
-        ),
-        bottomNavigationBar: _buildBottomBar(context, idx),
-      ),
+      child: isFlat
+          ? Scaffold(
+              backgroundColor: Colors.transparent,
+              body: SafeArea(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    backgroundWidget,
+                    Material(
+                      type: MaterialType.transparency,
+                      child: SizedBox.expand(child: widget.child),
+                    ),
+                  ],
+                ),
+              ),
+              bottomNavigationBar: _buildFlatBottomBar(context, idx),
+            )
+      : LiquidGlassScaffold(
+              pixelRatio: 0.65,
+              realTimeCapture: true,
+              useSync: false,
+              safeArea: true,
+              body: LiquidGlassView(
+                pixelRatio: 0.7,
+                realTimeCapture: false,
+                useSync: true,
+                backgroundWidget: backgroundWidget,
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: SizedBox.expand(child: widget.child),
+                ),
+              ),
+              bottomNavigationBar: _buildBottomBar(context, idx),
+            ),
     );
+    return content;
   }
 }
