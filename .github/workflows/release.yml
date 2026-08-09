@@ -195,7 +195,7 @@ jobs:
             exit 1
           fi
           "$APKSIGNER" verify --verbose --print-certs "$APK_PATH"
-          ACTUAL_CERT_SHA256="$("$APKSIGNER" verify --print-certs "$APK_PATH" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          ACTUAL_CERT_SHA256="$("$APKSIGNER" verify --print-certs-pem "$APK_PATH" | openssl x509 -noout -fingerprint -sha256 | cut -d= -f2 | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
           NORMALIZED_EXPECTED="$(printf '%s' "$EXPECTED_CERT_SHA256" | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
           if [[ "$ACTUAL_CERT_SHA256" != "$NORMALIZED_EXPECTED" ]]; then
             echo "::error::Android APK 签名证书与 ANDROID_CERT_SHA256 不一致"
