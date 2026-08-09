@@ -11,11 +11,18 @@
 
 ## 版本
 
-- App 版本：`v0.1.65`
+- App 版本：`v1.0.0`
 - Dart SDK：`>=3.11.3`
 - 适配面板：旧版至 `v3.0.1+`，增强功能按实际端点能力自动降级
 
 ## 更新说明
+
+### v1.0.0
+
+- Android 正式包启用固定 JKS 签名，发布链校验证书格式、算法、有效期和 SHA-256 指纹。
+- `v1.0.0` 作为固定签名安装基线，后续版本可沿用同一证书覆盖升级。
+- iOS 继续提供无签名 IPA，供持有 Apple 签名材料的使用者重新签名。
+- 延续 `v0.1.65` 的上游能力对齐、会话隔离、SSE 续传和错误恢复加固。
 
 ### v0.1.65
 
@@ -427,7 +434,7 @@ flutter build ios --release --no-codesign
 
 推送到 `main`、`master` 或 `flutter-app` 分支会触发 `build.yml`，完成质量检查并生成 CI 使用的 APK 和 IPA artifacts。分支构建不生成正式差分更新资产。
 
-推送与 `pubspec.yaml` 版本一致的 `v*` 标签会触发 `release.yml`。Release 工作流要求配置 `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS` 和 `ANDROID_KEY_PASSWORD` 四项 GitHub Actions secrets；任一项缺失都会终止正式 Android 构建。工作流使用 `apksigner` 验证正式 APK，从上一正式 Release 生成并反向重建校验 bsdiff patch，生成并校验 `android-update.json`，最终将 APK、有效 patch 和更新清单作为 `android-package` artifact 上传，并与 IPA 一起发布到 GitHub Release。
+推送与 `pubspec.yaml` 版本一致的 `v*` 标签会触发 `release.yml`。Release 工作流要求配置 `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD` 和 `ANDROID_CERT_SHA256` 五项 GitHub Actions Secrets；任一项缺失都会终止正式 Android 构建。工作流验证 JKS 证书属性及 APK 签名指纹，发布固定证书签名 APK 和无签名 IPA。当前自动更新清单与差分包保持关闭，`v1.0.0` 作为固定 Android 签名的安装基线。
 
 `android-build.yml` 和 `ios-build.yml` 用于手动触发单平台构建；`build.yml` 用于分支与 Pull Request 的统一 CI 构建；`release.yml` 专用于标签正式发布。
 

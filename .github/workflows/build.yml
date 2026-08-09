@@ -56,12 +56,53 @@ jobs:
         with:
           channel: stable
           cache: true
+
+      - name: Restore Android signing key
+        id: android_signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$KEYSTORE_BASE64" || -z "$KEYSTORE_PASSWORD" || -z "$KEY_ALIAS" || -z "$KEY_PASSWORD" ]]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/daidai-release.jks
+          keytool -list \
+            -keystore android/app/daidai-release.jks \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -alias "$KEY_ALIAS" >/dev/null
+          cat > android/key.properties <<EOF
+          storeFile=daidai-release.jks
+          storePassword=${KEYSTORE_PASSWORD}
+          keyAlias=${KEY_ALIAS}
+          keyPassword=${KEY_PASSWORD}
+          EOF
+          echo "available=true" >> "$GITHUB_OUTPUT"
       
       - name: Install dependencies
         run: flutter pub get
       
       - name: Build APK
         run: flutter build apk --release
+
+      - name: Verify APK signing certificate
+        if: steps.android_signing.outputs.available == 'true'
+        env:
+          EXPECTED_CERT_SHA256: ${{ secrets.ANDROID_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          ACTUAL_CERT_SHA256="$("$APKSIGNER" verify --print-certs "$APK_PATH" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          NORMALIZED_EXPECTED="$(printf '%s' "$EXPECTED_CERT_SHA256" | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          if [[ ! "$NORMALIZED_EXPECTED" =~ ^[0-9A-F]{64}$ || "$ACTUAL_CERT_SHA256" != "$NORMALIZED_EXPECTED" ]]; then
+            echo "::error::Android APK 签名证书与 ANDROID_CERT_SHA256 不一致"
+            exit 1
+          fi
       
       - name: Get version
         id: version

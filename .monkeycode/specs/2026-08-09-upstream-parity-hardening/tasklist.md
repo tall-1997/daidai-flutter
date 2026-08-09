@@ -23,4 +23,5 @@
 - [x] Run Flutter analysis, tests, Android build and unsigned iOS build in GitHub Actions.
 - [x] Replace signed release assets with an ephemeral-key Android APK and unsigned iOS IPA at the user's direction.
 - [x] Disable Android update manifests and delta packages for the cross-signing release.
+- [x] Establish v1.0.0 as the fixed Android JKS signing baseline with certificate property verification.
 - [ ] Run actionlint when that toolchain is available.

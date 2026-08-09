@@ -112,23 +112,57 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Create ephemeral Android signing key
+      - name: Restore and verify Android signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          EXPECTED_CERT_SHA256: ${{ secrets.ANDROID_CERT_SHA256 }}
         run: |
           set -euo pipefail
-          keytool -genkeypair \
-            -keystore android/app/daidai-ephemeral.jks \
-            -storepass android \
-            -alias androiddebugkey \
-            -keypass android \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=Daidai Ephemeral Release,OU=CI,O=Daidai,L=Unknown,ST=Unknown,C=US"
+          missing=()
+          [[ -n "$KEYSTORE_BASE64" ]] || missing+=(ANDROID_KEYSTORE_BASE64)
+          [[ -n "$KEYSTORE_PASSWORD" ]] || missing+=(ANDROID_KEYSTORE_PASSWORD)
+          [[ -n "$KEY_ALIAS" ]] || missing+=(ANDROID_KEY_ALIAS)
+          [[ -n "$KEY_PASSWORD" ]] || missing+=(ANDROID_KEY_PASSWORD)
+          [[ -n "$EXPECTED_CERT_SHA256" ]] || missing+=(ANDROID_CERT_SHA256)
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::缺少 Android 正式签名 secrets: ${missing[*]}"
+            exit 1
+          fi
+
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/daidai-release.jks
+          KEYSTORE_INFO="$(keytool -J-Duser.language=en -J-Duser.country=US -list -v \
+            -keystore android/app/daidai-release.jks \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -alias "$KEY_ALIAS")"
+          grep -Fq "Keystore type: JKS" <<< "$KEYSTORE_INFO"
+          keytool -exportcert -rfc \
+            -keystore android/app/daidai-release.jks \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -alias "$KEY_ALIAS" > "$RUNNER_TEMP/android-release.pem"
+
+          CERT_TEXT="$(openssl x509 -in "$RUNNER_TEMP/android-release.pem" -noout -text)"
+          grep -Fq "Public-Key: (4096 bit)" <<< "$CERT_TEXT"
+          grep -Fq "Signature Algorithm: sha384WithRSAEncryption" <<< "$CERT_TEXT"
+          CERT_END_DATE="$(openssl x509 -in "$RUNNER_TEMP/android-release.pem" -noout -enddate | cut -d= -f2-)"
+          if [[ ! "$CERT_END_DATE" =~ ^Dec[[:space:]]+25[[:space:]].*[[:space:]]2053[[:space:]]GMT$ ]]; then
+            echo "::error::Android 签名证书有效期终点不是 2053-12-25"
+            exit 1
+          fi
+          ACTUAL_CERT_SHA256="$(openssl x509 -in "$RUNNER_TEMP/android-release.pem" -noout -fingerprint -sha256 | cut -d= -f2 | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          NORMALIZED_EXPECTED="$(printf '%s' "$EXPECTED_CERT_SHA256" | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          if [[ ! "$NORMALIZED_EXPECTED" =~ ^[0-9A-F]{64}$ || "$ACTUAL_CERT_SHA256" != "$NORMALIZED_EXPECTED" ]]; then
+            echo "::error::JKS 证书与 ANDROID_CERT_SHA256 不一致"
+            exit 1
+          fi
+
           cat > android/key.properties <<EOF
-          storeFile=daidai-ephemeral.jks
-          storePassword=android
-          keyAlias=androiddebugkey
-          keyPassword=android
+          storeFile=daidai-release.jks
+          storePassword=${KEYSTORE_PASSWORD}
+          keyAlias=${KEY_ALIAS}
+          keyPassword=${KEY_PASSWORD}
           EOF
 
       - name: Resolve Dart packages
@@ -148,9 +182,10 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk \
             "release/Dumb-Panel-APP-v${BUILD_NAME}-android.apk"
 
-      - name: Verify installable Android APK
+      - name: Verify signed Android APK
         env:
           BUILD_NAME: ${{ needs.prepare.outputs.build_name }}
+          EXPECTED_CERT_SHA256: ${{ secrets.ANDROID_CERT_SHA256 }}
         run: |
           set -euo pipefail
           APK_PATH="release/Dumb-Panel-APP-v${BUILD_NAME}-android.apk"
@@ -160,6 +195,12 @@ jobs:
             exit 1
           fi
           "$APKSIGNER" verify --verbose --print-certs "$APK_PATH"
+          ACTUAL_CERT_SHA256="$("$APKSIGNER" verify --print-certs "$APK_PATH" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          NORMALIZED_EXPECTED="$(printf '%s' "$EXPECTED_CERT_SHA256" | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          if [[ "$ACTUAL_CERT_SHA256" != "$NORMALIZED_EXPECTED" ]]; then
+            echo "::error::Android APK 签名证书与 ANDROID_CERT_SHA256 不一致"
+            exit 1
+          fi
 
       - name: Verify Android package metadata
         env:
