@@ -20,4 +20,7 @@
 - [x] Observe task completion independently from the live-log page and suppress duplicate notifications.
 - [x] Add environment-card swipe actions with back-gesture collapse behavior.
 - [x] Run repository-level static diff verification available in the current environment.
-- [ ] Run Dart formatting, Flutter analysis/tests/builds and actionlint when those toolchains are available.
+- [x] Run Flutter analysis, tests, Android build and unsigned iOS build in GitHub Actions.
+- [x] Replace signed release assets with an ephemeral-key Android APK and unsigned iOS IPA at the user's direction.
+- [x] Disable Android update manifests and delta packages for the cross-signing release.
+- [ ] Run actionlint when that toolchain is available.

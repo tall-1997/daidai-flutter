@@ -112,37 +112,23 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Require Android release signing secrets
-        env:
-          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          EXPECTED_CERT_SHA256: ${{ secrets.ANDROID_CERT_SHA256 }}
+      - name: Create ephemeral Android signing key
         run: |
           set -euo pipefail
-          missing=()
-          [[ -n "$KEYSTORE_BASE64" ]] || missing+=(ANDROID_KEYSTORE_BASE64)
-          [[ -n "$KEYSTORE_PASSWORD" ]] || missing+=(ANDROID_KEYSTORE_PASSWORD)
-          [[ -n "$KEY_ALIAS" ]] || missing+=(ANDROID_KEY_ALIAS)
-          [[ -n "$KEY_PASSWORD" ]] || missing+=(ANDROID_KEY_PASSWORD)
-          [[ -n "$EXPECTED_CERT_SHA256" ]] || missing+=(ANDROID_CERT_SHA256)
-
-          if (( ${#missing[@]} > 0 )); then
-            echo "::error::缺少 Android 正式签名 secrets: ${missing[*]}"
-            exit 1
-          fi
-
-          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/daidai-release.jks
-          keytool -list \
-            -keystore android/app/daidai-release.jks \
-            -storepass "$KEYSTORE_PASSWORD" \
-            -alias "$KEY_ALIAS" >/dev/null
+          keytool -genkeypair \
+            -keystore android/app/daidai-ephemeral.jks \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Daidai Ephemeral Release,OU=CI,O=Daidai,L=Unknown,ST=Unknown,C=US"
           cat > android/key.properties <<EOF
-          storeFile=daidai-release.jks
-          storePassword=${KEYSTORE_PASSWORD}
-          keyAlias=${KEY_ALIAS}
-          keyPassword=${KEY_PASSWORD}
+          storeFile=daidai-ephemeral.jks
+          storePassword=android
+          keyAlias=androiddebugkey
+          keyPassword=android
           EOF
 
       - name: Resolve Dart packages
@@ -162,10 +148,9 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk \
             "release/Dumb-Panel-APP-v${BUILD_NAME}-android.apk"
 
-      - name: Verify signed Android APK
+      - name: Verify installable Android APK
         env:
           BUILD_NAME: ${{ needs.prepare.outputs.build_name }}
-          EXPECTED_CERT_SHA256: ${{ secrets.ANDROID_CERT_SHA256 }}
         run: |
           set -euo pipefail
           APK_PATH="release/Dumb-Panel-APP-v${BUILD_NAME}-android.apk"
@@ -175,38 +160,19 @@ jobs:
             exit 1
           fi
           "$APKSIGNER" verify --verbose --print-certs "$APK_PATH"
-          ACTUAL_CERT_SHA256="$("$APKSIGNER" verify --print-certs "$APK_PATH" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
-          NORMALIZED_EXPECTED="$(printf '%s' "$EXPECTED_CERT_SHA256" | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
-          if [[ ! "$NORMALIZED_EXPECTED" =~ ^[0-9A-F]{64}$ || "$ACTUAL_CERT_SHA256" != "$NORMALIZED_EXPECTED" ]]; then
-            echo "::error::Android APK 签名证书与 ANDROID_CERT_SHA256 不一致"
-            exit 1
-          fi
 
-      - name: Install bsdiff
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y bsdiff
-
-      - name: Generate and validate Android update assets
+      - name: Verify Android package metadata
         env:
           VERSION: ${{ needs.prepare.outputs.build_name }}
           BUILD_NUMBER: ${{ needs.prepare.outputs.build_number }}
-          REPOSITORY: ${{ github.repository }}
-          NOTES_FILE: ${{ needs.prepare.outputs.release_notes_file }}
         run: |
           set -euo pipefail
           APK_NAME="Dumb-Panel-APP-v${VERSION}-android.apk"
           APK_PATH="$PWD/release/$APK_NAME"
-          RELEASE_BASE="https://github.com/${REPOSITORY}/releases/download/v${VERSION}"
-          FULL_SIZE="$(stat -c%s "$APK_PATH")"
-          FULL_MD5="$(md5sum "$APK_PATH" | cut -d ' ' -f1)"
-          FULL_SHA256="$(sha256sum "$APK_PATH" | cut -d ' ' -f1)"
-          PATCH_JSON='[]'
 
-          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          if [[ -z "$APKSIGNER" || -z "$AAPT" ]]; then
-            echo "::error::Android SDK 中缺少 apksigner 或 aapt"
+          if [[ -z "$AAPT" ]]; then
+            echo "::error::Android SDK 中缺少 aapt"
             exit 1
           fi
           CURRENT_BADGING="$("$AAPT" dump badging "$APK_PATH")"
@@ -222,126 +188,10 @@ jobs:
             exit 1
           fi
 
-          RELEASE_TAGS_JSON="$(gh release list --repo "$REPOSITORY" --exclude-drafts --exclude-pre-releases --limit 100 --json tagName)"
-          mapfile -t RELEASE_TAGS < <(jq -r '.[].tagName' <<< "$RELEASE_TAGS_JSON")
-          ELIGIBLE_VERSIONS=()
-          for tag in "${RELEASE_TAGS[@]}"; do
-            candidate="${tag#v}"
-            [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || continue
-            [[ "$candidate" != "$VERSION" ]] || continue
-            mapfile -t ordered_pair < <(printf '%s\n' "$candidate" "$VERSION" | sort -V)
-            if [[ "${ordered_pair[0]}" == "$candidate" ]]; then
-              ELIGIBLE_VERSIONS+=("$candidate")
-            fi
-          done
-          PREV_TAG=""
-          if (( ${#ELIGIBLE_VERSIONS[@]} > 0 )); then
-            mapfile -t ELIGIBLE_VERSIONS < <(printf '%s\n' "${ELIGIBLE_VERSIONS[@]}" | sort -V)
-            PREV_TAG="v${ELIGIBLE_VERSIONS[${#ELIGIBLE_VERSIONS[@]}-1]}"
-          fi
-          if [[ -n "$PREV_TAG" ]]; then
-            mkdir -p previous
-            FROM_VERSION="${PREV_TAG#v}"
-            OLD_APK_NAME="Dumb-Panel-APP-v${FROM_VERSION}-android.apk"
-            gh release download "$PREV_TAG" \
-              --repo "$REPOSITORY" \
-              --pattern "$OLD_APK_NAME" \
-              --dir previous
-            OLD_APK="$PWD/previous/$OLD_APK_NAME"
-            if [[ -z "$OLD_APK" ]]; then
-              echo "::error::Release ${PREV_TAG} 缺少 Android APK"
-              exit 1
-            fi
-
-            "$APKSIGNER" verify --verbose "$OLD_APK"
-            CURRENT_CERT_SHA256="$("$APKSIGNER" verify --print-certs "$APK_PATH" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
-            OLD_CERT_SHA256="$("$APKSIGNER" verify --print-certs "$OLD_APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
-            if [[ -z "$OLD_CERT_SHA256" || "$OLD_CERT_SHA256" != "$CURRENT_CERT_SHA256" ]]; then
-              echo "::error::差分基线 APK 与目标 APK 的签名证书不一致"
-              exit 1
-            fi
-
-            OLD_BADGING="$("$AAPT" dump badging "$OLD_APK")"
-            if [[ ! "$OLD_BADGING" =~ package:\ name=\'([^\']+)\'\ versionCode=\'([0-9]+)\'\ versionName=\'([^\']+)\' ]]; then
-              echo "::error::无法读取差分基线 APK 包信息"
-              exit 1
-            fi
-            OLD_PACKAGE="${BASH_REMATCH[1]}"
-            FROM_VERSION_CODE="${BASH_REMATCH[2]}"
-            OLD_VERSION_NAME="${BASH_REMATCH[3]}"
-            if [[ "$OLD_PACKAGE" != "$APK_PACKAGE" || "$OLD_VERSION_NAME" != "$FROM_VERSION" || "$FROM_VERSION_CODE" -ge "$BUILD_NUMBER" ]]; then
-              echo "::error::差分基线 APK 包名或版本无效"
-              exit 1
-            fi
-
-            PATCH_NAME="Dumb-Panel-APP-v${FROM_VERSION}-to-v${VERSION}.patch"
-            PATCH_PATH="$PWD/release/$PATCH_NAME"
-            bsdiff "$OLD_APK" "$APK_PATH" "$PATCH_PATH"
-            bspatch "$OLD_APK" reconstructed.apk "$PATCH_PATH"
-            cmp --silent "$APK_PATH" reconstructed.apk
-
-            PATCH_SIZE="$(stat -c%s "$PATCH_PATH")"
-            if (( PATCH_SIZE < FULL_SIZE )); then
-              OLD_MD5="$(md5sum "$OLD_APK" | cut -d ' ' -f1)"
-              OLD_SHA256="$(sha256sum "$OLD_APK" | cut -d ' ' -f1)"
-              PATCH_MD5="$(md5sum "$PATCH_PATH" | cut -d ' ' -f1)"
-              PATCH_SHA256="$(sha256sum "$PATCH_PATH" | cut -d ' ' -f1)"
-              PATCH_JSON="$(jq -n \
-                --arg fromVersion "$FROM_VERSION" \
-                --argjson fromVersionCode "$FROM_VERSION_CODE" \
-                --arg oldApkMd5 "$OLD_MD5" \
-                --arg oldApkSha256 "$OLD_SHA256" \
-                --arg url "${RELEASE_BASE}/${PATCH_NAME}" \
-                --arg name "$PATCH_NAME" \
-                --argjson size "$PATCH_SIZE" \
-                --arg md5 "$PATCH_MD5" \
-                --arg sha256 "$PATCH_SHA256" \
-                '[{fromVersion:$fromVersion,fromVersionCode:$fromVersionCode,oldApkMd5:$oldApkMd5,oldApkSha256:$oldApkSha256,url:$url,name:$name,size:$size,md5:$md5,sha256:$sha256}]')"
-            else
-              mv "$PATCH_PATH" "$RUNNER_TEMP/$PATCH_NAME"
-            fi
-          fi
-
-          jq -n --rawfile releaseNotes "$NOTES_FILE" \
-            --arg packageName "$APK_PACKAGE" \
-            --arg version "$VERSION" \
-            --argjson versionCode "$BUILD_NUMBER" \
-            --arg fullUrl "${RELEASE_BASE}/${APK_NAME}" \
-            --arg fullName "$APK_NAME" \
-            --argjson fullSize "$FULL_SIZE" \
-            --arg fullMd5 "$FULL_MD5" \
-            --arg fullSha256 "$FULL_SHA256" \
-            --argjson patches "$PATCH_JSON" \
-            '{schemaVersion:1,packageName:$packageName,version:$version,versionCode:$versionCode,releaseNotes:$releaseNotes,full:{url:$fullUrl,name:$fullName,size:$fullSize,md5:$fullMd5,sha256:$fullSha256},patches:$patches}' \
-            > release/android-update.json
-
-          jq -e \
-            --arg version "$VERSION" \
-            --argjson versionCode "$BUILD_NUMBER" \
-            --arg apkName "$APK_NAME" \
-            --arg apkUrl "${RELEASE_BASE}/${APK_NAME}" \
-            --argjson apkSize "$FULL_SIZE" \
-            --arg apkMd5 "$FULL_MD5" \
-            --arg apkSha256 "$FULL_SHA256" \
-            --arg releaseBase "$RELEASE_BASE" \
-            '.schemaVersion == 1 and .packageName == "com.daidai.daidai_app" and .version == $version and .versionCode == $versionCode and (.releaseNotes | length) > 0 and .full.name == $apkName and .full.url == $apkUrl and .full.size == $apkSize and .full.md5 == $apkMd5 and .full.sha256 == $apkSha256 and (.patches | type == "array") and (.patches | length) <= 1 and all(.patches[]; (.fromVersion | length) > 0 and (.fromVersionCode | type == "number") and .fromVersionCode > 0 and .fromVersionCode < $versionCode and (.oldApkMd5 | test("^[0-9a-f]{32}$")) and (.oldApkSha256 | test("^[0-9a-f]{64}$")) and .url == ($releaseBase + "/" + .name) and (.size | type == "number") and .size < $apkSize and (.md5 | test("^[0-9a-f]{32}$")) and (.sha256 | test("^[0-9a-f]{64}$")))' \
-            release/android-update.json >/dev/null
-
-          while IFS=$'\t' read -r name size md5 sha256; do
-            asset="release/$name"
-            [[ -f "$asset" ]]
-            [[ "$(stat -c%s "$asset")" == "$size" ]]
-            [[ "$(md5sum "$asset" | cut -d ' ' -f1)" == "$md5" ]]
-            [[ "$(sha256sum "$asset" | cut -d ' ' -f1)" == "$sha256" ]]
-          done < <(jq -r '.patches[] | [.name, (.size | tostring), .md5, .sha256] | @tsv' release/android-update.json)
-
       - uses: actions/upload-artifact@v4
         with:
           name: android-package
-          path: |
-            release/*.apk
-            release/*.patch
-            release/android-update.json
+          path: release/*.apk
           if-no-files-found: error
           retention-days: 7
 
@@ -364,30 +214,6 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Require iOS release signing secrets
-        env:
-          IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
-          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
-          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
-          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
-          IOS_EXPORT_METHOD: ${{ secrets.IOS_EXPORT_METHOD }}
-        run: |
-          set -euo pipefail
-          missing=()
-          [[ -n "$IOS_CERTIFICATE_P12_BASE64" ]] || missing+=(IOS_CERTIFICATE_P12_BASE64)
-          [[ -n "$IOS_CERTIFICATE_PASSWORD" ]] || missing+=(IOS_CERTIFICATE_PASSWORD)
-          [[ -n "$IOS_PROVISIONING_PROFILE_BASE64" ]] || missing+=(IOS_PROVISIONING_PROFILE_BASE64)
-          [[ -n "$IOS_TEAM_ID" ]] || missing+=(IOS_TEAM_ID)
-          [[ -n "$IOS_EXPORT_METHOD" ]] || missing+=(IOS_EXPORT_METHOD)
-          if (( ${#missing[@]} > 0 )); then
-            echo "::error::缺少 iOS 正式签名 secrets: ${missing[*]}"
-            exit 1
-          fi
-          if [[ ! "$IOS_EXPORT_METHOD" =~ ^(app-store|ad-hoc|enterprise)$ ]]; then
-            echo "::error::IOS_EXPORT_METHOD 必须是 app-store、ad-hoc 或 enterprise"
-            exit 1
-          fi
-
       - name: Show tool versions
         run: |
           flutter --version
@@ -408,158 +234,24 @@ jobs:
           cd ios
           pod install
 
-      - name: Import signing assets
-        env:
-          IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
-          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
-          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
-          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
-          IOS_EXPORT_METHOD: ${{ secrets.IOS_EXPORT_METHOD }}
+      - name: Build unsigned IPA
         run: |
           set -euo pipefail
-          CERT_PATH="$RUNNER_TEMP/ios_certificate.p12"
-          PROFILE_PATH="$RUNNER_TEMP/profile.mobileprovision"
-          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
-          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
-
-          echo -n "$IOS_CERTIFICATE_P12_BASE64" | base64 --decode > "$CERT_PATH"
-          echo -n "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
-
-          mkdir -p "$PROFILE_DIR"
-          security cms -D -i "$PROFILE_PATH" > "$RUNNER_TEMP/profile.plist"
-          python3 - <<'PY'
-          import datetime
-          import os
-          import plistlib
-          from pathlib import Path
-
-          profile_path = Path(os.environ["RUNNER_TEMP"]) / "profile.plist"
-          with profile_path.open("rb") as source:
-              profile = plistlib.load(source)
-          team_id = os.environ["IOS_TEAM_ID"]
-          profile_team_ids = profile.get("TeamIdentifier", [])
-          app_id = profile.get("Entitlements", {}).get("application-identifier")
-          expiration = profile.get("ExpirationDate")
-          now = datetime.datetime.now(datetime.timezone.utc)
-          if isinstance(expiration, datetime.datetime) and expiration.tzinfo is None:
-              expiration = expiration.replace(tzinfo=datetime.timezone.utc)
-          if team_id not in profile_team_ids or app_id != f"{team_id}.com.daidai.daidaiApp":
-              raise SystemExit("Provisioning Profile 与 Team ID 或 Bundle ID 不一致")
-          if not isinstance(expiration, datetime.datetime) or expiration <= now:
-              raise SystemExit("Provisioning Profile 已过期或有效期无效")
-          github_env = Path(os.environ["GITHUB_ENV"])
-          with github_env.open("a", encoding="utf-8") as output:
-              output.write(f"PROFILE_UUID={profile['UUID']}\n")
-              output.write(f"PROFILE_NAME={profile['Name']}\n")
-          export_options = {
-              "method": os.environ["IOS_EXPORT_METHOD"],
-              "signingStyle": "manual",
-              "teamID": team_id,
-              "provisioningProfiles": {
-                  "com.daidai.daidaiApp": profile["Name"],
-              },
-          }
-          with (Path(os.environ["RUNNER_TEMP"]) / "ExportOptions.plist").open("wb") as output:
-              plistlib.dump(export_options, output)
-          PY
-          PROFILE_UUID="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$RUNNER_TEMP/profile.plist")"
-          cp "$PROFILE_PATH" "$PROFILE_DIR/$PROFILE_UUID.mobileprovision"
-
-          security create-keychain -p "" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "" "$KEYCHAIN_PATH"
-          security import "$CERT_PATH" -P "$IOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
-          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
-          security default-keychain -d user -s "$KEYCHAIN_PATH"
-          security set-key-partition-list -S apple-tool:,apple: -k "" "$KEYCHAIN_PATH"
-          if ! security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep -Eq '[1-9][0-9]*\)'; then
-            echo "::error::导入的 iOS 证书不包含可用签名身份"
-            exit 1
-          fi
-
-          plutil -lint "$RUNNER_TEMP/ExportOptions.plist"
-
-      - name: Build signed IPA
-        env:
-          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import os
-          from pathlib import Path
-
-          team_id = os.environ["IOS_TEAM_ID"]
-          profile_name = os.environ["PROFILE_NAME"]
-          project = Path("ios/Runner.xcodeproj/project.pbxproj")
-          text = project.read_text(encoding="utf-8")
-          text = text.replace("CODE_SIGNING_ALLOWED = NO;", "CODE_SIGNING_ALLOWED = YES;")
-          text = text.replace("CODE_SIGNING_REQUIRED = NO;", "CODE_SIGNING_REQUIRED = YES;")
-          text = text.replace(
-              "CODE_SIGN_STYLE = Manual;",
-              "\n".join([
-                  "CODE_SIGN_STYLE = Manual;",
-                  f"\t\t\t\tDEVELOPMENT_TEAM = {team_id};",
-                  f'\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "{profile_name}";',
-              ]),
-          )
-          project.write_text(text, encoding="utf-8")
-          PY
-
-          xcodebuild -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -showBuildSettings | grep -E 'CODE_SIGNING_ALLOWED|CODE_SIGNING_REQUIRED|CODE_SIGN_STYLE|DEVELOPMENT_TEAM|PROVISIONING_PROFILE_SPECIFIER'
-
-          flutter build ipa --release \
-            --export-options-plist "$RUNNER_TEMP/ExportOptions.plist" \
+          flutter build ios --release --no-codesign \
             --build-name "$BUILD_NAME" \
             --build-number "$BUILD_NUMBER"
-
-          shopt -s nullglob
-          IPA_FILES=(build/ios/ipa/*.ipa)
-          if (( ${#IPA_FILES[@]} != 1 )); then
-            echo "::error::预期生成一个 IPA，实际为 ${#IPA_FILES[@]} 个"
-            exit 1
-          fi
-          IPA_PATH="${IPA_FILES[0]}"
-          mv "$IPA_PATH" "build/ios/ipa/Dumb-Panel-APP-v${BUILD_NAME}.ipa"
-
-      - name: Verify signed IPA
-        env:
-          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
-        run: |
-          set -euo pipefail
-          IPA_PATH="build/ios/ipa/Dumb-Panel-APP-v${BUILD_NAME}.ipa"
-          VERIFY_DIR="$RUNNER_TEMP/verify-ipa"
-          mkdir -p "$VERIFY_DIR"
-          ditto -x -k "$IPA_PATH" "$VERIFY_DIR"
-          APP_PATH="$(find "$VERIFY_DIR/Payload" -maxdepth 1 -type d -name '*.app' -print -quit)"
-          if [[ -z "$APP_PATH" ]]; then
-            echo "::error::IPA 中未找到应用包"
-            exit 1
-          fi
-          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
-          PROFILE_PATH="$APP_PATH/embedded.mobileprovision"
-          if [[ ! -f "$PROFILE_PATH" ]]; then
-            echo "::error::IPA 中缺少 embedded.mobileprovision"
-            exit 1
-          fi
-          security cms -D -i "$PROFILE_PATH" > "$RUNNER_TEMP/embedded-profile.plist"
-          PROFILE_TEAM_ID="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.team-identifier' "$RUNNER_TEMP/embedded-profile.plist")"
-          if [[ "$PROFILE_TEAM_ID" != "$IOS_TEAM_ID" ]]; then
-            echo "::error::IPA 签名团队与 IOS_TEAM_ID 不一致"
-            exit 1
-          fi
+          APP_PATH="build/ios/iphoneos/Runner.app"
           BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist")"
           BUNDLE_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PATH/Info.plist")"
           BUNDLE_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PATH/Info.plist")"
-          codesign -d --entitlements :- "$APP_PATH" > "$RUNNER_TEMP/app-entitlements.plist"
-          APP_IDENTIFIER="$(/usr/libexec/PlistBuddy -c 'Print :application-identifier' "$RUNNER_TEMP/app-entitlements.plist")"
-          PROFILE_IDENTIFIER="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$RUNNER_TEMP/embedded-profile.plist")"
-          if [[ "$BUNDLE_ID" != "com.daidai.daidaiApp" || "$BUNDLE_VERSION" != "$BUILD_NAME" || "$BUNDLE_BUILD" != "$BUILD_NUMBER" || "$APP_IDENTIFIER" != "$PROFILE_IDENTIFIER" ]]; then
-            echo "::error::IPA 的 Bundle ID、版本或签名 entitlement 不一致"
+          if [[ "$BUNDLE_ID" != "com.daidai.daidaiApp" || "$BUNDLE_VERSION" != "$BUILD_NAME" || "$BUNDLE_BUILD" != "$BUILD_NUMBER" ]]; then
+            echo "::error::iOS 应用包的 Bundle ID 或版本不一致"
             exit 1
           fi
+          mkdir -p build/ios/ipa Payload
+          cp -R "$APP_PATH" Payload/
+          ditto -c -k --sequesterRsrc --keepParent Payload \
+            "build/ios/ipa/Dumb-Panel-APP-v${BUILD_NAME}-unsigned.ipa"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -598,9 +290,7 @@ jobs:
           NOTES_FILE="${{ needs.prepare.outputs.release_notes_file }}"
           mapfile -t APK_FILES < <(find release -maxdepth 1 -type f -name '*.apk')
           mapfile -t IPA_FILES < <(find release -maxdepth 1 -type f -name '*.ipa')
-          mapfile -t MANIFEST_FILES < <(find release -maxdepth 1 -type f -name 'android-update.json')
-          mapfile -t PATCH_FILES < <(find release -maxdepth 1 -type f -name '*.patch')
-          if (( ${#APK_FILES[@]} != 1 || ${#IPA_FILES[@]} != 1 || ${#MANIFEST_FILES[@]} != 1 || ${#PATCH_FILES[@]} > 1 )); then
+          if (( ${#APK_FILES[@]} != 1 || ${#IPA_FILES[@]} != 1 )); then
             echo "::error::Release 资产集合不符合预期"
             exit 1
           fi
