@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/models/cron_template.dart';
 import '../../../shared/models/python_runtime_info.dart';
 import '../../../shared/models/task.dart';
 import '../../../shared/utils/api_utils.dart';
@@ -60,42 +61,6 @@ class _TaskNotificationChannel {
   }
 }
 
-class _CronTemplate {
-  final String name;
-  final String expression;
-  final String description;
-
-  const _CronTemplate({
-    required this.name,
-    required this.expression,
-    this.description = '',
-  });
-
-  factory _CronTemplate.fromJson(Map<String, dynamic> json) {
-    final expression = (json['expression'] ??
-            json['cron_expression'] ??
-            json['cron'] ??
-            json['value'] ??
-            '')
-        .toString()
-        .trim();
-    final name = (json['name'] ?? json['label'] ?? json['title'] ?? expression)
-        .toString()
-        .trim();
-    return _CronTemplate(
-      name: name.isEmpty ? expression : name,
-      expression: expression,
-      description: json['description']?.toString().trim() ?? '',
-    );
-  }
-}
-
-const _fallbackCronTemplates = [
-  _CronTemplate(name: '每小时', expression: '0 0 * * * *'),
-  _CronTemplate(name: '每天0点', expression: '0 0 0 * * *'),
-  _CronTemplate(name: '每天9点', expression: '0 0 9 * * *'),
-];
-
 class _TaskFormPageState extends ConsumerState<TaskFormPage> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameC;
@@ -129,7 +94,8 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
   final List<String> _labels = [];
   List<_TaskNotificationChannel> _notificationChannels = const [];
   List<PythonRuntimeInfo> _pythonRuntimes = const [];
-  List<_CronTemplate> _cronTemplates = _fallbackCronTemplates;
+  List<CronTemplateGroup> _cronTemplateGroups = fallbackCronTemplateGroups;
+  String _panelTimezoneLabel = '执行时区：由面板设置决定';
   String? _cronPreview;
   bool _showHooks = false;
   List<String> _knownGroups = const [];
@@ -146,8 +112,8 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
       text: task?.command ?? prefill?.command ?? '',
     );
     _cronC = TextEditingController(
-      text: task?.cronExpression.isNotEmpty == true
-          ? task!.cronExpression
+      text: task?.effectiveCronExpressions.isNotEmpty == true
+          ? task!.effectiveCronExpressions.join('\n')
           : (prefill?.cronExpression ?? '0 0 * * *'),
     );
     _timeoutC = TextEditingController(text: '${task?.timeout ?? 0}');
@@ -188,6 +154,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
         _loadKnownGroups(),
         _loadPythonRuntimes(),
         _loadCronTemplates(),
+        _loadPanelTimezone(),
       ]);
     });
   }
@@ -323,35 +290,47 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
         ApiEndpoints.cronTemplates,
       );
       final data = extractData(response.data);
-      final templates = data is List
-          ? data
-                .whereType<Map>()
-                .map(
-                  (item) => _CronTemplate.fromJson(
-                    Map<String, dynamic>.from(item),
-                  ),
-                )
-                .where((item) => item.expression.isNotEmpty)
-                .toList()
-          : <_CronTemplate>[];
+      final groups = parseCronTemplateGroups(data);
       if (!mounted) return;
       setState(() {
-        _cronTemplates = templates.isEmpty ? _fallbackCronTemplates : templates;
+        _cronTemplateGroups = groups.isEmpty
+            ? fallbackCronTemplateGroups
+            : groups;
         _loadingCronTemplates = false;
       });
     } catch (_) {
       if (mounted) {
         setState(() {
-          _cronTemplates = _fallbackCronTemplates;
+          _cronTemplateGroups = fallbackCronTemplateGroups;
           _loadingCronTemplates = false;
         });
       }
     }
   }
 
+  Future<void> _loadPanelTimezone() async {
+    try {
+      final response = await DioClient.instance.dio.get(ApiEndpoints.configs);
+      final label = panelTimezoneLabel(extractData(response.data));
+      if (mounted) setState(() => _panelTimezoneLabel = label);
+    } catch (_) {}
+  }
+
+  void _appendCronTemplate(CronTemplate template) {
+    final current = Task.parseCronInput(_cronC.text);
+    final isUntouchedDefault = !isEditing &&
+        current.length == 1 &&
+        current.single == '0 0 * * *';
+    _cronC.text = isUntouchedDefault || current.isEmpty
+        ? template.expression
+        : [...current, template.expression].join('\n');
+    setState(() => _cronPreview = null);
+  }
+
   Future<void> _parseCronExpression() async {
-    final expression = _cronC.text.trim();
-    if (expression.isEmpty) {
+    final expressions = Task.parseCronInput(_cronC.text);
+    final inputSnapshot = _cronC.text;
+    if (expressions.isEmpty) {
       setState(() => _cronPreview = '请输入 Cron 表达式后再解析');
       return;
     }
@@ -360,18 +339,31 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
       _cronPreview = null;
     });
     try {
-      final response = await DioClient.instance.dio.post(
-        ApiEndpoints.cronParse,
-        data: {'expression': expression},
-      );
-      final data = extractData(response.data);
+      final previews = <String>[];
+      for (final expression in expressions) {
+        final response = await DioClient.instance.dio.post(
+          ApiEndpoints.cronParse,
+          data: {'expression': expression},
+        );
+        previews.add(
+          '$expression\n${_formatCronParseResult(extractData(response.data))}',
+        );
+      }
       if (!mounted) return;
+      if (_cronC.text != inputSnapshot) {
+        setState(() => _parsingCron = false);
+        return;
+      }
       setState(() {
-        _cronPreview = _formatCronParseResult(data);
+        _cronPreview = previews.join('\n\n');
         _parsingCron = false;
       });
     } catch (error) {
       if (!mounted) return;
+      if (_cronC.text != inputSnapshot) {
+        setState(() => _parsingCron = false);
+        return;
+      }
       setState(() {
         _cronPreview = extractErrorMessage(error, 'Cron 表达式解析失败');
         _parsingCron = false;
@@ -462,7 +454,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
     final data = <String, dynamic>{
       'name': _nameC.text.trim(),
       'command': _commandC.text.trim(),
-      'cron_expression': _taskType == 'cron' ? _cronC.text.trim() : '',
+      ...Task.cronPayload(_taskType == 'cron' ? _cronC.text : ''),
       'task_type': _taskType,
       'python_version': _pythonVersion,
       'timeout': _parseInt(_timeoutC, 0),
@@ -680,8 +672,8 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                     minLines: 1,
                     onChanged: (_) => setState(() => _cronPreview = null),
                     decoration: const InputDecoration(
-                      labelText: 'Cron 表达式',
-                      hintText: '0 0 * * *',
+                      labelText: 'Cron 表达式（每行一条）',
+                      hintText: '0 0 * * *\n0 30 * * *',
                     ),
                     validator: (v) =>
                         _taskType == 'cron' && (v == null || v.trim().isEmpty)
@@ -689,21 +681,46 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                         : null,
                   ),
                   const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _panelTimezoneLabel,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  for (final group in _cronTemplateGroups) ...[
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        group.name,
+                        style: theme.textTheme.labelMedium,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final template in group.templates)
+                          AppLiquidGlassActionChip(
+                            label: template.name,
+                            onPressed: () => _appendCronTemplate(template),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final template in _cronTemplates)
-                        AppLiquidGlassActionChip(
-                          label: template.name,
-                          onPressed: () {
-                            _cronC.text = template.expression;
-                            setState(() => _cronPreview = null);
-                          },
-                        ),
-                       AppLiquidGlassActionChip(
-                         icon: Icons.manage_search,
-                         label: _loadingCronTemplates ? '模板加载中' : '解析预览',
+                      AppLiquidGlassActionChip(
+                        icon: Icons.manage_search,
+                        label: _loadingCronTemplates ? '模板加载中' : '解析预览',
                         onPressed: _parsingCron ? null : _parseCronExpression,
                       ),
                     ],
@@ -717,11 +734,11 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                         borderRadius: 10,
                         performanceMode: true,
                         child: Text(
-                        _cronPreview!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
+                          _cronPreview!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     ),
@@ -982,6 +999,14 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                       value: null,
                       child: Text('全部启用渠道'),
                     ),
+                    if (_notificationChannelId != null &&
+                        _channelOptions.every(
+                          (channel) => channel.id != _notificationChannelId,
+                        ))
+                      DropdownMenuItem<int?>(
+                        value: _notificationChannelId,
+                        child: Text('渠道 #$_notificationChannelId（当前值）'),
+                      ),
                     ..._channelOptions.map(
                       (c) => DropdownMenuItem<int?>(
                         value: c.id,

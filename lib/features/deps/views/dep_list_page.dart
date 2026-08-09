@@ -8,6 +8,7 @@ import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/panel_capability_registry.dart';
 import '../../../core/network/sse_client.dart';
 import '../../../core/network/sse_protocol.dart';
+import '../../../core/auth/auth_session_epoch.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/dependency.dart';
 import '../../../shared/models/python_runtime_info.dart';
@@ -181,8 +182,9 @@ class DepListNotifier extends StateNotifier<DepListState> {
     String? pythonVersion,
     bool refresh = true,
   }) async {
-    final scope = PanelCapabilityRegistry.currentScope;
-    _ensureScope(scope);
+    final capabilityScope = PanelCapabilityRegistry.currentScope;
+    final sessionScope = AuthSessionEpoch.scoped(capabilityScope);
+    _ensureScope(sessionScope);
     final requestId = ++_loadRequestId;
     if (refresh) _page = 1;
     final nextType = type ?? state.selectedType;
@@ -199,14 +201,22 @@ class DepListNotifier extends StateNotifier<DepListState> {
         pythonVersion: nextType == 'python' ? nextPythonVersion : null,
         page: _page,
       );
-      if (requestId != _loadRequestId) return;
+      if (requestId != _loadRequestId ||
+          sessionScope !=
+              AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
       state = state.copyWith(
         items: refresh ? result.items : [...state.items, ...result.items],
         total: result.total,
         loading: false,
       );
     } catch (error) {
-      if (requestId != _loadRequestId) return;
+      if (requestId != _loadRequestId ||
+          sessionScope !=
+              AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
       if (!refresh && _page > 1) _page--;
       state = state.copyWith(
         loading: false,
@@ -230,12 +240,13 @@ class DepListNotifier extends StateNotifier<DepListState> {
   }
 
   Future<void> loadPythonRuntimes() async {
-    final scope = PanelCapabilityRegistry.currentScope;
-    _ensureScope(scope);
+    final capabilityScope = PanelCapabilityRegistry.currentScope;
+    final sessionScope = AuthSessionEpoch.scoped(capabilityScope);
+    _ensureScope(sessionScope);
     final requestId = ++_runtimeRequestId;
     if (PanelCapabilityRegistry.isUnsupported(
       PanelCapability.pythonRuntimes,
-      scope: scope,
+      scope: capabilityScope,
     )) {
       state = state.copyWith(runtimeLoading: false, runtimeSupported: false);
       return;
@@ -247,12 +258,13 @@ class DepListNotifier extends StateNotifier<DepListState> {
       );
       final raw = resp.data;
       if (requestId != _runtimeRequestId ||
-          scope != PanelCapabilityRegistry.currentScope) {
+          sessionScope !=
+              AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
         return;
       }
       PanelCapabilityRegistry.recordSupported(
         PanelCapability.pythonRuntimes,
-        scope: scope,
+        scope: capabilityScope,
       );
       final map = raw is Map<String, dynamic>
           ? raw
@@ -289,13 +301,14 @@ class DepListNotifier extends StateNotifier<DepListState> {
       );
     } catch (error) {
       if (requestId != _runtimeRequestId ||
-          scope != PanelCapabilityRegistry.currentScope) {
+          sessionScope !=
+              AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
         return;
       }
       final capabilityState = PanelCapabilityRegistry.recordFailure(
         PanelCapability.pythonRuntimes,
         error,
-        scope: scope,
+        scope: capabilityScope,
       );
       state = state.copyWith(
         runtimeLoading: false,

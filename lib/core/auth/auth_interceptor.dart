@@ -4,12 +4,13 @@ import '../network/dio_client.dart';
 import '../network/panel_capability_registry.dart';
 import '../storage/secure_storage.dart';
 import 'auth_token_snapshot.dart';
+import 'auth_session_epoch.dart';
 import 'token_refresh_coordinator.dart';
 
 class AuthInterceptor extends Interceptor {
   static const _retryMarker = 'auth_retry_attempted';
   static const _requestScopeMarker = 'auth_request_scope';
-  static const _refreshCycleMarker = 'auth_refresh_cycle';
+  static const _sessionEpochMarker = 'auth_session_epoch';
   static const _publicAuthPaths = {
     ApiEndpoints.checkInit,
     ApiEndpoints.init,
@@ -17,16 +18,12 @@ class AuthInterceptor extends Interceptor {
     ApiEndpoints.captchaConfig,
   };
 
-  bool _isRefreshing = false;
-  Future<void>? _authFailureInFlight;
-  int _refreshCycle = 0;
-  final Set<int> _failedRefreshCycles = {};
-  final List<({RequestOptions options, ErrorInterceptorHandler handler})>
-  _pendingRequests = [];
-
+  final Map<int, Future<void>> _authFailureInFlight = {};
+  final Set<int> _failedAuthEpochs = {};
   final void Function()? onAuthFailed;
+  final Future<void> Function(int epoch)? onAuthFailedForEpoch;
 
-  AuthInterceptor({this.onAuthFailed});
+  AuthInterceptor({this.onAuthFailed, this.onAuthFailedForEpoch});
 
   static bool isPublicAuthPath(String path) {
     final normalizedPath = Uri.tryParse(path)?.path ?? path;
@@ -41,6 +38,10 @@ class AuthInterceptor extends Interceptor {
     options.extra.putIfAbsent(
       _requestScopeMarker,
       () => PanelCapabilityRegistry.currentScope,
+    );
+    options.extra.putIfAbsent(
+      _sessionEpochMarker,
+      () => AuthSessionEpoch.current,
     );
     if (isPublicAuthPath(options.path)) {
       options.headers.removeWhere(
@@ -57,10 +58,37 @@ class AuthInterceptor extends Interceptor {
   }
 
   @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    final options = response.requestOptions;
+    if (options.extra[_requestScopeMarker] !=
+            PanelCapabilityRegistry.currentScope ||
+        !_isRequestEpochCurrent(options)) {
+      handler.reject(
+        DioException(
+          requestOptions: options,
+          response: response,
+          type: DioExceptionType.cancel,
+          error: 'Auth session changed while request was in flight',
+        ),
+      );
+      return;
+    }
+    handler.next(response);
+  }
+
+  @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     if (err.requestOptions.extra[_requestScopeMarker] !=
-        PanelCapabilityRegistry.currentScope) {
-      handler.next(err);
+            PanelCapabilityRegistry.currentScope ||
+        !_isRequestEpochCurrent(err.requestOptions)) {
+      handler.reject(
+        DioException(
+          requestOptions: err.requestOptions,
+          response: err.response,
+          type: DioExceptionType.cancel,
+          error: 'Auth session changed while request was in flight',
+        ),
+      );
       return;
     }
     if (err.response?.statusCode != 401 ||
@@ -71,26 +99,24 @@ class AuthInterceptor extends Interceptor {
 
     if (err.requestOptions.extra[_retryMarker] == true) {
       await _clearSessionAndRejectPending(
-        refreshCycle: err.requestOptions.extra[_refreshCycleMarker] as int?,
+        epoch: _requestEpoch(err.requestOptions),
       );
       handler.next(err);
       return;
     }
 
-    if (_isRefreshing) {
-      _pendingRequests.add((options: err.requestOptions, handler: handler));
-      return;
-    }
-
-    _isRefreshing = true;
-    final refreshCycle = ++_refreshCycle;
-    _failedRefreshCycles.removeWhere((cycle) => cycle < refreshCycle - 2);
+    final epoch = _requestEpoch(err.requestOptions);
     var currentRequestCompleted = false;
 
     try {
       final refreshToken = await SecureStorage.getRefreshToken();
+      if (!AuthSessionEpoch.isCurrent(epoch)) {
+        handler.reject(_sessionChangedException(err));
+        currentRequestCompleted = true;
+        return;
+      }
       if (refreshToken == null || refreshToken.isEmpty) {
-        await _clearSessionAndRejectPending();
+        await _clearSessionAndRejectPending(epoch: epoch);
         handler.next(err);
         currentRequestCompleted = true;
         return;
@@ -98,23 +124,23 @@ class AuthInterceptor extends Interceptor {
 
       late final String newAccessToken;
       try {
-        newAccessToken = await TokenRefreshCoordinator.refresh();
+        newAccessToken = await TokenRefreshCoordinator.refresh(epoch: epoch);
       } catch (_) {
-        await _clearSessionAndRejectPending();
+        await _clearSessionAndRejectPending(epoch: epoch);
         handler.next(err);
         currentRequestCompleted = true;
         return;
       }
 
       if (err.requestOptions.extra[_requestScopeMarker] !=
-          PanelCapabilityRegistry.currentScope) {
-        handler.next(err);
+              PanelCapabilityRegistry.currentScope ||
+          !AuthSessionEpoch.isCurrent(epoch)) {
+        handler.reject(_sessionChangedException(err));
         currentRequestCompleted = true;
         return;
       }
 
       err.requestOptions.extra[_retryMarker] = true;
-      err.requestOptions.extra[_refreshCycleMarker] = refreshCycle;
       err.requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
       try {
         final retryResponse = await DioClient.instance.dio.fetch(
@@ -126,92 +152,59 @@ class AuthInterceptor extends Interceptor {
         handler.reject(_retryException(err.requestOptions, retryError));
         currentRequestCompleted = true;
       }
-
-      while (_pendingRequests.isNotEmpty) {
-        final pendingRequests = List.of(_pendingRequests);
-        _pendingRequests.clear();
-        await Future.wait(
-          pendingRequests.map((pending) async {
-            pending.options.extra[_retryMarker] = true;
-            pending.options.extra[_refreshCycleMarker] = refreshCycle;
-            pending.options.headers['Authorization'] =
-                'Bearer $newAccessToken';
-            if (pending.options.extra[_requestScopeMarker] !=
-                PanelCapabilityRegistry.currentScope) {
-              pending.handler.reject(
-                DioException(requestOptions: pending.options),
-              );
-              return;
-            }
-            try {
-              final response = await DioClient.instance.dio.fetch(
-                pending.options,
-              );
-              pending.handler.resolve(response);
-            } catch (retryError) {
-              pending.handler.reject(
-                _retryException(pending.options, retryError),
-              );
-            }
-          }),
-        );
-      }
     } catch (_) {
-      await _clearSessionAndRejectPending();
+      await _clearSessionAndRejectPending(epoch: epoch);
       if (!currentRequestCompleted) {
         handler.next(err);
       }
-    } finally {
-      _isRefreshing = false;
-      _pendingRequests.clear();
     }
   }
 
-  Future<void> _clearSessionAndRejectPending({int? refreshCycle}) async {
-    if (refreshCycle != null && _failedRefreshCycles.contains(refreshCycle)) {
-      return;
-    }
-    if (refreshCycle != null) _failedRefreshCycles.add(refreshCycle);
-    final existing = _authFailureInFlight;
+  DioException _sessionChangedException(DioException original) => DioException(
+    requestOptions: original.requestOptions,
+    response: original.response,
+    type: DioExceptionType.cancel,
+    error: 'Auth session changed while request was in flight',
+  );
+
+  Future<void> _clearSessionAndRejectPending({
+    required int epoch,
+  }) async {
+    if (!AuthSessionEpoch.isCurrent(epoch)) return;
+    final existing = _authFailureInFlight[epoch];
     if (existing != null) {
       await existing;
       return;
     }
-    final operation = _clearSessionAndRejectPendingOnce();
-    _authFailureInFlight = operation;
+    if (!_failedAuthEpochs.add(epoch)) return;
+    _failedAuthEpochs.removeWhere((failedEpoch) => failedEpoch < epoch - 2);
+    final operation = _clearSessionAndRejectPendingOnce(epoch);
+    _authFailureInFlight[epoch] = operation;
     try {
       await operation;
     } finally {
-      if (identical(_authFailureInFlight, operation)) {
-        _authFailureInFlight = null;
+      if (identical(_authFailureInFlight[epoch], operation)) {
+        _authFailureInFlight.remove(epoch);
       }
     }
   }
 
-  Future<void> _clearSessionAndRejectPendingOnce() async {
+  Future<void> _clearSessionAndRejectPendingOnce(int epoch) async {
     try {
-      await SecureStorage.clearAuthSession();
+      await SecureStorage.clearAuthSession(authEpoch: epoch);
     } catch (_) {}
+    if (!AuthSessionEpoch.isCurrent(epoch)) return;
     try {
+      await onAuthFailedForEpoch?.call(epoch);
       onAuthFailed?.call();
     } catch (_) {}
-
-    final pendingRequests = List.of(_pendingRequests);
-    _pendingRequests.clear();
-    for (final pending in pendingRequests) {
-      pending.handler.reject(
-        DioException(
-          requestOptions: pending.options,
-          response: Response(
-            requestOptions: pending.options,
-            statusCode: 401,
-          ),
-          type: DioExceptionType.badResponse,
-          error: 'Authentication expired',
-        ),
-      );
-    }
   }
+
+  int _requestEpoch(RequestOptions options) =>
+      options.extra[_sessionEpochMarker] as int? ?? AuthSessionEpoch.current;
+
+  bool _isRequestEpochCurrent(RequestOptions options) =>
+      AuthSessionEpoch.isCurrent(_requestEpoch(options));
 
   DioException _retryException(RequestOptions options, Object error) {
     if (error is DioException) return error;

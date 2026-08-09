@@ -106,9 +106,9 @@ class Subscription {
       schedule: json['schedule']?.toString() ?? '',
       whitelist: json['whitelist']?.toString() ?? '',
       blacklist: json['blacklist']?.toString() ?? '',
-      autoAddTask: json['auto_add_task'] == true,
-      autoDelTask: json['auto_del_task'] == true,
-      enabled: json['enabled'] != false,
+      autoAddTask: _boolOrNull(json['auto_add_task']) ?? false,
+      autoDelTask: _boolOrNull(json['auto_del_task']) ?? false,
+      enabled: _boolOrNull(json['enabled']) ?? true,
       status: _double(json['status']),
       lastPullAt: _date(json['last_pull_at']),
       saveDir: json['save_dir']?.toString() ?? '',
@@ -149,9 +149,13 @@ class Subscription {
   };
 }
 
-int _int(dynamic v) => (v is num) ? v.toInt() : 0;
-int? _intOrNull(dynamic v) => (v is num) ? v.toInt() : null;
-double _double(dynamic v) => (v is num) ? v.toDouble() : 0.0;
+int _int(dynamic v) => _intOrNull(v) ?? 0;
+int? _intOrNull(dynamic v) => v is num
+    ? v.toInt()
+    : int.tryParse(v?.toString().trim() ?? '');
+double _double(dynamic v) => v is num
+    ? v.toDouble()
+    : double.tryParse(v?.toString().trim() ?? '') ?? 0.0;
 bool? _boolOrNull(dynamic value) {
   if (value is bool) return value;
   if (value is num) return value != 0;

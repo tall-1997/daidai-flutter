@@ -2,6 +2,26 @@ import 'package:daidai_app/features/notifications/views/notification_list_page.d
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('notification list state retains and clears load errors', () {
+    final failed = const NotificationListState().copyWith(error: '加载失败');
+
+    expect(failed.error, '加载失败');
+    expect(failed.copyWith(loading: true).error, '加载失败');
+    expect(failed.copyWith(clearError: true).error, isNull);
+  });
+
+  test('unknown current enum value becomes a selectable current option', () {
+    const options = [
+      NotificationFieldChoice(value: 'known', label: '已知值'),
+    ];
+
+    final choices = notificationFieldChoices(options, 'future-value');
+
+    expect(choices.map((choice) => choice.value), ['future-value', 'known']);
+    expect(choices.first.label, 'future-value（当前值）');
+    expect(notificationFieldChoices(options, 'known'), same(options));
+  });
+
   group('NotificationTypeOption', () {
     test('parses list fields and generic options', () {
       final option = NotificationTypeOption.fromJson({

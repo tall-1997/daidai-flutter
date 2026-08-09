@@ -1,0 +1,23 @@
+# Implementation Task List
+
+- [x] Preserve and edit complete Multi-Cron schedules.
+- [x] Parse grouped Cron templates and display Panel timezone context.
+- [x] Add Session Epoch to authentication, refresh, REST and SSE paths.
+- [x] Scope notification, subscription and task UI state by Panel and Session Epoch.
+- [x] Parse wrapped task-view responses and preserve unknown enum values.
+- [x] Implement SSE ID, retry, backoff, replay suppression and lifecycle pause.
+- [x] Add raw-log ticket renewal, temporary sharing and cleanup.
+- [x] Add inline stale-data errors, operator navigation and update notifications.
+- [x] Move signed delta assets into the formal Release workflow.
+- [x] Add regression tests for authentication, SSE, task contracts, UI state, raw logs and list errors.
+- [x] Add production SSE duplicate-suppression coverage for same-stream, reconnect, empty-ID and bounded-cache behavior.
+- [x] Preserve explicit empty system configuration values while defaulting missing values.
+- [x] Add recoverable initial and stale-data errors to backup and Open API pages.
+- [x] Parse wrapped enhanced-endpoint responses and cache optional management capabilities per Panel.
+- [x] Guard health diagnostics as an administrator route and report restart failures.
+- [x] Add a trusted iOS Release-page update action through the existing platform channel.
+- [x] Retry one alternate HTTP or HTTPS protocol while retaining public HTTP confirmation.
+- [x] Observe task completion independently from the live-log page and suppress duplicate notifications.
+- [x] Add environment-card swipe actions with back-gesture collapse behavior.
+- [x] Run repository-level static diff verification available in the current environment.
+- [ ] Run Dart formatting, Flutter analysis/tests/builds and actionlint when those toolchains are available.

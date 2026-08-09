@@ -124,6 +124,19 @@ void main() {
     test('routes task and log payloads', () {
       expect(notificationPayloadRoute(taskNotificationPayload(12)), '/tasks/12/live-logs');
       expect(notificationPayloadRoute(logNotificationPayload(8)), '/logs/8/stream');
+      expect(
+        notificationPayloadRoute(updateNotificationPayload('1.2.0')),
+        '/more',
+      );
+    });
+    test('uses a stable version-specific update notification id', () {
+      expect(updateNotificationId('1.2.0'), updateNotificationId('1.2.0'));
+      expect(
+        updateNotificationId('1.2.0'),
+        isNot(updateNotificationId('1.2.1')),
+      );
+      expect(updateNotificationBody(''), '点击查看并更新应用');
+      expect(updateNotificationBody(List.filled(121, 'a').join()).length, 120);
     });
 
     test('ignores malformed payloads', () {
@@ -237,6 +250,23 @@ void main() {
         ),
         {'changed': 'new'},
       );
+    });
+
+    test('preserves explicit empty values and defaults only missing values', () {
+      final schemas = parseSystemConfigSchemas({
+        'explicit_empty': {
+          'value': '',
+          'default_value': 'fallback',
+        },
+        'missing_value': {
+          'default_value': 'fallback',
+        },
+      });
+
+      expect(schemas.first.hasValue, isTrue);
+      expect(schemas.first.effectiveValue, '');
+      expect(schemas.last.hasValue, isFalse);
+      expect(schemas.last.effectiveValue, 'fallback');
     });
   });
 

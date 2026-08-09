@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/auth/auth_session_epoch.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/network/panel_capability_registry.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../shared/utils/time_utils.dart';
@@ -39,7 +41,7 @@ class _User {
       id: (json['id'] as num?)?.toInt() ?? 0,
       username: json['username']?.toString() ?? '',
       role: json['role']?.toString() ?? 'viewer',
-      enabled: json['enabled'] != false,
+      enabled: _userBool(json['enabled'], fallback: true),
       lastLoginAt: json['last_login_at'] is String
           ? DateTime.tryParse(json['last_login_at'])
           : null,
@@ -65,25 +67,56 @@ class _User {
   }
 }
 
+bool _userBool(dynamic value, {required bool fallback}) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  switch (value?.toString().trim().toLowerCase()) {
+    case 'true':
+    case '1':
+      return true;
+    case 'false':
+    case '0':
+      return false;
+    default:
+      return fallback;
+  }
+}
+
 class UserListState {
   final List<_User> items;
   final bool loading;
+  final String? error;
 
-  const UserListState({this.items = const [], this.loading = false});
+  const UserListState({this.items = const [], this.loading = false, this.error});
 
-  UserListState copyWith({List<_User>? items, bool? loading}) {
+  UserListState copyWith({
+    List<_User>? items,
+    bool? loading,
+    String? error,
+    bool clearError = false,
+  }) {
     return UserListState(
       items: items ?? this.items,
       loading: loading ?? this.loading,
+      error: clearError ? null : error ?? this.error,
     );
   }
 }
 
 class UserListNotifier extends StateNotifier<UserListState> {
   UserListNotifier() : super(const UserListState());
+  String? _scope;
+  int _loadRequestId = 0;
 
   Future<void> load() async {
-    state = state.copyWith(loading: true);
+    final scope = AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope);
+    if (_scope != scope) {
+      _scope = scope;
+      _loadRequestId++;
+      state = const UserListState();
+    }
+    final requestId = ++_loadRequestId;
+    state = state.copyWith(loading: true, clearError: true);
     try {
       final resp = await DioClient.instance.dio.get(ApiEndpoints.users);
       final data = extractData(resp.data);
@@ -94,9 +127,20 @@ class UserListNotifier extends StateNotifier<UserListState> {
             .map((e) => _User.fromJson(e))
             .toList();
       }
-      state = state.copyWith(items: items, loading: false);
-    } catch (_) {
-      state = state.copyWith(loading: false);
+      if (requestId != _loadRequestId ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
+      state = state.copyWith(items: items, loading: false, clearError: true);
+    } catch (error) {
+      if (requestId != _loadRequestId ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
+      state = state.copyWith(
+        loading: false,
+        error: extractErrorMessage(error, '用户列表加载失败'),
+      );
     }
   }
 
@@ -202,6 +246,12 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                           ),
                         ],
                       )
+                    : state.error != null && state.items.isEmpty
+                    ? _UserLoadError(
+                        message: state.error!,
+                        onRetry: () =>
+                            ref.read(userListProvider.notifier).load(),
+                      )
                     : state.items.isEmpty
                     ? ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
@@ -223,15 +273,26 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                        itemCount: state.items.length,
-                        itemBuilder: (_, i) => _UserCard(
-                          user: state.items[i],
-                          isLight: isLight,
-                          currentUsername: currentUsername,
-                          showResetPw: _showResetPasswordDialog,
-                          showRolePicker: _showRolePicker,
-                          showDelete: _confirmDelete,
-                        ),
+                        itemCount:
+                            state.items.length + (state.error == null ? 0 : 1),
+                        itemBuilder: (_, i) {
+                          if (state.error != null && i == 0) {
+                            return _InlineUserLoadError(
+                              message: state.error!,
+                              onRetry: () =>
+                                  ref.read(userListProvider.notifier).load(),
+                            );
+                          }
+                          final index = i - (state.error == null ? 0 : 1);
+                          return _UserCard(
+                            user: state.items[index],
+                            isLight: isLight,
+                            currentUsername: currentUsername,
+                            showResetPw: _showResetPasswordDialog,
+                            showRolePicker: _showRolePicker,
+                            showDelete: _confirmDelete,
+                          );
+                        },
                       ),
               ),
             ),
@@ -257,10 +318,20 @@ class _UserListPageState extends ConsumerState<UserListPage> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: ['admin', 'operator', 'viewer']
+                children: [
+                  'admin',
+                  'operator',
+                  'viewer',
+                  if (!const {'admin', 'operator', 'viewer'}.contains(user.role))
+                    user.role,
+                ]
                     .map(
                        (item) => AppLiquidGlassChoiceChip(
-                         label: item == 'admin'
+                         label: item == user.role &&
+                                 !const {'admin', 'operator', 'viewer'}
+                                     .contains(item)
+                             ? '$item（当前值）'
+                             : item == 'admin'
                                ? '管理员'
                                : item == 'operator'
                                ? '操作员'
@@ -511,6 +582,46 @@ class _UserListPageState extends ConsumerState<UserListPage> {
   }
 }
 
+class _UserLoadError extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _UserLoadError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) => ListView(
+    physics: const AlwaysScrollableScrollPhysics(),
+    padding: const EdgeInsets.symmetric(horizontal: 32),
+    children: [
+      const SizedBox(height: 100),
+      const Icon(Icons.cloud_off_outlined, size: 56, color: AppColors.slate400),
+      const SizedBox(height: 12),
+      Text(message, textAlign: TextAlign.center),
+      const SizedBox(height: 12),
+      Center(child: TextButton(onPressed: onRetry, child: const Text('重试'))),
+    ],
+  );
+}
+
+class _InlineUserLoadError extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _InlineUserLoadError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+    child: Row(children: [
+      const Icon(Icons.sync_problem_outlined, color: AppColors.amber500),
+      const SizedBox(width: 10),
+      Expanded(child: Text(message, style: const TextStyle(fontSize: 13))),
+      TextButton(onPressed: onRetry, child: const Text('重试')),
+    ]),
+  );
+}
+
 class _UserCard extends ConsumerWidget {
   final _User user;
   final bool isLight;
@@ -554,7 +665,9 @@ class _UserCard extends ConsumerWidget {
             ),
             child: Center(
               child: Text(
-                user.username.substring(0, 1).toUpperCase(),
+                user.username.isEmpty
+                    ? '?'
+                    : user.username.substring(0, 1).toUpperCase(),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,

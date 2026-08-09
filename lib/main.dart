@@ -5,8 +5,10 @@ import 'core/auth/auth_interceptor.dart';
 import 'core/auth/auth_provider.dart';
 import 'core/network/app_user_agent.dart';
 import 'core/network/dio_client.dart';
+import 'core/network/sse_client.dart';
 import 'core/services/local_notification_service.dart';
 import 'core/services/app_update_service.dart';
+import 'core/services/task_completion_observer.dart';
 import 'core/storage/secure_storage.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/theme_provider.dart';
@@ -83,17 +85,31 @@ void main() async {
   }
 
   // 注入认证拦截器
+  SseClient.defaultOnAuthFailedForEpoch = (epoch) {
+    return container
+        .read(authProvider.notifier)
+        .expireSession(expectedEpoch: epoch);
+  };
   DioClient.instance.dio.interceptors.insert(
     0,
     AuthInterceptor(
-      onAuthFailed: () {
-        container.read(authProvider.notifier).setUnauthenticated();
+      onAuthFailedForEpoch: (epoch) {
+        return container
+            .read(authProvider.notifier)
+            .expireSession(expectedEpoch: epoch);
       },
     ),
   );
 
   // 启动时先恢复本地可信登录态，7 天内避免重复触发登录接口和登录日志。
   await container.read(authProvider.notifier).restoreTrustedLocalSession();
+  container.listen<AuthState>(authProvider, (_, next) {
+    if (next.status == AuthStatus.authenticated) {
+      TaskCompletionObserver.instance.start();
+    } else {
+      TaskCompletionObserver.instance.stop();
+    }
+  }, fireImmediately: true);
 
   runApp(
     UncontrolledProviderScope(

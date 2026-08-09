@@ -4,7 +4,7 @@ import '../network/api_endpoints.dart';
 import '../network/dio_client.dart';
 import '../storage/secure_storage.dart';
 import '../../shared/models/user.dart';
-import 'token_refresh_coordinator.dart';
+import 'auth_session_epoch.dart';
 
 class ServerHealthCheckResult {
   final bool reachable;
@@ -69,7 +69,9 @@ class AuthService {
     required String password,
     String? totpCode,
     Map<String, dynamic>? captcha,
+    int? authEpoch,
   }) async {
+    final epoch = authEpoch ?? AuthSessionEpoch.advance();
     final data = <String, dynamic>{'username': username, 'password': password};
     if (totpCode != null && totpCode.isNotEmpty) {
       data['totp_code'] = totpCode;
@@ -99,14 +101,23 @@ class AuthService {
     }
 
     final result = _extractData(response.data);
-    final Map<String, dynamic> map = result is Map<String, dynamic>
-        ? result
-        : {};
+    final map = result is Map
+        ? Map<String, dynamic>.from(result)
+        : <String, dynamic>{};
 
     if (map.containsKey('access_token')) {
+      final accessToken = map['access_token'];
+      final refreshToken = map['refresh_token'];
+      if (accessToken is! String || accessToken.isEmpty) {
+        throw const FormatException('登录响应中的 access_token 无效');
+      }
+      if (refreshToken is! String || refreshToken.isEmpty) {
+        throw const FormatException('登录响应缺少 refresh_token');
+      }
       await SecureStorage.saveTokens(
-        accessToken: map['access_token'] as String,
-        refreshToken: map['refresh_token'] as String,
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        authEpoch: epoch,
       );
     }
 
@@ -135,39 +146,47 @@ class AuthService {
     return <String, dynamic>{};
   }
 
-  Future<void> logout() async {
-    TokenRefreshCoordinator.invalidate();
+  Future<void> logout({int? authEpoch}) async {
+    final epoch = authEpoch ?? AuthSessionEpoch.advance();
     try {
       await _dio.post(ApiEndpoints.logout);
     } finally {
-      await SecureStorage.clearAuthSession();
+      await SecureStorage.clearAuthSession(authEpoch: epoch);
     }
   }
 
-  Future<User> getUser() async {
+  Future<User> getUser({int? authEpoch}) async {
+    final epoch = authEpoch ?? AuthSessionEpoch.current;
     final response = await _dio.get(ApiEndpoints.user);
     final data = _extractData(response.data);
+    if (data is! Map) {
+      throw const FormatException('用户信息响应格式错误');
+    }
     final userData = data is Map && data['user'] is Map
         ? Map<String, dynamic>.from(data['user'] as Map)
-        : Map<String, dynamic>.from(data as Map);
+        : Map<String, dynamic>.from(data);
     final user = User.fromJson(userData);
-    await SecureStorage.saveUser(user);
+    await SecureStorage.saveUser(user, authEpoch: epoch);
     return user;
   }
 
-  Future<void> changeUsername(String username) async {
-    TokenRefreshCoordinator.invalidate();
+  Future<void> changeUsername(String username, {int? authEpoch}) async {
+    final epoch = authEpoch ?? AuthSessionEpoch.advance();
     await _dio.put(ApiEndpoints.authUsername, data: {'username': username});
-    await SecureStorage.clearAuthSession();
+    await SecureStorage.clearAuthSession(authEpoch: epoch);
   }
 
-  Future<void> changePassword(String oldPassword, String newPassword) async {
-    TokenRefreshCoordinator.invalidate();
+  Future<void> changePassword(
+    String oldPassword,
+    String newPassword, {
+    int? authEpoch,
+  }) async {
+    final epoch = authEpoch ?? AuthSessionEpoch.advance();
     await _dio.put(
       ApiEndpoints.authPassword,
       data: {'old_password': oldPassword, 'new_password': newPassword},
     );
-    await SecureStorage.clearAuthSession();
+    await SecureStorage.clearAuthSession(authEpoch: epoch);
   }
 
   Future<void> uploadAvatar(MultipartFile avatar) async {

@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/network/panel_capability_registry.dart';
 import '../../../core/network/sse_client.dart';
 import '../../../core/network/sse_protocol.dart';
+import '../../../core/auth/auth_session_epoch.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/subscription.dart';
 import '../../../shared/utils/api_utils.dart';
@@ -80,8 +82,16 @@ class SubscriptionListNotifier extends StateNotifier<SubscriptionListState> {
   SubscriptionListNotifier() : super(const SubscriptionListState());
   int _loadRequestId = 0;
   int _page = 1;
+  String? _scope;
 
   Future<void> load({bool refresh = true}) async {
+    final scope = AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope);
+    if (_scope != scope) {
+      _scope = scope;
+      _loadRequestId++;
+      _page = 1;
+      state = const SubscriptionListState();
+    }
     final requestId = ++_loadRequestId;
     if (refresh) _page = 1;
     state = state.copyWith(loading: true);
@@ -97,7 +107,10 @@ class SubscriptionListNotifier extends StateNotifier<SubscriptionListState> {
       final items = paginated.items
           .map((e) => Subscription.fromJson(e))
           .toList();
-      if (requestId != _loadRequestId) return;
+      if (requestId != _loadRequestId ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
       state = state.copyWith(
         items: refresh ? items : [...state.items, ...items],
         total: paginated.total,
@@ -105,7 +118,10 @@ class SubscriptionListNotifier extends StateNotifier<SubscriptionListState> {
         error: null,
       );
     } catch (_) {
-      if (requestId != _loadRequestId) return;
+      if (requestId != _loadRequestId ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
       if (!refresh && _page > 1) _page--;
       state = state.copyWith(loading: false, error: '加载订阅失败');
     }
@@ -282,6 +298,29 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
               ),
             ),
             const SizedBox(height: 12),
+            if (state.error != null && state.items.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                child: AppCard(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.cloud_off_outlined,
+                        color: AppColors.red500,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(state.error!)),
+                      TextButton(
+                        onPressed: () => ref
+                            .read(subscriptionListProvider.notifier)
+                            .load(),
+                        child: const Text('重试'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
             // List
             Expanded(
@@ -304,6 +343,34 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                           Center(
                             child: CircularProgressIndicator(
                               color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      )
+                    : state.error != null && state.items.isEmpty
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        children: [
+                          const SizedBox(height: 100),
+                          const Icon(
+                            Icons.cloud_off_outlined,
+                            size: 56,
+                            color: AppColors.slate400,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            state.error!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: AppColors.slate400),
+                          ),
+                          const SizedBox(height: 16),
+                          Center(
+                            child: AppLiquidGlassButton(
+                              label: '重试',
+                              onPressed: () => ref
+                                  .read(subscriptionListProvider.notifier)
+                                  .load(),
                             ),
                           ),
                         ],
@@ -334,12 +401,23 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                             (state.items.length < state.total ? 1 : 0),
                         itemBuilder: (_, i) {
                           if (i == state.items.length) {
-                            return const Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  color: AppColors.primary,
+                            if (state.loading) {
+                              return const Padding(
+                                padding: EdgeInsets.all(16),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.primary,
+                                  ),
                                 ),
+                              );
+                            }
+                            return Center(
+                              child: TextButton.icon(
+                                onPressed: () => ref
+                                    .read(subscriptionListProvider.notifier)
+                                    .loadMore(),
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('加载更多'),
                               ),
                             );
                           }
@@ -939,9 +1017,7 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
     final authUsernameC = TextEditingController(text: sub.authUsername);
     final authTokenC = TextEditingController();
     String selectedType = sub.normalizedType;
-    String selectedAuthType = const {'ssh', 'token'}.contains(sub.authType)
-        ? sub.authType
-        : '';
+    String selectedAuthType = sub.authType;
     bool forceOverwrite = sub.forceOverwrite ?? true;
     int? selectedSshKeyId = sub.sshKeyId;
     List<Map<String, dynamic>> sshKeys = [];
@@ -1025,8 +1101,18 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
                                 const Text('类型', style: TextStyle(fontSize: 13)),
-                                ...['git-repo', 'single-file'].map((t) {
-                                  final label = t == 'git-repo'
+                                ...[
+                                  'git-repo',
+                                  'single-file',
+                                  if (!const {'git-repo', 'single-file'}
+                                      .contains(selectedType))
+                                    selectedType,
+                                ].map((t) {
+                                  final label = t == selectedType &&
+                                          !const {'git-repo', 'single-file'}
+                                              .contains(t)
+                                      ? '$t（当前值）'
+                                      : t == 'git-repo'
                                       ? 'Git 仓库'
                                       : '单文件';
                                   return AppLiquidGlassChoiceChip(
@@ -1049,12 +1135,20 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                                     '鉴权方式',
                                     style: TextStyle(fontSize: 13),
                                   ),
-                                  ...['', 'ssh', 'token'].map(
+                                  ...[
+                                    '',
+                                    'ssh',
+                                    'token',
+                                    if (!const {'', 'ssh', 'token'}
+                                        .contains(selectedAuthType))
+                                      selectedAuthType,
+                                  ].map(
                                     (authType) => AppLiquidGlassChoiceChip(
                                       label: switch (authType) {
                                         'ssh' => 'SSH',
                                         'token' => 'Token',
-                                        _ => '无',
+                                        '' => '无',
+                                        _ => '$authType（当前值）',
                                       },
                                       selected: selectedAuthType == authType,
                                       onSelected: (_) => setSheetState(
@@ -1277,10 +1371,15 @@ class _SubscriptionListPageState extends ConsumerState<SubscriptionListPage> {
                               height: 44,
                               performanceMode: true,
                               onPressed: () async {
+                                final preservesUnknownType =
+                                    selectedType == sub.normalizedType &&
+                                    !const {'git-repo', 'single-file'}
+                                        .contains(selectedType);
                                 final effectiveAuthType =
-                                    selectedType == 'git-repo'
-                                    ? selectedAuthType
-                                    : '';
+                                    selectedType == 'git-repo' ||
+                                            preservesUnknownType
+                                        ? selectedAuthType
+                                        : '';
                                 final authError = validateSubscriptionAuth(
                                   subscriptionType: selectedType,
                                   authType: effectiveAuthType,
@@ -1636,6 +1735,7 @@ class _SubscriptionLogsPageState extends ConsumerState<SubscriptionLogsPage> {
   bool _loading = true;
   int _page = 1;
   int _total = 0;
+  int _loadRequestId = 0;
   Color? _logBackgroundColor;
 
   @override
@@ -1656,6 +1756,7 @@ class _SubscriptionLogsPageState extends ConsumerState<SubscriptionLogsPage> {
       return;
     }
     final targetPage = page ?? _page;
+    final requestId = ++_loadRequestId;
     setState(() => _loading = true);
     try {
       final response = await DioClient.instance.dio.get(
@@ -1663,7 +1764,7 @@ class _SubscriptionLogsPageState extends ConsumerState<SubscriptionLogsPage> {
         queryParameters: {'page': targetPage, 'page_size': _pageSize},
       );
       final paginated = extractPaginated(response.data);
-      if (!mounted) {
+      if (!mounted || requestId != _loadRequestId) {
         return;
       }
       setState(() {
@@ -1673,7 +1774,7 @@ class _SubscriptionLogsPageState extends ConsumerState<SubscriptionLogsPage> {
         _loading = false;
       });
     } catch (_) {
-      if (!mounted) {
+      if (!mounted || requestId != _loadRequestId) {
         return;
       }
       setState(() => _loading = false);

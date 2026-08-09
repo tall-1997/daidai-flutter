@@ -91,6 +91,20 @@ class MainActivity : FlutterActivity() {
                         result.error("INVALID_ARGS", "Path is required", null)
                     }
                 }
+                "openExternalUrl" -> {
+                    val rawUrl = call.argument<String>("url")
+                    val uri = rawUrl?.let(Uri::parse)
+                    if (uri?.scheme == "https" && uri.host?.lowercase() == "github.com") {
+                        try {
+                            startActivity(Intent(Intent.ACTION_VIEW, uri))
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.error("OPEN_URL_ERROR", e.message, null)
+                        }
+                    } else {
+                        result.error("INVALID_URL", "A trusted HTTPS URL is required", null)
+                    }
+                }
                 "getInstalledApkInfo" -> {
                     updateExecutor.execute {
                         try {

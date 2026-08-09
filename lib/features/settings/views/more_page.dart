@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/network/panel_capability_registry.dart';
 import '../../../core/services/app_update_service.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/theme/app_theme.dart';
@@ -15,6 +16,9 @@ class MorePage extends ConsumerStatefulWidget {
   @override
   ConsumerState<MorePage> createState() => _MorePageState();
 }
+
+bool showsOperatorAutomation(String? role) =>
+    role == 'operator' || role == 'admin';
 
 class _MorePageState extends ConsumerState<MorePage> {
   AppUpdateInfo? _updateInfo;
@@ -126,13 +130,32 @@ class _MorePageState extends ConsumerState<MorePage> {
             isLight: isLight,
             onTap: () => context.push('/server-config?manage=1'),
           ),
-          _SettingsItem(
-            icon: Icons.key_outlined,
-            title: '环境变量',
-            isLight: isLight,
-            onTap: () => context.go('/envs'),
-          ),
-          if(user?.isOperator==true)_SettingsItem(icon:Icons.tune_outlined,title:'环境变量高级工具',isLight:isLight,onTap:()=>context.push('/env-tools')),
+          if (showsOperatorAutomation(user?.role)) ...[
+            _SettingsItem(
+              icon: Icons.key_outlined,
+              title: '环境变量',
+              isLight: isLight,
+              onTap: () => context.go('/envs'),
+            ),
+            _SettingsItem(
+              icon: Icons.tune_outlined,
+              title: '环境变量高级工具',
+              isLight: isLight,
+              onTap: () => context.push('/env-tools'),
+            ),
+            _SettingsItem(
+              icon: Icons.code,
+              title: '脚本管理',
+              isLight: isLight,
+              onTap: () => context.push('/scripts'),
+            ),
+            _SettingsItem(
+              icon: Icons.sync,
+              title: '订阅管理',
+              isLight: isLight,
+              onTap: () => context.push('/subscriptions'),
+            ),
+          ],
           _SettingsItem(
             icon: Icons.notifications_none,
             title: '消息通知',
@@ -157,18 +180,6 @@ class _MorePageState extends ConsumerState<MorePage> {
             _SectionLabel('系统管理'),
             const SizedBox(height: 8),
             _SettingsItem(
-              icon: Icons.code,
-              title: '脚本管理',
-              isLight: isLight,
-              onTap: () => context.push('/scripts'),
-            ),
-            _SettingsItem(
-              icon: Icons.sync,
-              title: '订阅管理',
-              isLight: isLight,
-              onTap: () => context.push('/subscriptions'),
-            ),
-            _SettingsItem(
               icon: Icons.inventory_2_outlined,
               title: '依赖管理',
               isLight: isLight,
@@ -192,22 +203,27 @@ class _MorePageState extends ConsumerState<MorePage> {
               isLight: isLight,
               onTap: () => context.push('/ssh-keys'),
             ),
-            _SettingsItem(icon: Icons.token_outlined,title:'平台令牌',isLight:isLight,onTap:()=>context.push('/platform-tokens')),
-            _SettingsItem(icon:Icons.terminal_outlined,title:'高级配置脚本',isLight:isLight,onTap:()=>context.push('/config-script')),
-            _SettingsItem(icon:Icons.android_outlined,title:'Android 运行时',isLight:isLight,onTap:()=>context.push('/android-runtime')),
-            _SettingsItem(icon:Icons.list_alt_outlined,title:'系统依赖清单',isLight:isLight,onTap:()=>context.push('/installed-packages')),
+            if (!PanelCapabilityRegistry.isUnsupported(PanelCapability.platformTokens))
+              _SettingsItem(icon: Icons.token_outlined,title:'平台令牌',isLight:isLight,onTap:()=>context.push('/platform-tokens')),
+            if (!PanelCapabilityRegistry.isUnsupported(PanelCapability.configScript))
+              _SettingsItem(icon:Icons.terminal_outlined,title:'高级配置脚本',isLight:isLight,onTap:()=>context.push('/config-script')),
+            if (!PanelCapabilityRegistry.isUnsupported(PanelCapability.androidRuntime))
+              _SettingsItem(icon:Icons.android_outlined,title:'Android 运行时',isLight:isLight,onTap:()=>context.push('/android-runtime')),
+            if (!PanelCapabilityRegistry.isUnsupported(PanelCapability.installedPackages))
+              _SettingsItem(icon:Icons.list_alt_outlined,title:'系统依赖清单',isLight:isLight,onTap:()=>context.push('/installed-packages')),
             _SettingsItem(
               icon: Icons.settings,
               title: '系统设置',
               isLight: isLight,
               onTap: () => context.push('/system-settings'),
             ),
-            _SettingsItem(
-              icon: Icons.health_and_safety_outlined,
-              title: '系统健康诊断',
-              isLight: isLight,
-              onTap: () => context.push('/health-check'),
-            ),
+            if (!PanelCapabilityRegistry.isUnsupported(PanelCapability.healthCheck))
+              _SettingsItem(
+                icon: Icons.health_and_safety_outlined,
+                title: '系统健康诊断',
+                isLight: isLight,
+                onTap: () => context.push('/health-check'),
+              ),
             _SettingsItem(
               icon: Icons.palette_outlined,
               title: '面板设置',

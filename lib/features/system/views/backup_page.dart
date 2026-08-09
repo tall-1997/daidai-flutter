@@ -261,6 +261,7 @@ class _CreateBackupRequest {
 class _BackupPageState extends ConsumerState<BackupPage> {
   List<_BackupFileRecord> _backups = const [];
   bool _loading = true;
+  String? _loadError;
   bool _creating = false;
   bool _uploading = false;
   final Set<String> _downloading = <String>{};
@@ -314,12 +315,16 @@ class _BackupPageState extends ConsumerState<BackupPage> {
       setState(() {
         _backups = backups;
         _loading = false;
+        _loadError = null;
       });
-    } catch (_) {
+    } catch (error) {
       if (!mounted) {
         return;
       }
-      setState(() => _loading = false);
+      setState(() {
+        _loading = false;
+        _loadError = extractErrorMessage(error, '备份文件加载失败');
+      });
     }
   }
 
@@ -1414,6 +1419,30 @@ class _BackupPageState extends ConsumerState<BackupPage> {
                       ],
                     ),
                     const SizedBox(height: 10),
+                    if (_loadError != null) ...[
+                      AppCard(
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.cloud_off_outlined,
+                              color: AppColors.red500,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _loadError!,
+                                style: theme.textTheme.bodyMedium,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: _loading ? null : _loadBackups,
+                              child: const Text('重试'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (_backups.isNotEmpty) const SizedBox(height: 12),
+                    ],
                     if (_loading && _backups.isEmpty)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 60),
@@ -1423,7 +1452,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
                           ),
                         ),
                       )
-                    else if (_backups.isEmpty)
+                    else if (_backups.isEmpty && _loadError == null)
                       AppCard(
                         padding: EdgeInsets.zero,
                         child: Padding(

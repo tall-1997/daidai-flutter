@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/panel_capability_registry.dart';
+import '../../../core/auth/auth_session_epoch.dart';
 import '../../../shared/models/task_view.dart';
 import '../../../shared/utils/api_utils.dart';
 
@@ -36,6 +37,15 @@ final taskViewProvider = StateNotifierProvider<TaskViewNotifier, TaskViewState>(
   (ref) => TaskViewNotifier(),
 );
 
+List<TaskView> parseTaskViewsResponse(dynamic responseData) {
+  final data = extractData(responseData);
+  if (data is! List) return const [];
+  return data
+      .whereType<Map>()
+      .map((item) => TaskView.fromJson(Map<String, dynamic>.from(item)))
+      .toList();
+}
+
 class TaskViewNotifier extends StateNotifier<TaskViewState> {
   TaskViewNotifier() : super(const TaskViewState());
 
@@ -44,14 +54,15 @@ class TaskViewNotifier extends StateNotifier<TaskViewState> {
 
   Future<void> load() async {
     final requestId = ++_loadRequestId;
-    final scope = PanelCapabilityRegistry.currentScope;
-    if (_scope != scope) {
-      _scope = scope;
+    final capabilityScope = PanelCapabilityRegistry.currentScope;
+    final sessionScope = AuthSessionEpoch.scoped(capabilityScope);
+    if (_scope != sessionScope) {
+      _scope = sessionScope;
       state = const TaskViewState();
     }
     if (PanelCapabilityRegistry.isUnsupported(
       PanelCapability.taskViews,
-      scope: scope,
+      scope: capabilityScope,
     )) {
       if (requestId == _loadRequestId) {
         state = const TaskViewState(supported: false);
@@ -62,34 +73,26 @@ class TaskViewNotifier extends StateNotifier<TaskViewState> {
     try {
       final response = await DioClient.instance.dio.get(ApiEndpoints.taskViews);
       if (requestId != _loadRequestId ||
-          scope != PanelCapabilityRegistry.currentScope) {
+          sessionScope !=
+              AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
         return;
       }
       PanelCapabilityRegistry.recordSupported(
         PanelCapability.taskViews,
-        scope: scope,
+        scope: capabilityScope,
       );
-      final data = response.data;
-      final items = data is List
-          ? data
-                .whereType<Map>()
-                .map(
-                  (item) => TaskView.fromJson(
-                    Map<String, dynamic>.from(item),
-                  ),
-                )
-                .toList()
-          : <TaskView>[];
+      final items = parseTaskViewsResponse(response.data);
       state = TaskViewState(items: items);
     } catch (error) {
       if (requestId != _loadRequestId ||
-          scope != PanelCapabilityRegistry.currentScope) {
+          sessionScope !=
+              AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
         return;
       }
       final capabilityState = PanelCapabilityRegistry.recordFailure(
         PanelCapability.taskViews,
         error,
-        scope: scope,
+        scope: capabilityScope,
       );
       if (capabilityState == PanelCapabilityState.unsupported) {
         state = const TaskViewState(supported: false);

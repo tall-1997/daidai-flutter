@@ -9,10 +9,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/network/panel_capability_registry.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/network/sse_client.dart';
 import '../../../core/network/sse_protocol.dart';
-import '../../../core/services/local_notification_service.dart';
 import '../../../core/services/raw_log_download_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/task.dart';
@@ -27,6 +27,7 @@ import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/task_cron_list.dart';
 import '../providers/task_provider.dart';
 import '../providers/task_view_provider.dart';
+import '../utils/task_ui_storage.dart';
 
 class TaskListPage extends ConsumerStatefulWidget {
   const TaskListPage({super.key});
@@ -59,6 +60,9 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   static const _scrollOffsetStorageKey = 'tasks.scroll_offset';
   static const _selectedGroupStorageKey = 'tasks.selected_group';
   static const _groupOrderStorageKey = 'tasks.group_order';
+  static const _searchStorageKey = 'tasks.search';
+  static const _statusFilterStorageKey = 'tasks.status_filter';
+  static const _currentViewStorageKey = 'tasks.current_view';
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   final Set<String> _collapsedGroups = <String>{};
@@ -73,12 +77,18 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   Timer? _debounce;
   Timer? _scrollSaveDebounce;
   bool _restoredScrollOffset = false;
+  int? _selectedTaskViewId;
+  late final String _panelScope;
+
+  String _storageKey(String key) =>
+      taskUiStorageKey(key, _panelScope);
 
   @override
   void initState() {
     super.initState();
+    _panelScope = PanelCapabilityRegistry.currentScope;
     Future.microtask(() async {
-      unawaited(ref.read(taskViewProvider.notifier).load());
+      await ref.read(taskViewProvider.notifier).load();
       await _restoreTaskUiState();
       if (!mounted) {
         return;
@@ -95,7 +105,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
         return;
       }
       SecureStorage.saveUiState(
-        _scrollOffsetStorageKey,
+        _storageKey(_scrollOffsetStorageKey),
         _scrollController.offset.toStringAsFixed(2),
       );
     });
@@ -593,6 +603,9 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
         _scrollController.jumpTo(0);
       }
       ref.read(taskProvider.notifier).setKeyword(value);
+      unawaited(
+        SecureStorage.saveUiState(_storageKey(_searchStorageKey), value),
+      );
     });
   }
 
@@ -600,9 +613,13 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   void dispose() {
     _debounce?.cancel();
     _scrollSaveDebounce?.cancel();
+    SecureStorage.saveUiState(
+      _storageKey(_searchStorageKey),
+      _searchController.text,
+    );
     if (_scrollController.hasClients) {
       SecureStorage.saveUiState(
-        _scrollOffsetStorageKey,
+        _storageKey(_scrollOffsetStorageKey),
         _scrollController.offset.toStringAsFixed(2),
       );
     }
@@ -613,10 +630,19 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
 
   Future<void> _restoreTaskUiState() async {
     final collapsedRaw = await SecureStorage.getUiState(
-      _collapsedGroupsStorageKey,
+      _storageKey(_collapsedGroupsStorageKey),
     );
     final selectedGroup = await SecureStorage.getUiState(
-      _selectedGroupStorageKey,
+      _storageKey(_selectedGroupStorageKey),
+    );
+    final search = await SecureStorage.getUiState(
+      _storageKey(_searchStorageKey),
+    );
+    final statusFilter = await SecureStorage.getUiState(
+      _storageKey(_statusFilterStorageKey),
+    );
+    final currentViewRaw = await SecureStorage.getUiState(
+      _storageKey(_currentViewStorageKey),
     );
     final groups = <String>{};
     if (collapsedRaw != null && collapsedRaw.trim().isNotEmpty) {
@@ -632,38 +658,48 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     if (!mounted) {
       return;
     }
-    final groupOrderRaw = await SecureStorage.getUiState(_groupOrderStorageKey);
+    final groupOrderRaw = await SecureStorage.getUiState(
+      _storageKey(_groupOrderStorageKey),
+    );
     final savedGroupOrder = <String>[];
     if (groupOrderRaw != null && groupOrderRaw.trim().isNotEmpty) {
       savedGroupOrder.addAll(groupOrderRaw.split('\n').map((s) => s.trim()));
     }
     if (!mounted) return;
+    final currentViewId = int.tryParse(currentViewRaw ?? '');
+    final currentView = ref
+        .read(taskViewProvider)
+        .items
+        .where((view) => view.id == currentViewId && !view.hidden)
+        .firstOrNull;
+    final restoredSearch = search ?? '';
     setState(() {
       _collapsedGroups
         ..clear()
         ..addAll(groups);
       _groupOrder = savedGroupOrder;
+      _selectedTaskViewId = currentView?.id;
+      _searchController.text = restoredSearch;
     });
-    if (selectedGroup != null) {
-      ref
-          .read(taskProvider.notifier)
-          .setLabelFilter(
-            selectedGroup.trim().isEmpty ? null : selectedGroup,
-            reload: false,
-          );
-    }
+    ref.read(taskProvider.notifier).restoreUiState(
+      keyword: restoredSearch,
+      statusFilter: statusFilter?.trim().isEmpty == false ? statusFilter : null,
+      labelFilter: selectedGroup?.trim().isEmpty == false ? selectedGroup : null,
+      viewFilters: currentView?.filters,
+      viewSortRules: currentView?.sortRules,
+    );
   }
 
   Future<void> _persistCollapsedGroups() {
     return SecureStorage.saveUiState(
-      _collapsedGroupsStorageKey,
+      _storageKey(_collapsedGroupsStorageKey),
       _collapsedGroups.join('\n'),
     );
   }
 
   Future<void> _persistGroupOrder() {
     return SecureStorage.saveUiState(
-      _groupOrderStorageKey,
+      _storageKey(_groupOrderStorageKey),
       _groupOrder.join('\n'),
     );
   }
@@ -687,7 +723,9 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     if (_restoredScrollOffset || !_scrollController.hasClients) {
       return;
     }
-    final raw = await SecureStorage.getUiState(_scrollOffsetStorageKey);
+    final raw = await SecureStorage.getUiState(
+      _storageKey(_scrollOffsetStorageKey),
+    );
     if (raw == null || raw.trim().isEmpty) {
       _restoredScrollOffset = true;
       return;
@@ -778,7 +816,10 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     ref
         .read(taskProvider.notifier)
         .setLabelFilter(selected.isEmpty ? null : selected);
-    await SecureStorage.saveUiState(_selectedGroupStorageKey, selected);
+    await SecureStorage.saveUiState(
+      _storageKey(_selectedGroupStorageKey),
+      selected,
+    );
   }
 
   @override
@@ -789,7 +830,9 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     final compactLayout = MediaQuery.sizeOf(context).width < 380;
     final hasActiveFilters = state.keyword.trim().isNotEmpty ||
         state.statusFilter != null ||
-        state.labelFilter != null;
+        state.labelFilter != null ||
+        state.viewFilters?.isNotEmpty == true ||
+        state.viewSortRules?.isNotEmpty == true;
     
     _collectKnownGroups(state.tasks);
     final groupedTasks = _sortGroupsByOrder(_groupTasks(state.tasks));
@@ -830,8 +873,9 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   Row(
                     children: [
                       if (ref.watch(taskViewProvider).supported)
-                        PopupMenuButton<int?>(
+                        PopupMenuButton<int>(
                           tooltip: '任务视图',
+                          initialValue: _selectedTaskViewId,
                           onSelected: (id) {
                             if (id == -1) {
                               context.push('/task-views');
@@ -841,13 +885,20 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                             final view = views
                                 .where((item) => item.id == id)
                                 .firstOrNull;
+                            setState(() => _selectedTaskViewId = view?.id);
                             ref
                                 .read(taskProvider.notifier)
                                 .setView(view?.filters, view?.sortRules);
+                            unawaited(
+                              SecureStorage.saveUiState(
+                                _storageKey(_currentViewStorageKey),
+                                view?.id.toString() ?? '',
+                              ),
+                            );
                           },
                           itemBuilder: (_) => [
-                            const PopupMenuItem<int?>(
-                              value: null,
+                            const PopupMenuItem<int>(
+                              value: -2,
                               child: Text('全部任务'),
                             ),
                             ...ref
@@ -855,13 +906,13 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                                 .items
                                 .where((view) => !view.hidden)
                                 .map(
-                                  (view) => PopupMenuItem<int?>(
+                                  (view) => PopupMenuItem<int>(
                                     value: view.id,
                                     child: Text(view.name),
                                   ),
                                 ),
                             const PopupMenuDivider(),
-                            const PopupMenuItem<int?>(
+                            const PopupMenuItem<int>(
                               value: -1,
                               child: Text('管理视图'),
                             ),
@@ -936,6 +987,12 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                             _searchController.clear();
                             setState(() {});
                             ref.read(taskProvider.notifier).setKeyword('');
+                            unawaited(
+                              SecureStorage.saveUiState(
+                                _storageKey(_searchStorageKey),
+                                '',
+                              ),
+                            );
                           },
                         )
                       : null,
@@ -956,22 +1013,28 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   itemCount: _taskStatusFilters.length,
                   separatorBuilder: (_, index) => const SizedBox(width: 8),
                   itemBuilder: (_, index) {
-                  final filter = _taskStatusFilters[index];
-                  final selected = state.statusFilter == filter.value;
-                   return AppLiquidGlassChoiceChip(
-                     label: filter.label,
-                     selected: selected,
-                     onSelected: (_) {
-                       if (_selectionMode) _setSelectionMode(false);
-                      if (_scrollController.hasClients &&
-                          _scrollController.offset > 0) {
-                        _scrollController.jumpTo(0);
-                      }
-                      ref
-                          .read(taskProvider.notifier)
-                          .setStatusFilter(filter.value);
-                    },
-                   );
+                    final filter = _taskStatusFilters[index];
+                    final selected = state.statusFilter == filter.value;
+                    return AppLiquidGlassChoiceChip(
+                      label: filter.label,
+                      selected: selected,
+                      onSelected: (_) {
+                        if (_selectionMode) _setSelectionMode(false);
+                        if (_scrollController.hasClients &&
+                            _scrollController.offset > 0) {
+                          _scrollController.jumpTo(0);
+                        }
+                        ref
+                            .read(taskProvider.notifier)
+                            .setStatusFilter(filter.value);
+                        unawaited(
+                          SecureStorage.saveUiState(
+                            _storageKey(_statusFilterStorageKey),
+                            filter.value ?? '',
+                          ),
+                        );
+                      },
+                    );
                   },
                 ),
               ),
@@ -1066,7 +1129,11 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                                   .read(taskProvider.notifier)
                                   .setLabelFilter(null);
                               SecureStorage.saveUiState(
-                                _selectedGroupStorageKey,
+                                _storageKey(_selectedGroupStorageKey),
+                                '',
+                              );
+                              SecureStorage.saveUiState(
+                                _storageKey(_statusFilterStorageKey),
                                 '',
                               );
                             },
@@ -1085,7 +1152,11 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                                   .read(taskProvider.notifier)
                                   .setLabelFilter(null);
                               SecureStorage.saveUiState(
-                                _selectedGroupStorageKey,
+                                _storageKey(_selectedGroupStorageKey),
+                                '',
+                              );
+                              SecureStorage.saveUiState(
+                                _storageKey(_statusFilterStorageKey),
                                 '',
                               );
                             },
@@ -1191,6 +1262,38 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                 ),
               ),
             ],
+            if (state.error != null && state.tasks.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                child: AppCard(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.cloud_off_outlined,
+                        color: AppColors.red500,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          state.error!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => ref
+                            .read(taskProvider.notifier)
+                            .load(refresh: true),
+                        child: const Text('重试'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
@@ -2145,7 +2248,7 @@ class _TaskLogFileList extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: '下载原始日志',
+                  tooltip: '保存原始日志到应用文档',
                   onPressed: () => onDownloadRaw(file),
                   icon: const Icon(Icons.download_outlined, size: 20),
                 ),
@@ -3414,9 +3517,6 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage>
         _done = true;
         _statusText = _lines.isEmpty ? '暂无日志' : '已完成';
       });
-      if (_lines.isNotEmpty) {
-        _sendTaskCompletionNotification(widget.taskId, 'finished');
-      }
     }
   }
 
@@ -3443,7 +3543,6 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage>
             done: true,
             statusText: _statusFromStreamDone(event.data),
           );
-          _sendTaskCompletionNotification(widget.taskId, event.data);
           return;
         }
         final newLines = event.data.replaceAll('\r\n', '\n').split('\n');
@@ -3543,32 +3642,6 @@ class _TaskLiveLogPageState extends ConsumerState<TaskLiveLogPage>
         return '运行中';
       default:
         return value;
-    }
-  }
-
-  void _sendTaskCompletionNotification(int taskId, String data) async {
-    data = data.trim();
-    if (data == 'reconnect') return;
-    final enabled = await LocalNotificationService()
-        .getChannelEnabled(NotificationChannel.task);
-    if (!enabled) return;
-    final title = widget.taskName?.trim().isNotEmpty == true
-        ? widget.taskName!
-        : '任务 #$taskId';
-    if (data == 'finished') {
-      LocalNotificationService().showTaskNotification(
-        id: taskId,
-        title: '$title 执行完成',
-        body: '任务已成功执行完毕',
-        payload: taskNotificationPayload(taskId),
-      );
-    } else {
-      LocalNotificationService().showTaskNotification(
-        id: taskId,
-        title: '$title 执行结束',
-        body: '任务状态: $data',
-        payload: taskNotificationPayload(taskId),
-      );
     }
   }
 

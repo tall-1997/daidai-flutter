@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/network/panel_capability_registry.dart';
+import '../../../core/auth/auth_session_epoch.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/notify_channel.dart';
 import '../../../shared/widgets/app_card.dart';
@@ -98,6 +100,23 @@ class NotificationFieldChoice {
   final String label;
 
   const NotificationFieldChoice({required this.value, required this.label});
+}
+
+List<NotificationFieldChoice> notificationFieldChoices(
+  List<NotificationFieldChoice> options,
+  String currentValue,
+) {
+  if (currentValue.isEmpty ||
+      options.any((option) => option.value == currentValue)) {
+    return options;
+  }
+  return [
+    NotificationFieldChoice(
+      value: currentValue,
+      label: '$currentValue（当前值）',
+    ),
+    ...options,
+  ];
 }
 
 List<NotificationFieldOption> parseNotificationFields(
@@ -205,12 +224,14 @@ class NotificationListState {
   final bool loading;
   final bool typesLoading;
   final List<NotificationTypeOption> types;
+  final String? error;
 
   const NotificationListState({
     this.items = const [],
     this.loading = false,
     this.typesLoading = false,
     this.types = const [],
+    this.error,
   });
 
   NotificationListState copyWith({
@@ -218,12 +239,15 @@ class NotificationListState {
     bool? loading,
     bool? typesLoading,
     List<NotificationTypeOption>? types,
+    String? error,
+    bool clearError = false,
   }) {
     return NotificationListState(
       items: items ?? this.items,
       loading: loading ?? this.loading,
       typesLoading: typesLoading ?? this.typesLoading,
       types: types ?? this.types,
+      error: clearError ? null : error ?? this.error,
     );
   }
 }
@@ -231,8 +255,25 @@ class NotificationListState {
 class NotificationListNotifier extends StateNotifier<NotificationListState> {
   NotificationListNotifier() : super(const NotificationListState());
 
+  String? _scope;
+  int _loadRequestId = 0;
+  int _typesRequestId = 0;
+
+  String _beginScope() {
+    final scope = AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope);
+    if (_scope != scope) {
+      _scope = scope;
+      _loadRequestId++;
+      _typesRequestId++;
+      state = const NotificationListState();
+    }
+    return scope;
+  }
+
   Future<void> load() async {
-    state = state.copyWith(loading: true);
+    final scope = _beginScope();
+    final requestId = ++_loadRequestId;
+    state = state.copyWith(loading: true, clearError: true);
     try {
       final response = await DioClient.instance.dio.get(
         ApiEndpoints.notifications,
@@ -241,13 +282,26 @@ class NotificationListNotifier extends StateNotifier<NotificationListState> {
       final items = paginated.items
           .map((e) => NotifyChannel.fromJson(e))
           .toList();
-      state = state.copyWith(items: items, loading: false);
-    } catch (_) {
-      state = state.copyWith(loading: false);
+      if (requestId != _loadRequestId ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
+      state = state.copyWith(items: items, loading: false, clearError: true);
+    } catch (error) {
+      if (requestId != _loadRequestId ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
+      state = state.copyWith(
+        loading: false,
+        error: extractErrorMessage(error, '通知渠道加载失败'),
+      );
     }
   }
 
   Future<void> loadTypes() async {
+    final scope = _beginScope();
+    final requestId = ++_typesRequestId;
     state = state.copyWith(typesLoading: true);
     try {
       final response = await DioClient.instance.dio.get(
@@ -266,11 +320,19 @@ class NotificationListNotifier extends StateNotifier<NotificationListState> {
                 .toList()
           : <NotificationTypeOption>[];
 
+      if (requestId != _typesRequestId ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
       state = state.copyWith(
         typesLoading: false,
         types: types.isNotEmpty ? types : _fallbackTypes,
       );
     } catch (_) {
+      if (requestId != _typesRequestId ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
       state = state.copyWith(
         typesLoading: false,
         types: state.types.isNotEmpty ? state.types : _fallbackTypes,
@@ -397,6 +459,34 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                           ),
                         ],
                       )
+                    : state.error != null && state.items.isEmpty
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        children: [
+                          const SizedBox(height: 100),
+                          Icon(
+                            Icons.cloud_off_outlined,
+                            size: 56,
+                            color: AppColors.slate400.withAlpha(120),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            state.error!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: AppColors.slate400),
+                          ),
+                          const SizedBox(height: 16),
+                          Center(
+                            child: AppLiquidGlassButton(
+                              label: '重试',
+                              onPressed: () => ref
+                                  .read(notificationListProvider.notifier)
+                                  .load(),
+                            ),
+                          ),
+                        ],
+                      )
                     : state.items.isEmpty
                     ? ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
@@ -418,9 +508,19 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                        itemCount: state.items.length,
+                        itemCount:
+                            state.items.length + (state.error == null ? 0 : 1),
                         itemBuilder: (_, i) {
-                          final channel = state.items[i];
+                          if (state.error != null && i == 0) {
+                            return _InlineLoadError(
+                              message: state.error!,
+                              onRetry: () => ref
+                                  .read(notificationListProvider.notifier)
+                                  .load(),
+                            );
+                          }
+                          final itemIndex = i - (state.error == null ? 0 : 1);
+                          final channel = state.items[itemIndex];
                           return _ChannelCard(
                             channel: channel,
                             typeLabel: _typeName(state.types, channel.type),
@@ -1023,39 +1123,38 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
                         (f) => Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: f.options.isNotEmpty
-                              ? DropdownButtonFormField<String>(
-                                  initialValue: f.options.any(
-                                    (option) =>
-                                        option.value ==
-                                        getFieldController(
-                                          f.key,
-                                          credential: f.isCredential,
-                                        ).text,
-                                  )
-                                      ? getFieldController(
-                                          f.key,
-                                          credential: f.isCredential,
-                                        ).text
-                                      : null,
-                                  decoration: InputDecoration(
-                                    labelText: f.required
-                                        ? '${f.label} *'
-                                        : f.label,
-                                    hintText: f.hint,
-                                  ),
-                                  items: f.options
-                                      .map(
-                                        (option) => DropdownMenuItem(
-                                          value: option.value,
-                                          child: Text(option.label),
-                                        ),
-                                      )
-                                      .toList(),
-                                  onChanged: (value) =>
-                                      getFieldController(
-                                        f.key,
-                                        credential: f.isCredential,
-                                      ).text = value ?? '',
+                              ? Builder(
+                                  builder: (context) {
+                                    final controller = getFieldController(
+                                      f.key,
+                                      credential: f.isCredential,
+                                    );
+                                    final choices = notificationFieldChoices(
+                                      f.options,
+                                      controller.text,
+                                    );
+                                    return DropdownButtonFormField<String>(
+                                      initialValue: controller.text.isEmpty
+                                          ? null
+                                          : controller.text,
+                                      decoration: InputDecoration(
+                                        labelText: f.required
+                                            ? '${f.label} *'
+                                            : f.label,
+                                        hintText: f.hint,
+                                      ),
+                                      items: choices
+                                          .map(
+                                            (option) => DropdownMenuItem(
+                                              value: option.value,
+                                              child: Text(option.label),
+                                            ),
+                                          )
+                                          .toList(),
+                                      onChanged: (value) =>
+                                          controller.text = value ?? '',
+                                    );
+                                  },
                                 )
                               : TextField(
                                   controller: getFieldController(
@@ -1279,6 +1378,33 @@ class _NotificationListPageState extends ConsumerState<NotificationListPage> {
           ),
         )
         .toList();
+  }
+}
+
+class _InlineLoadError extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _InlineLoadError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: AppCard(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          children: [
+            const Icon(Icons.sync_problem_outlined, color: AppColors.amber500),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(message, style: const TextStyle(fontSize: 13)),
+            ),
+            TextButton(onPressed: onRetry, child: const Text('重试')),
+          ],
+        ),
+      ),
+    );
   }
 }
 

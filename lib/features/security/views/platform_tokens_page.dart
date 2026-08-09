@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/network/panel_capability_registry.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../shared/widgets/app_async_state.dart';
 import '../../../shared/widgets/app_card.dart';
@@ -44,12 +45,14 @@ class _PlatformTokensPageState extends State<PlatformTokensPage> {
               : {'platform_id': _platformId},
         ),
       ]);
+      PanelCapabilityRegistry.recordSupported(PanelCapability.platformTokens);
       if (!mounted || generation != _loadGeneration) return;
       setState(() {
         _platforms = _list(responses[0].data);
         _tokens = _list(responses[1].data);
       });
     } catch (error) {
+      PanelCapabilityRegistry.recordFailure(PanelCapability.platformTokens, error);
       if (!mounted || generation != _loadGeneration) return;
       setState(() {
         _error = extractErrorMessage(error, '平台令牌加载失败');

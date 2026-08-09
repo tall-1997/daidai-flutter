@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/network/panel_capability_registry.dart';
+import '../../../core/auth/auth_session_epoch.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/task_log.dart';
 import '../../../shared/utils/api_utils.dart';
@@ -69,6 +71,22 @@ class LogListNotifier extends StateNotifier<LogListState> {
   bool _refreshQueued = false;
   bool _silentRefreshQueued = false;
   int _queryGeneration = 0;
+  String? _scope;
+
+  String _ensureScope() {
+    final scope = AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope);
+    if (_scope != scope) {
+      _scope = scope;
+      _queryGeneration++;
+      _page = 1;
+      _loadInFlight = false;
+      _refreshInFlight = false;
+      _refreshQueued = false;
+      _silentRefreshQueued = false;
+      state = const LogListState();
+    }
+    return scope;
+  }
 
   Map<String, dynamic> _currentQueryParams({
     required int page,
@@ -88,6 +106,7 @@ class LogListNotifier extends StateNotifier<LogListState> {
   }
 
   Future<void> load({bool refresh = false, int? targetPage}) async {
+    final scope = _ensureScope();
     if (_loadInFlight || _refreshInFlight) {
       if (refresh) _refreshQueued = true;
       return;
@@ -104,7 +123,10 @@ class LogListNotifier extends StateNotifier<LogListState> {
       );
       final paginated = extractPaginated(response.data);
       final items = paginated.items.map((e) => TaskLog.fromJson(e)).toList();
-      if (generation != _queryGeneration) return;
+      if (generation != _queryGeneration ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
       _page = requestedPage;
       state = state.copyWith(
         logs: refresh ? items : [...state.logs, ...items],
@@ -113,14 +135,20 @@ class LogListNotifier extends StateNotifier<LogListState> {
         error: null,
       );
     } catch (error) {
-      if (generation != _queryGeneration) return;
+      if (generation != _queryGeneration ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
       state = state.copyWith(
         loading: false,
         error: extractErrorMessage(error, '日志加载失败'),
       );
     } finally {
-      _loadInFlight = false;
-      await _runQueuedRefresh();
+      if (generation == _queryGeneration &&
+          scope == AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        _loadInFlight = false;
+        await _runQueuedRefresh();
+      }
     }
   }
 
@@ -134,6 +162,7 @@ class LogListNotifier extends StateNotifier<LogListState> {
   }
 
   Future<void> refreshFirstPage() async {
+    final scope = _ensureScope();
     if (_loadInFlight || _refreshInFlight) {
       _silentRefreshQueued = true;
       return;
@@ -147,7 +176,10 @@ class LogListNotifier extends StateNotifier<LogListState> {
       );
       final paginated = extractPaginated(response.data);
       final firstPage = paginated.items.map(TaskLog.fromJson).toList();
-      if (generation != _queryGeneration) return;
+      if (generation != _queryGeneration ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
       final firstPageIds = firstPage.map((log) => log.id).toSet();
       final merged = [
         ...firstPage,
@@ -158,8 +190,11 @@ class LogListNotifier extends StateNotifier<LogListState> {
     } catch (_) {
       // 自动刷新失败时保留当前分页和滚动内容。
     } finally {
-      _refreshInFlight = false;
-      await _runQueuedRefresh();
+      if (generation == _queryGeneration &&
+          scope == AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        _refreshInFlight = false;
+        await _runQueuedRefresh();
+      }
     }
   }
 
@@ -177,20 +212,28 @@ class LogListNotifier extends StateNotifier<LogListState> {
     }
   }
 
-  void setKeyword(String keyword) {
+  void _invalidateQuery() {
     _queryGeneration++;
+    _loadInFlight = false;
+    _refreshInFlight = false;
+    _refreshQueued = false;
+    _silentRefreshQueued = false;
+  }
+
+  void setKeyword(String keyword) {
+    _invalidateQuery();
     state = state.copyWith(keyword: keyword);
     load(refresh: true);
   }
 
   void setTaskIdFilter(String taskId) {
-    _queryGeneration++;
+    _invalidateQuery();
     state = state.copyWith(taskIdFilter: taskId);
     load(refresh: true);
   }
 
   void setStatusFilter(int? status) {
-    _queryGeneration++;
+    _invalidateQuery();
     state = state.copyWith(
       statusFilter: status,
       resetStatusFilter: status == null,

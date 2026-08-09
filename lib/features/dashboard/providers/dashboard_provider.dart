@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/panel_capability_registry.dart';
+import '../../../core/auth/auth_session_epoch.dart';
 import '../../../shared/utils/api_utils.dart';
 
 String _formatBytes(dynamic bytes) {
@@ -99,9 +100,10 @@ class DashboardNotifier extends StateNotifier<DashboardData> {
 
   Future<void> load() async {
     final loadId = ++_loadId;
-    final scope = PanelCapabilityRegistry.currentScope;
-    if (_scope != scope) {
-      _scope = scope;
+    final capabilityScope = PanelCapabilityRegistry.currentScope;
+    final sessionScope = AuthSessionEpoch.scoped(capabilityScope);
+    if (_scope != sessionScope) {
+      _scope = sessionScope;
       state = const DashboardData();
     }
     state = state.copyWith(loading: true, error: null);
@@ -116,7 +118,9 @@ class DashboardNotifier extends StateNotifier<DashboardData> {
       final sysMap = sysData is Map
           ? Map<String, dynamic>.from(sysData)
           : <String, dynamic>{};
-      if (loadId != _loadId || scope != PanelCapabilityRegistry.currentScope) {
+      if (loadId != _loadId ||
+          sessionScope !=
+              AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
         return;
       }
       state = state.copyWith(
@@ -126,9 +130,13 @@ class DashboardNotifier extends StateNotifier<DashboardData> {
             : const {},
         loading: false,
       );
-      unawaited(_loadEnhancements(loadId, scope, sysMap));
+      unawaited(
+        _loadEnhancements(loadId, sessionScope, capabilityScope, sysMap),
+      );
     } catch (e) {
-      if (loadId != _loadId || scope != PanelCapabilityRegistry.currentScope) {
+      if (loadId != _loadId ||
+          sessionScope !=
+              AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
         return;
       }
       state = state.copyWith(loading: false, error: '加载失败');
@@ -137,22 +145,25 @@ class DashboardNotifier extends StateNotifier<DashboardData> {
 
   Future<void> _loadEnhancements(
     int loadId,
-    String scope,
+    String sessionScope,
+    String capabilityScope,
     Map<String, dynamic> system,
   ) async {
     final results = await Future.wait([
       _loadEnhancement(
         PanelCapability.panelSettings,
         ApiEndpoints.panelSettings,
-        scope,
+        capabilityScope,
       ),
       _loadEnhancement(
         PanelCapability.systemVersion,
         ApiEndpoints.systemVersion,
-        scope,
+        capabilityScope,
       ),
     ]);
-    if (loadId != _loadId || scope != PanelCapabilityRegistry.currentScope) {
+    if (loadId != _loadId ||
+        sessionScope !=
+            AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
       return;
     }
     final nextSystem = Map<String, dynamic>.from(system);

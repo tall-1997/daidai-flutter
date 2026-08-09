@@ -11,7 +11,9 @@ import '../../dashboard/providers/dashboard_provider.dart';
 import '../../deps/views/dep_list_page.dart';
 import '../../envs/views/env_list_page.dart';
 import '../../logs/views/log_list_page.dart';
+import '../../notifications/views/notification_list_page.dart';
 import '../../scripts/views/script_list_page.dart';
+import '../../subscriptions/views/subscription_list_page.dart';
 import '../../tasks/providers/task_provider.dart';
 import '../../tasks/providers/task_view_provider.dart';
 import '../../users/views/user_list_page.dart';
@@ -97,6 +99,41 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
     return '无法连接到服务器，请检查地址或确认面板已开启 HTTPS';
   }
 
+  String? _alternateProtocolUrl(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null || uri.host.isEmpty) return null;
+    if (uri.scheme == 'https') return uri.replace(scheme: 'http').toString();
+    if (uri.scheme == 'http') return uri.replace(scheme: 'https').toString();
+    return null;
+  }
+
+  Future<bool> _confirmPublicHttp(String url) async {
+    if (!_isExplicitHttpUrl(url) || _isAllowedHttpUrl(url)) return true;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('安全提示'),
+        content: const Text('当前使用 HTTP 连接，数据传输未加密。\n建议仅在可信网络中使用，确认继续？'),
+        actions: [
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(dialogCtx, false),
+              ),
+              AppGlassDialogAction(
+                label: '继续连接',
+                onPressed: () => Navigator.pop(dialogCtx, true),
+                variant: AppLiquidGlassButtonVariant.warning,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    return mounted && confirm == true;
+  }
+
   String _httpSecurityHint(String rawUrl) {
     final normalized = _normalizeUrl(rawUrl);
     if (_isExplicitHttpUrl(normalized)) {
@@ -160,11 +197,11 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
     String finalUrl, {
     required bool skipAutoLogin,
   }) async {
-    TokenRefreshCoordinator.invalidate();
+    final authEpoch = TokenRefreshCoordinator.invalidate();
     final previousUrl = DioClient.instance.baseUrl;
     await SecureStorage.saveServerUrl(finalUrl);
     try {
-      await SecureStorage.clearAuthSession();
+      await SecureStorage.clearAuthSession(authEpoch: authEpoch);
     } catch (_) {
       await SecureStorage.saveServerUrl(previousUrl);
       rethrow;
@@ -178,6 +215,8 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
     ref.invalidate(logListProvider);
     ref.invalidate(envListProvider);
     ref.invalidate(scriptProvider);
+    ref.invalidate(notificationListProvider);
+    ref.invalidate(subscriptionListProvider);
     ref.invalidate(userListProvider);
     ref.read(authProvider.notifier).setUnauthenticated();
     context.go(skipAutoLogin ? '/login?manual=1' : '/boot');
@@ -211,28 +250,28 @@ class _ServerConfigPageState extends ConsumerState<ServerConfigPage> {
     });
 
     var finalUrl = _normalizeUrl(_controller.text);
-    if (_isExplicitHttpUrl(finalUrl) && !_isAllowedHttpUrl(finalUrl)) {
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (dialogCtx) => AlertDialog(
-          title: const Text('安全提示'),
-          content: const Text('当前使用 HTTP 连接，数据传输未加密。\n建议仅在可信网络中使用，确认继续？'),
-          actions: [AppLiquidGlassDialogActions(actions: [
-            AppGlassDialogAction(label: '取消', onPressed: () => Navigator.pop(dialogCtx, false)),
-            AppGlassDialogAction(label: '继续连接', onPressed: () => Navigator.pop(dialogCtx, true), variant: AppLiquidGlassButtonVariant.warning),
-          ])],
-        ),
-      );
-      if (!mounted) return;
-      if (confirm != true) {
+    if (!await _confirmPublicHttp(finalUrl)) {
+      if (mounted) {
         setState(() => _checking = false);
-        return;
       }
+      return;
     }
 
     final authService = AuthService();
     var ok = await authService.checkHealth(finalUrl);
     if (!mounted) return;
+
+    if (!ok) {
+      final alternateUrl = _alternateProtocolUrl(finalUrl);
+      if (alternateUrl != null && await _confirmPublicHttp(alternateUrl)) {
+        final alternateOk = await authService.checkHealth(alternateUrl);
+        if (!mounted) return;
+        if (alternateOk) {
+          finalUrl = alternateUrl;
+          ok = true;
+        }
+      }
+    }
 
     if (!ok) {
       setState(() {

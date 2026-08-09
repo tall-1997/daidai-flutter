@@ -10,6 +10,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/network/panel_capability_registry.dart';
+import '../../../core/auth/auth_session_epoch.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/utils/api_utils.dart';
@@ -118,6 +120,7 @@ class ScriptState {
   final bool isBinary;
   final bool loadingContent;
   final bool saving;
+  final String? error;
 
   const ScriptState({
     this.tree = const [],
@@ -128,6 +131,7 @@ class ScriptState {
     this.isBinary = false,
     this.loadingContent = false,
     this.saving = false,
+    this.error,
   });
 
   ScriptState copyWith({
@@ -139,6 +143,8 @@ class ScriptState {
     bool? isBinary,
     bool? loadingContent,
     bool? saving,
+    String? error,
+    bool clearError = false,
   }) {
     return ScriptState(
       tree: tree ?? this.tree,
@@ -151,6 +157,7 @@ class ScriptState {
       isBinary: isBinary ?? this.isBinary,
       loadingContent: loadingContent ?? this.loadingContent,
       saving: saving ?? this.saving,
+      error: clearError ? null : error ?? this.error,
     );
   }
 }
@@ -159,13 +166,25 @@ class ScriptNotifier extends StateNotifier<ScriptState> {
   ScriptNotifier() : super(const ScriptState());
 
   int _contentRequestId = 0;
+  int _saveRequestId = 0;
+  int _treeRequestId = 0;
+  String? _scope;
 
   void setKeyword(String keyword) {
     state = state.copyWith(keyword: keyword);
   }
 
   Future<void> loadTree() async {
-    state = state.copyWith(loading: true);
+    final scope = AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope);
+    if (_scope != scope) {
+      _scope = scope;
+      _treeRequestId++;
+      _contentRequestId++;
+      _saveRequestId++;
+      state = const ScriptState();
+    }
+    final requestId = ++_treeRequestId;
+    state = state.copyWith(loading: true, clearError: true);
     try {
       final resp = await DioClient.instance.dio.get(ApiEndpoints.scriptsTree);
       final data = extractData(resp.data);
@@ -178,13 +197,32 @@ class ScriptNotifier extends StateNotifier<ScriptState> {
                 )
                 .toList()
           : <ScriptFile>[];
-      state = state.copyWith(tree: tree, loading: false);
-    } catch (_) {
-      state = state.copyWith(loading: false);
+      if (requestId != _treeRequestId ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
+      state = state.copyWith(tree: tree, loading: false, clearError: true);
+    } catch (error) {
+      if (requestId != _treeRequestId ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
+      state = state.copyWith(
+        loading: false,
+        error: extractErrorMessage(error, '脚本列表加载失败'),
+      );
     }
   }
 
   Future<void> loadContent(String path) async {
+    final scope = AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope);
+    if (_scope != scope) {
+      _scope = scope;
+      _treeRequestId++;
+      _contentRequestId++;
+      _saveRequestId++;
+      state = const ScriptState();
+    }
     final requestId = ++_contentRequestId;
     state = state.copyWith(selectedPath: path, loadingContent: true);
     try {
@@ -193,7 +231,9 @@ class ScriptNotifier extends StateNotifier<ScriptState> {
         queryParameters: {'path': path},
       );
       final data = extractData(resp.data);
-      if (requestId != _contentRequestId || state.selectedPath != path) {
+      if (requestId != _contentRequestId ||
+          state.selectedPath != path ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
         return;
       }
       if (data is Map) {
@@ -213,7 +253,9 @@ class ScriptNotifier extends StateNotifier<ScriptState> {
         loadingContent: false,
       );
     } catch (_) {
-      if (requestId != _contentRequestId || state.selectedPath != path) {
+      if (requestId != _contentRequestId ||
+          state.selectedPath != path ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
         return;
       }
       state = state.copyWith(
@@ -230,15 +272,32 @@ class ScriptNotifier extends StateNotifier<ScriptState> {
     String content, {
     String message = '',
   }) async {
+    final scope = AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope);
+    if (_scope != scope) {
+      _scope = scope;
+      _treeRequestId++;
+      _contentRequestId++;
+      _saveRequestId++;
+      state = const ScriptState();
+      throw StateError('认证会话已切换，请重新打开脚本');
+    }
+    final requestId = ++_saveRequestId;
     state = state.copyWith(saving: true);
     try {
       await DioClient.instance.dio.put(
         ApiEndpoints.scriptsContent,
         data: {'path': path, 'content': content, 'message': message},
       );
+      if (requestId != _saveRequestId ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        throw StateError('认证会话已切换，保存结果已取消');
+      }
       state = state.copyWith(content: content, isBinary: false, saving: false);
     } catch (_) {
-      state = state.copyWith(saving: false);
+      if (requestId == _saveRequestId &&
+          scope == AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        state = state.copyWith(saving: false);
+      }
       rethrow;
     }
   }
@@ -713,12 +772,14 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: state.loading
+              child: state.loading && state.tree.isEmpty
                   ? const Center(
                       child: CircularProgressIndicator(
                         color: AppColors.primary,
                       ),
                     )
+                  : state.error != null && state.tree.isEmpty
+                  ? _buildLoadError(state.error!)
                   : visibleTree.isEmpty
                   ? _buildEmpty(state)
                   : RefreshIndicator(
@@ -727,18 +788,24 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
                           ref.read(scriptProvider.notifier).loadTree(),
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                        children: visibleTree
-                            .map(
-                              (file) => _FileTreeItem(
-                                file: file,
-                                isLight: isLight,
-                                depth: 0,
-                                onTap: (path) => _openScript(path),
-                                onAction: (entry) =>
-                                    _handleEntryAction(entry, state),
-                              ),
-                            )
-                            .toList(),
+                        children: [
+                          if (state.error != null)
+                            _ScriptInlineLoadError(
+                              message: state.error!,
+                              onRetry: () =>
+                                  ref.read(scriptProvider.notifier).loadTree(),
+                            ),
+                          ...visibleTree.map(
+                            (file) => _FileTreeItem(
+                              file: file,
+                              isLight: isLight,
+                              depth: 0,
+                              onTap: (path) => _openScript(path),
+                              onAction: (entry) =>
+                                  _handleEntryAction(entry, state),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
             ),
@@ -1718,6 +1785,40 @@ class _ScriptListPageState extends ConsumerState<ScriptListPage> {
       },
     );
   }
+
+  Widget _buildLoadError(String message) {
+    return Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.cloud_off_outlined, size: 56, color: AppColors.slate400),
+        const SizedBox(height: 12),
+        Text(message, textAlign: TextAlign.center),
+        const SizedBox(height: 12),
+        TextButton(
+          onPressed: () => ref.read(scriptProvider.notifier).loadTree(),
+          child: const Text('重试'),
+        ),
+      ]),
+    );
+  }
+}
+
+class _ScriptInlineLoadError extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _ScriptInlineLoadError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+    child: Row(children: [
+      const Icon(Icons.sync_problem_outlined, color: AppColors.amber500),
+      const SizedBox(width: 10),
+      Expanded(child: Text(message, style: const TextStyle(fontSize: 13))),
+      TextButton(onPressed: onRetry, child: const Text('重试')),
+    ]),
+  );
 }
 
 class _FileTreeItem extends ConsumerStatefulWidget {

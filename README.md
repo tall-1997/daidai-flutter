@@ -374,7 +374,7 @@ Material 3 主题 + `liquid_glass_easy 3.3.1` 实时折射液态玻璃风格。�
 | 图表展示 | `fl_chart` | 仪表盘 CPU/内存趋势图 |
 | 生物识别 | `local_auth` | 指纹/面部识别应用锁 |
 | 密码哈希 | `crypto` | SHA256 迭代哈希存储应用锁密码 |
-| 主题 UI | `liquid_glass_easy` | LiquidGlassLens 卡片、LiquidGlassScaffold、LiquidGlassBottomNavBar |
+| 主题 UI | `liquid_glass_easy` | Pure Flat 默认界面与可选 Liquid Glass 视觉组件 |
 | 国际化 | `intl` | 日期时间中文格式化 |
 | 文件选择 | `file_picker` | 脚本上传、备份文件选择 |
 | 设备信息 | `device_info_plus` | 客户端 User-Agent 构建 |
@@ -389,8 +389,8 @@ Material 3 主题 + `liquid_glass_easy 3.3.1` 实时折射液态玻璃风格。�
 
 | 平台 | 安装包 |
 |------|--------|
-| Android | [daidai-flutter-v0.1.39-android.apk](https://github.com/tall-1997/daidai-flutter/releases/download/v0.1.39/daidai-flutter-v0.1.39-android.apk) |
-| iOS | [daidai-flutter-v0.1.39-ios.ipa](https://github.com/tall-1997/daidai-flutter/releases/download/v0.1.39/daidai-flutter-v0.1.39-ios.ipa) |
+| Android | [前往 Latest Release 下载 APK](https://github.com/tall-1997/daidai-flutter/releases/latest) |
+| iOS | [前往 Latest Release 下载 IPA](https://github.com/tall-1997/daidai-flutter/releases/latest) |
 
 所有版本见 [GitHub Releases](https://github.com/tall-1997/daidai-flutter/releases)。
 
@@ -414,12 +414,11 @@ flutter build ios --release --no-codesign
 
 ## 云端构建
 
-推送到 `main` 分支会触发 GitHub Actions 自动构建 APK 和 IPA 并发布到 Release。工作流包括：
+推送到 `main`、`master` 或 `flutter-app` 分支会触发 `build.yml`，完成质量检查并生成 CI 使用的 APK 和 IPA artifacts。分支构建不生成正式差分更新资产。
 
-- Android 构建 (`android-build.yml`)
-- iOS 构建 (`ios-build.yml`)
-- 统一构建 (`build.yml`)
-- Release 发布 (`release.yml`)
+推送与 `pubspec.yaml` 版本一致的 `v*` 标签会触发 `release.yml`。Release 工作流要求配置 `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS` 和 `ANDROID_KEY_PASSWORD` 四项 GitHub Actions secrets；任一项缺失都会终止正式 Android 构建。工作流使用 `apksigner` 验证正式 APK，从上一正式 Release 生成并反向重建校验 bsdiff patch，生成并校验 `android-update.json`，最终将 APK、有效 patch 和更新清单作为 `android-package` artifact 上传，并与 IPA 一起发布到 GitHub Release。
+
+`android-build.yml` 和 `ios-build.yml` 用于手动触发单平台构建；`build.yml` 用于分支与 Pull Request 的统一 CI 构建；`release.yml` 专用于标签正式发布。
 
 ## 开源引用与致谢
 

@@ -119,6 +119,26 @@ class Task {
   List<String> get labelsForDisplay =>
       displayLabels.isNotEmpty ? displayLabels : labelList;
 
+  List<String> get effectiveCronExpressions => cronExpressions.isNotEmpty
+      ? List.unmodifiable(cronExpressions)
+      : cronExpression.trim().isEmpty
+      ? const []
+      : [cronExpression.trim()];
+
+  static List<String> parseCronInput(String value) => value
+      .split(RegExp(r'\r?\n'))
+      .map((expression) => expression.trim())
+      .where((expression) => expression.isNotEmpty)
+      .toList();
+
+  static Map<String, dynamic> cronPayload(String value) {
+    final expressions = parseCronInput(value);
+    return {
+      'cron_expression': expressions.isEmpty ? '' : expressions.first,
+      'cron_expressions': expressions,
+    };
+  }
+
   static bool isGroupLabel(String label) =>
       label.trim().startsWith(groupLabelPrefix);
 
@@ -171,8 +191,8 @@ class Task {
       cronExpression: json['cron_expression']?.toString() ?? '',
       cronExpressions: json['cron_expressions'] is List
           ? (json['cron_expressions'] as List)
-                .map((e) => e.toString())
-                .where((s) => s.trim().isNotEmpty)
+                .map((e) => e.toString().trim())
+                .where((s) => s.isNotEmpty)
                 .toList()
           : const [],
       taskType: json['task_type']?.toString() ?? 'cron',
@@ -216,7 +236,10 @@ class Task {
   Map<String, dynamic> toJson() => {
     'name': name,
     'command': command,
-    'cron_expression': cronExpression,
+    'cron_expression': effectiveCronExpressions.isEmpty
+        ? ''
+        : effectiveCronExpressions.first,
+    'cron_expressions': effectiveCronExpressions,
     'task_type': taskType,
     'python_version': pythonVersion,
     'labels': labels,
@@ -237,10 +260,14 @@ class Task {
   };
 }
 
-int _int(dynamic v) => (v is num) ? v.toInt() : 0;
-int? _intOrNull(dynamic v) => (v is num) ? v.toInt() : null;
-double _double(dynamic v) => (v is num) ? v.toDouble() : 0.0;
-double? _doubleOrNull(dynamic v) => (v is num) ? v.toDouble() : null;
+int _int(dynamic v) => _intOrNull(v) ?? 0;
+int? _intOrNull(dynamic v) => v is num
+    ? v.toInt()
+    : int.tryParse(v?.toString().trim() ?? '');
+double _double(dynamic v) => _doubleOrNull(v) ?? 0.0;
+double? _doubleOrNull(dynamic v) => v is num
+    ? v.toDouble()
+    : double.tryParse(v?.toString().trim() ?? '');
 List<int> _intList(dynamic value, {List<int> fallback = const []}) {
   if (value is String) {
     return Task.parseSuccessExitCodes(value) ?? fallback;

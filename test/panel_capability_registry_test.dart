@@ -36,6 +36,99 @@ void main() {
     );
   });
 
+  test('tracks optional management capabilities independently', () {
+    const scope = 'https://one.example.com';
+    PanelCapabilityRegistry.recordSupported(
+      PanelCapability.healthCheck,
+      scope: scope,
+    );
+
+    expect(
+      PanelCapabilityRegistry.stateFor(
+        PanelCapability.healthCheck,
+        scope: scope,
+      ),
+      PanelCapabilityState.supported,
+    );
+    expect(
+      PanelCapabilityRegistry.stateFor(
+        PanelCapability.configScript,
+        scope: scope,
+      ),
+      PanelCapabilityState.unknown,
+    );
+  });
+
+  test('expires supported entries after twelve hours', () {
+    var now = DateTime.utc(2026, 8, 9);
+    PanelCapabilityRegistry.setClockForTesting(() => now);
+    PanelCapabilityRegistry.recordSupported(
+      PanelCapability.taskViews,
+      scope: 'https://one.example.com',
+    );
+
+    now = now.add(const Duration(hours: 12));
+
+    expect(
+      PanelCapabilityRegistry.stateFor(
+        PanelCapability.taskViews,
+        scope: 'https://one.example.com',
+      ),
+      PanelCapabilityState.unknown,
+    );
+  });
+
+  test('expires unsupported entries after thirty minutes', () {
+    var now = DateTime.utc(2026, 8, 9);
+    PanelCapabilityRegistry.setClockForTesting(() => now);
+    final options = RequestOptions(path: '/api/tasks/views');
+    final error = DioException.badResponse(
+      statusCode: 404,
+      requestOptions: options,
+      response: Response(requestOptions: options, statusCode: 404),
+    );
+    PanelCapabilityRegistry.recordFailure(
+      PanelCapability.taskViews,
+      error,
+      scope: 'https://one.example.com',
+    );
+
+    now = now.add(const Duration(minutes: 30));
+
+    expect(
+      PanelCapabilityRegistry.shouldProbe(
+        PanelCapability.taskViews,
+        scope: 'https://one.example.com',
+      ),
+      isTrue,
+    );
+  });
+
+  test('expires temporary failures after thirty seconds', () {
+    var now = DateTime.utc(2026, 8, 9);
+    PanelCapabilityRegistry.setClockForTesting(() => now);
+    final options = RequestOptions(path: '/api/tasks/views');
+    final error = DioException.connectionTimeout(
+      timeout: const Duration(seconds: 1),
+      requestOptions: options,
+    );
+    PanelCapabilityRegistry.recordFailure(
+      PanelCapability.taskViews,
+      error,
+      scope: 'https://one.example.com',
+    );
+
+    now = now.add(const Duration(seconds: 30));
+
+    expect(
+      PanelCapabilityRegistry.stateFor(
+        PanelCapability.taskViews,
+        scope: 'https://one.example.com',
+      ),
+      PanelCapabilityState.unknown,
+    );
+  });
+
   test('classifies missing endpoints as unsupported', () {
     for (final statusCode in [404, 405]) {
       final options = RequestOptions(path: '/api/tasks/views');

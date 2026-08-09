@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/auth/token_refresh_coordinator.dart';
 import '../../../core/auth/auth_service.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/network/dio_client.dart';
@@ -164,6 +165,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         }
 
         _currentUrl = finalUrl;
+        final authEpoch = TokenRefreshCoordinator.invalidate();
+        await SecureStorage.clearAuthSession(authEpoch: authEpoch);
         DioClient.instance.setBaseUrl(finalUrl);
         await SecureStorage.saveServerUrl(finalUrl);
         await SecureStorage.savePanel(
@@ -272,6 +275,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Future<void> _switchPanel(PanelConfig panel) async {
+    final authEpoch = TokenRefreshCoordinator.invalidate();
+    await SecureStorage.clearAuthSession(authEpoch: authEpoch);
     await SecureStorage.saveServerUrl(panel.url);
     if (!mounted) return;
     setState(() {

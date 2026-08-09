@@ -23,6 +23,7 @@ class SystemConfigSchema {
   final String group;
   final String valueType;
   final String value;
+  final bool hasValue;
   final String defaultValue;
   final String description;
   final bool readonly;
@@ -35,6 +36,7 @@ class SystemConfigSchema {
     required this.group,
     required this.valueType,
     required this.value,
+    required this.hasValue,
     required this.defaultValue,
     required this.description,
     required this.readonly,
@@ -43,7 +45,7 @@ class SystemConfigSchema {
   });
 
   String get effectiveValue {
-    if (value.isNotEmpty) return value;
+    if (hasValue) return value;
     if (defaultValue.isNotEmpty) return defaultValue;
     if (key == 'max_log_content_size' || key == 'log_max_size') {
       return '102400000';
@@ -78,6 +80,7 @@ class SystemConfigSchema {
           .toString()
           .toLowerCase(),
       value: _stringValue(raw['value']),
+      hasValue: raw.containsKey('value'),
       defaultValue: defaultValue,
       description: (raw['description'] ?? '').toString(),
       readonly: _boolValue(raw['readonly'] ?? raw['read_only']),

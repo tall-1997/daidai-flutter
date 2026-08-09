@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:daidai_app/core/auth/auth_interceptor.dart';
+import 'package:daidai_app/core/auth/auth_session_epoch.dart';
 import 'package:daidai_app/core/auth/auth_token_snapshot.dart';
+import 'package:daidai_app/core/auth/token_refresh_coordinator.dart';
 import 'package:daidai_app/core/network/api_endpoints.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -40,6 +43,27 @@ class _SuccessAdapter implements HttpClientAdapter {
   ) async {
     receivedHeaders = Map<String, dynamic>.from(options.headers);
     return ResponseBody.fromString('{}', 200);
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+class _DelayedUnauthorizedAdapter implements HttpClientAdapter {
+  final requestStarted = Completer<void>();
+  final releaseResponse = Completer<void>();
+  int requests = 0;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    requests++;
+    requestStarted.complete();
+    await releaseResponse.future;
+    return ResponseBody.fromString('{}', 401);
   }
 
   @override
@@ -112,6 +136,44 @@ void main() {
 
       expect(adapter.receivedHeaders?['Authorization'], isNull);
       expect(authFailedCalls, 0);
+    });
+
+    test('does not replay or fail auth for a stale session epoch', () async {
+      var authFailedCalls = 0;
+      final adapter = _DelayedUnauthorizedAdapter();
+      final dio = Dio(BaseOptions(baseUrl: 'https://panel.example.com'))
+        ..httpClientAdapter = adapter
+        ..interceptors.add(
+          AuthInterceptor(onAuthFailed: () => authFailedCalls++),
+        );
+
+      final request = dio.get(ApiEndpoints.dashboard);
+      await adapter.requestStarted.future;
+      AuthSessionEpoch.advance();
+      adapter.releaseResponse.complete();
+
+      await expectLater(
+        request,
+        throwsA(
+          isA<DioException>().having(
+            (error) => error.type,
+            'type',
+            DioExceptionType.cancel,
+          ),
+        ),
+      );
+      expect(adapter.requests, 1);
+      expect(authFailedCalls, 0);
+    });
+
+    test('rejects refresh immediately for a stale session epoch', () async {
+      final staleEpoch = AuthSessionEpoch.current;
+      AuthSessionEpoch.advance();
+
+      await expectLater(
+        TokenRefreshCoordinator.refresh(epoch: staleEpoch),
+        throwsA(isA<StateError>()),
+      );
     });
   });
 }

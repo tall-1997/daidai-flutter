@@ -121,6 +121,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           '/config-script',
           '/android-runtime',
           '/installed-packages',
+          '/health-check',
         };
         const operatorRoutes = <String>{
           '/scripts','/subscriptions','/envs','/env-tools','/tasks/new',

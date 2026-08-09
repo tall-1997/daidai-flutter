@@ -14,6 +14,11 @@ enum PanelCapability {
   panelSettings,
   systemVersion,
   pythonRuntimes,
+  healthCheck,
+  platformTokens,
+  configScript,
+  androidRuntime,
+  installedPackages,
 }
 
 class PanelCapabilityEntry {
@@ -27,7 +32,7 @@ class PanelCapabilityEntry {
     required this.expiresAt,
   });
 
-  bool get expired => !DateTime.now().isBefore(expiresAt);
+  bool isExpiredAt(DateTime now) => !now.isBefore(expiresAt);
 }
 
 class PanelCapabilityRegistry {
@@ -36,6 +41,7 @@ class PanelCapabilityRegistry {
   static const _supportedTtl = Duration(hours: 12);
   static const _unsupportedTtl = Duration(minutes: 30);
   static const _temporaryFailureTtl = Duration(seconds: 30);
+  static DateTime Function() _now = DateTime.now;
   static final Map<String, Map<PanelCapability, PanelCapabilityEntry>>
   _profiles = {};
 
@@ -71,7 +77,9 @@ class PanelCapabilityRegistry {
     String? scope,
   }) {
     final entry = _profiles[_scopeKey(scope)]?[capability];
-    if (entry == null || entry.expired) return PanelCapabilityState.unknown;
+    if (entry == null || entry.isExpiredAt(_now())) {
+      return PanelCapabilityState.unknown;
+    }
     return entry.state;
   }
 
@@ -131,6 +139,11 @@ class PanelCapabilityRegistry {
 
   static void reset() {
     _profiles.clear();
+    _now = DateTime.now;
+  }
+
+  static void setClockForTesting(DateTime Function() clock) {
+    _now = clock;
   }
 
   static void _record(
@@ -140,7 +153,7 @@ class PanelCapabilityRegistry {
     Duration ttl,
   ) {
     if (scope.isEmpty) return;
-    final checkedAt = DateTime.now();
+    final checkedAt = _now();
     (_profiles[scope] ??= {})[capability] = PanelCapabilityEntry(
       state: state,
       checkedAt: checkedAt,

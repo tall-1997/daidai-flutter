@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/network/panel_capability_registry.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../shared/widgets/app_card.dart';
 
@@ -38,6 +39,7 @@ class _InstalledPackagesPageState extends State<InstalledPackagesPage> {
       ]);
       final pip = extractData(responses[0].data);
       final npm = extractData(responses[1].data);
+      PanelCapabilityRegistry.recordSupported(PanelCapability.installedPackages);
       if (!mounted) return;
       setState(() {
         _pip = pip is List
@@ -52,6 +54,7 @@ class _InstalledPackagesPageState extends State<InstalledPackagesPage> {
         _loading = false;
       });
     } catch (error) {
+      PanelCapabilityRegistry.recordFailure(PanelCapability.installedPackages, error);
       if (!mounted) return;
       setState(() {
         _loading = false;

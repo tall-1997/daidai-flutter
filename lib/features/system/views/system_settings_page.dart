@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/network/panel_capability_registry.dart';
+import '../../../core/auth/auth_session_epoch.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/python_runtime_info.dart';
 import '../../../shared/utils/api_utils.dart';
@@ -29,6 +31,7 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
   bool _savingConfigs = false;
   bool _updatingPanel = false;
   String? _loadError;
+  int _loadRequestId = 0;
 
   List<SystemConfigSchema> _configSchemas = const [];
   Map<String, String> _initialConfigValues = const {};
@@ -50,6 +53,8 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
   }
 
   Future<void> _load() async {
+    final requestId = ++_loadRequestId;
+    final scope = AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope);
     setState(() {
       _loading = true;
       _loadError = null;
@@ -79,7 +84,11 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
       } catch (_) {}
 
       final schemas = parseSystemConfigSchemas(configData);
-      if (!mounted) return;
+      if (!mounted ||
+          requestId != _loadRequestId ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
 
       final values = {for (final schema in schemas) schema.key: schema.effectiveValue};
       for (final controller in _configControllers.values) {
@@ -105,7 +114,11 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
         _loadError = null;
       });
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted ||
+          requestId != _loadRequestId ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
       setState(() {
         _loading = false;
         _loadError = extractErrorMessage(error, '系统设置加载失败');
@@ -387,7 +400,15 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
             type: AppGlassNoticeType.info,
           );
         }
-      } catch (_) {}
+      } catch (error) {
+        if (mounted) {
+          AppGlassNotice.show(
+            context,
+            extractErrorMessage(error, '面板重启失败'),
+            type: AppGlassNoticeType.error,
+          );
+        }
+      }
     }
   }
 
@@ -498,14 +519,19 @@ class _SystemSettingsPageState extends ConsumerState<SystemSettingsPage> {
           _ConfigLabel(schema: schema, details: details),
           const SizedBox(height: 6),
           DropdownButtonFormField<String>(
-            initialValue: hasCurrent ? current : null,
-            hint: Text(current.isEmpty ? '请选择' : current),
-            items: schema.options
-                .map((option) => DropdownMenuItem(
-                      value: option.value,
-                      child: Text(option.label),
-                    ))
-                .toList(),
+            initialValue: current.isEmpty ? null : current,
+            hint: const Text('请选择'),
+            items: [
+              ...schema.options.map((option) => DropdownMenuItem(
+                    value: option.value,
+                    child: Text(option.label),
+                  )),
+              if (current.isNotEmpty && !hasCurrent)
+                DropdownMenuItem(
+                  value: current,
+                  child: Text('$current（当前值）'),
+                ),
+            ],
             onChanged: schema.readonly
                 ? null
                 : (value) {

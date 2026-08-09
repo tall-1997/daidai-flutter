@@ -219,18 +219,35 @@ class _LogStreamPageState extends State<LogStreamPage> {
     });
   }
 
-  Future<void> _downloadRawLog() async {
+  Future<void> _saveRawLog(_RawLogSaveAction action) async {
     if (_downloadingRaw || !_hasRawLog) return;
     setState(() => _downloadingRaw = true);
     try {
-      final path = await RawLogDownloadService.download(
-        ticketPath: ApiEndpoints.logRawTicket(widget.logId),
+      final path = action == _RawLogSaveAction.documents
+          ? await RawLogDownloadService.saveToDocuments(
+              ticketPath: ApiEndpoints.logRawTicket(widget.logId),
+            )
+          : await RawLogDownloadService.export(
+              ticketPath: ApiEndpoints.logRawTicket(widget.logId),
+            );
+      if (!mounted) return;
+      if (path == null) {
+        AppGlassNotice.show(context, '已取消导出');
+        return;
+      }
+      AppGlassNotice.show(
+        context,
+        action == _RawLogSaveAction.documents
+            ? '原始日志已保存到 $path'
+            : '原始日志已导出到 $path',
+        type: AppGlassNoticeType.success,
       );
+    } on UnsupportedError {
       if (!mounted) return;
       AppGlassNotice.show(
         context,
-        '原始日志已保存到 $path',
-        type: AppGlassNoticeType.success,
+        '当前平台暂不支持选择导出位置',
+        type: AppGlassNoticeType.warning,
       );
     } catch (error) {
       if (!mounted) return;
@@ -307,7 +324,10 @@ class _LogStreamPageState extends State<LogStreamPage> {
               },
             ),
           if (_hasRawLog)
-            IconButton(
+            PopupMenuButton<_RawLogSaveAction>(
+              tooltip: '保存或导出原始日志',
+              enabled: !_downloadingRaw,
+              onSelected: _saveRawLog,
               icon: _downloadingRaw
                   ? const SizedBox(
                       width: 18,
@@ -315,8 +335,16 @@ class _LogStreamPageState extends State<LogStreamPage> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.download_outlined),
-              tooltip: '下载原始日志',
-              onPressed: _downloadingRaw ? null : _downloadRawLog,
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: _RawLogSaveAction.documents,
+                  child: Text('保存到应用文档'),
+                ),
+                PopupMenuItem(
+                  value: _RawLogSaveAction.export,
+                  child: Text('导出到所选位置'),
+                ),
+              ],
             ),
           IconButton(
             icon: Icon(_autoScroll ? Icons.vertical_align_bottom : Icons.pause),
@@ -375,3 +403,5 @@ class _LogStreamPageState extends State<LogStreamPage> {
     );
   }
 }
+
+enum _RawLogSaveAction { documents, export }

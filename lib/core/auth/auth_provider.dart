@@ -2,8 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/models/user.dart';
 import '../storage/secure_storage.dart';
+import '../network/panel_capability_registry.dart';
 import 'auth_service.dart';
 import 'auth_token_snapshot.dart';
+import 'auth_session_epoch.dart';
 
 enum AuthStatus { unknown, unauthenticated, authenticated }
 
@@ -49,6 +51,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   String errorMessageFor(Object error) => _extractErrorMessage(error);
 
   Future<void> restoreTrustedLocalSession() async {
+    final epoch = AuthSessionEpoch.current;
     // 启动时先恢复本地可信登录态，避免每次打开 APP 都重新打登录日志。
     final token = await SecureStorage.getAccessToken();
     final serverUrl = await SecureStorage.getServerUrl();
@@ -56,6 +59,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         token.isEmpty ||
         serverUrl == null ||
         serverUrl.isEmpty) {
+      if (!AuthSessionEpoch.isCurrent(epoch)) return;
       AuthTokenSnapshot.clear();
       state = const AuthState(status: AuthStatus.unauthenticated);
       return;
@@ -65,13 +69,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
       serverUrl: serverUrl,
     );
     if (!trusted) {
+      if (!AuthSessionEpoch.isCurrent(epoch)) return;
       AuthTokenSnapshot.clear();
       state = const AuthState(status: AuthStatus.unauthenticated);
       return;
     }
 
+    if (!AuthSessionEpoch.isCurrent(epoch)) return;
     AuthTokenSnapshot.setAccessToken(token);
     final user = await SecureStorage.getUser();
+    if (!AuthSessionEpoch.isCurrent(epoch)) return;
     state = state.copyWith(
       status: AuthStatus.authenticated,
       user: user,
@@ -80,7 +87,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> restoreSession() async {
+    final epoch = AuthSessionEpoch.current;
     final token = await SecureStorage.getAccessToken();
+    if (!AuthSessionEpoch.isCurrent(epoch)) return;
     AuthTokenSnapshot.setAccessToken(token);
     if (token == null || token.isEmpty) {
       state = const AuthState(status: AuthStatus.unauthenticated);
@@ -95,14 +104,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return;
     }
 
+    final epoch = AuthSessionEpoch.current;
     final token = await SecureStorage.getAccessToken();
+    if (!AuthSessionEpoch.isCurrent(epoch)) return;
     if (token == null || token.isEmpty) {
       state = const AuthState(status: AuthStatus.unauthenticated);
       return;
     }
 
     try {
-      final user = await _authService.getUser();
+      final user = await _authService.getUser(authEpoch: epoch);
+      if (!AuthSessionEpoch.isCurrent(epoch)) return;
       state = state.copyWith(
         status: AuthStatus.authenticated,
         user: user,
@@ -114,10 +126,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
         await SecureStorage.saveTrustedLoginSession(
           serverUrl: serverUrl,
           expiresAt: DateTime.now().toUtc().add(const Duration(days: 7)),
+          authEpoch: epoch,
         );
       }
     } catch (_) {
-      await SecureStorage.clearAuthSession();
+      await SecureStorage.clearAuthSession(authEpoch: epoch);
+      if (!AuthSessionEpoch.isCurrent(epoch)) return;
       state = state.copyWith(
         status: AuthStatus.unauthenticated,
         user: null,
@@ -127,10 +141,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> checkInit({bool rethrowErrors = false}) async {
+    final epoch = AuthSessionEpoch.current;
+    final scope = PanelCapabilityRegistry.currentScope;
     try {
       final needsInit = await _authService.needsInitialization();
+      if (!AuthSessionEpoch.isCurrent(epoch) ||
+          scope != PanelCapabilityRegistry.currentScope) {
+        return;
+      }
       state = state.copyWith(needsInit: needsInit);
     } catch (_) {
+      if (!AuthSessionEpoch.isCurrent(epoch) ||
+          scope != PanelCapabilityRegistry.currentScope) {
+        return;
+      }
       // 出错时默认不需要初始化，直接显示登录
       state = state.copyWith(needsInit: false);
       if (rethrowErrors) rethrow;
@@ -143,24 +167,34 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String? totpCode,
     Map<String, dynamic>? captcha,
   }) async {
-    state = state.copyWith(error: null);
+    final epoch = AuthSessionEpoch.advance();
+    AuthTokenSnapshot.clear();
+    state = const AuthState(status: AuthStatus.unauthenticated);
+    await SecureStorage.clearAuthSession(authEpoch: epoch);
+    if (!AuthSessionEpoch.isCurrent(epoch)) {
+      return const <String, dynamic>{};
+    }
     try {
       final result = await _authService.login(
         username: username,
         password: password,
         totpCode: totpCode,
         captcha: captcha,
+        authEpoch: epoch,
       );
+      if (!AuthSessionEpoch.isCurrent(epoch)) return result;
 
       if (result.containsKey('access_token')) {
-        // 直接用登录响应中的 user 数据，避免额外请求
+        late final User user;
         if (result.containsKey('user') && result['user'] != null) {
-          final user = User.fromJson(result['user'] as Map<String, dynamic>);
-          await SecureStorage.saveUser(user);
-          state = state.copyWith(status: AuthStatus.authenticated, user: user);
+          user = User.fromJson(
+            Map<String, dynamic>.from(result['user'] as Map),
+          );
+          await SecureStorage.saveUser(user, authEpoch: epoch);
+          if (!AuthSessionEpoch.isCurrent(epoch)) return result;
         } else {
-          final user = await _authService.getUser();
-          state = state.copyWith(status: AuthStatus.authenticated, user: user);
+          user = await _authService.getUser(authEpoch: epoch);
+          if (!AuthSessionEpoch.isCurrent(epoch)) return result;
         }
 
         final serverUrl = await SecureStorage.getServerUrl();
@@ -168,13 +202,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
           await SecureStorage.saveTrustedLoginSession(
             serverUrl: serverUrl,
             expiresAt: DateTime.now().toUtc().add(const Duration(days: 7)),
+            authEpoch: epoch,
           );
         }
+        if (!AuthSessionEpoch.isCurrent(epoch)) return result;
+        state = state.copyWith(
+          status: AuthStatus.authenticated,
+          user: user,
+          error: null,
+        );
       }
       return result;
     } catch (e) {
+      if (!AuthSessionEpoch.isCurrent(epoch)) rethrow;
+      await SecureStorage.clearAuthSession(authEpoch: epoch);
+      if (!AuthSessionEpoch.isCurrent(epoch)) rethrow;
       final msg = _extractErrorMessage(e);
-      state = state.copyWith(error: msg);
+      state = AuthState(status: AuthStatus.unauthenticated, error: msg);
       rethrow;
     }
   }
@@ -189,40 +233,73 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
-    await _authService.logout();
-    state = const AuthState(status: AuthStatus.unauthenticated);
+    final requestEpoch = AuthSessionEpoch.current;
+    try {
+      await _authService.logout(authEpoch: requestEpoch);
+    } finally {
+      if (AuthSessionEpoch.isCurrent(requestEpoch)) {
+        AuthSessionEpoch.advance();
+        AuthTokenSnapshot.clear();
+        state = const AuthState(status: AuthStatus.unauthenticated);
+      }
+    }
   }
 
   Future<void> refreshUser() async {
+    final epoch = AuthSessionEpoch.current;
     try {
-      final user = await _authService.getUser();
+      final user = await _authService.getUser(authEpoch: epoch);
+      if (!AuthSessionEpoch.isCurrent(epoch)) return;
       state = state.copyWith(user: user);
     } catch (_) {}
   }
 
   Future<void> changeUsername(String username) async {
-    await _authService.changeUsername(username);
+    final requestEpoch = AuthSessionEpoch.current;
+    await _authService.changeUsername(username, authEpoch: requestEpoch);
+    if (!AuthSessionEpoch.isCurrent(requestEpoch)) return;
+    AuthSessionEpoch.advance();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
   Future<void> changePassword(String oldPassword, String newPassword) async {
-    await _authService.changePassword(oldPassword, newPassword);
+    final requestEpoch = AuthSessionEpoch.current;
+    await _authService.changePassword(
+      oldPassword,
+      newPassword,
+      authEpoch: requestEpoch,
+    );
+    if (!AuthSessionEpoch.isCurrent(requestEpoch)) return;
+    AuthSessionEpoch.advance();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
   Future<void> uploadAvatar(MultipartFile avatar) async {
+    final epoch = AuthSessionEpoch.current;
     await _authService.uploadAvatar(avatar);
-    final user = await _authService.getUser();
+    final user = await _authService.getUser(authEpoch: epoch);
+    if (!AuthSessionEpoch.isCurrent(epoch)) return;
     state = state.copyWith(user: user);
   }
 
   Future<void> deleteAvatar() async {
+    final epoch = AuthSessionEpoch.current;
     await _authService.deleteAvatar();
-    final user = await _authService.getUser();
+    final user = await _authService.getUser(authEpoch: epoch);
+    if (!AuthSessionEpoch.isCurrent(epoch)) return;
     state = state.copyWith(user: user);
   }
 
-  void setUnauthenticated() {
+  void setUnauthenticated({int? authEpoch}) {
+    if (authEpoch != null && !AuthSessionEpoch.isCurrent(authEpoch)) return;
+    state = const AuthState(status: AuthStatus.unauthenticated);
+  }
+
+  Future<void> expireSession({required int expectedEpoch}) async {
+    if (!AuthSessionEpoch.isCurrent(expectedEpoch)) return;
+    final epoch = AuthSessionEpoch.advance();
+    await SecureStorage.clearAuthSession(authEpoch: epoch);
+    if (!AuthSessionEpoch.isCurrent(epoch)) return;
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 

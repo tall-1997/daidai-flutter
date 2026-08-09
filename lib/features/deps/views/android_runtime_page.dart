@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/network/panel_capability_registry.dart';
 import '../../../core/network/sse_protocol.dart';
 import '../../../shared/utils/api_utils.dart';
 import '../../../shared/utils/bounded_log_buffer.dart';
@@ -47,9 +48,15 @@ class _AndroidRuntimePageState extends State<AndroidRuntimePage> {
     setState(() { _loading = true; _error = null; });
     try {
       final response = await DioClient.instance.dio.get(ApiEndpoints.androidRuntimeStatus);
+      final data = extractData(response.data);
+      PanelCapabilityRegistry.recordSupported(PanelCapability.androidRuntime);
       if (!mounted) return;
-      setState(() { _data = Map<String, dynamic>.from(response.data as Map); _loading = false; });
+      setState(() {
+        _data = data is Map ? Map<String, dynamic>.from(data) : const {};
+        _loading = false;
+      });
     } catch (error) {
+      PanelCapabilityRegistry.recordFailure(PanelCapability.androidRuntime, error);
       if (mounted) setState(() { _loading = false; _error = extractErrorMessage(error, '运行时状态加载失败'); });
     }
   }

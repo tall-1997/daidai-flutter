@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/panel_capability_registry.dart';
+import '../../../core/auth/auth_session_epoch.dart';
 import '../../../shared/models/task.dart';
 import '../../../shared/models/task_log.dart';
 import '../../../shared/utils/api_utils.dart';
+import '../../../core/services/task_completion_observer.dart';
 
 const _unset = Object();
 
@@ -55,8 +57,12 @@ class TaskListState {
       labelFilter: identical(labelFilter, _unset)
           ? this.labelFilter
           : labelFilter as String?,
-      viewFilters: identical(viewFilters,_unset)?this.viewFilters:viewFilters as String?,
-      viewSortRules: identical(viewSortRules,_unset)?this.viewSortRules:viewSortRules as String?,
+      viewFilters: identical(viewFilters, _unset)
+          ? this.viewFilters
+          : viewFilters as String?,
+      viewSortRules: identical(viewSortRules, _unset)
+          ? this.viewSortRules
+          : viewSortRules as String?,
     );
   }
 }
@@ -67,7 +73,7 @@ class TaskNotifier extends StateNotifier<TaskListState> {
   String? _scope;
 
   Future<void> load({bool refresh = false}) async {
-    final scope = PanelCapabilityRegistry.currentScope;
+    final scope = AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope);
     if (_scope != scope) {
       _scope = scope;
       state = const TaskListState();
@@ -96,7 +102,7 @@ class TaskNotifier extends StateNotifier<TaskListState> {
       final paginated = extractPaginated(response.data);
       final items = paginated.items.map((e) => Task.fromJson(e)).toList();
       if (requestId != _loadRequestId ||
-          scope != PanelCapabilityRegistry.currentScope) {
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
         return;
       }
       final total = paginated.total;
@@ -104,7 +110,7 @@ class TaskNotifier extends StateNotifier<TaskListState> {
       state = state.copyWith(tasks: items, total: total, loading: false);
     } catch (error) {
       if (requestId != _loadRequestId ||
-          scope != PanelCapabilityRegistry.currentScope) {
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
         return;
       }
       state = state.copyWith(
@@ -128,10 +134,32 @@ class TaskNotifier extends StateNotifier<TaskListState> {
     state = state.copyWith(labelFilter: label);
     if (reload) load(refresh: true);
   }
-  void setView(String? filters,String? sortRules){state=state.copyWith(viewFilters:filters,viewSortRules:sortRules);load(refresh:true);}
+
+  void setView(String? filters, String? sortRules) {
+    state = state.copyWith(viewFilters: filters, viewSortRules: sortRules);
+    load(refresh: true);
+  }
+
+  void restoreUiState({
+    required String keyword,
+    String? statusFilter,
+    String? labelFilter,
+    String? viewFilters,
+    String? viewSortRules,
+  }) {
+    _scope = AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope);
+    state = state.copyWith(
+      keyword: keyword,
+      statusFilter: statusFilter,
+      labelFilter: labelFilter,
+      viewFilters: viewFilters,
+      viewSortRules: viewSortRules,
+    );
+  }
 
   Future<void> runTask(int id) async {
     await DioClient.instance.dio.put(ApiEndpoints.taskRun(id));
+    TaskCompletionObserver.instance.markRunning(id);
     await load(refresh: true);
   }
 
@@ -161,6 +189,9 @@ class TaskNotifier extends StateNotifier<TaskListState> {
       // 面板批量任务接口使用 task_ids 字段，不能复用环境变量的 ids 字段。
       data: {'task_ids': ids},
     );
+    for (final id in ids) {
+      TaskCompletionObserver.instance.markRunning(id);
+    }
     await load(refresh: true);
   }
 
@@ -192,6 +223,19 @@ class TaskNotifier extends StateNotifier<TaskListState> {
   }
 
   Future<void> saveTaskOrder(List<Task> tasks) async {
+    final hasActiveFilter = state.keyword.isNotEmpty ||
+        state.statusFilter != null ||
+        state.labelFilter != null ||
+        state.viewFilters?.isNotEmpty == true ||
+        state.viewSortRules?.isNotEmpty == true;
+    final loadedIds = state.tasks.map((task) => task.id).toSet();
+    final submittedIds = tasks.map((task) => task.id).toSet();
+    if (hasActiveFilter ||
+        tasks.length != state.tasks.length ||
+        submittedIds.length != tasks.length ||
+        !loadedIds.containsAll(submittedIds)) {
+      throw StateError('筛选或视图排序生效时无法保存全局任务顺序');
+    }
     // 后端当前没有独立的任务排序接口，但任务更新接口允许写入 sort_order。
     // 这里按当前拖拽后的列表顺序写入 10、20、30...，后续插入任务时仍有间隔。
     for (var index = 0; index < tasks.length; index++) {

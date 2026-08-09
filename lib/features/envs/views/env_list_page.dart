@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/network/panel_capability_registry.dart';
+import '../../../core/auth/auth_session_epoch.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/env_var.dart';
 import '../../../shared/utils/api_utils.dart';
@@ -72,8 +74,15 @@ class EnvListState {
 class EnvListNotifier extends StateNotifier<EnvListState> {
   EnvListNotifier() : super(const EnvListState());
   int _loadRequestId = 0;
+  String? _scope;
 
   Future<void> load() async {
+    final scope = AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope);
+    if (_scope != scope) {
+      _scope = scope;
+      _loadRequestId++;
+      state = const EnvListState();
+    }
     final requestId = ++_loadRequestId;
     state = state.copyWith(loading: true, error: null);
     try {
@@ -123,7 +132,10 @@ class EnvListNotifier extends StateNotifier<EnvListState> {
         groupsList = [];
       }
       final groups = groupsList.map((e) => e.toString()).toList();
-      if (requestId != _loadRequestId) return;
+      if (requestId != _loadRequestId ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
       state = state.copyWith(
         envs: items,
         total: paginated.total > items.length ? paginated.total : items.length,
@@ -131,7 +143,10 @@ class EnvListNotifier extends StateNotifier<EnvListState> {
         groups: groups,
       );
     } catch (error) {
-      if (requestId != _loadRequestId) return;
+      if (requestId != _loadRequestId ||
+          scope != AuthSessionEpoch.scoped(PanelCapabilityRegistry.currentScope)) {
+        return;
+      }
       state = state.copyWith(
         loading: false,
         error: extractErrorMessage(error, '加载环境变量失败'),
@@ -267,6 +282,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
   bool _selectionMode = false;
   bool _sortMode = false;
   bool _transferBusy = false;
+  int? _openSwipeEnvId;
   final List<({int sourceId, int? targetId})> _pendingSortMoves = [];
 
   Widget _buildGroupAutocomplete({
@@ -579,6 +595,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
   void _setSelectionMode(bool enabled) {
     setState(() {
       _selectionMode = enabled;
+      _openSwipeEnvId = null;
       if (!enabled) {
         _selectedIds.clear();
       }
@@ -640,6 +657,69 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
     );
 
     return confirmed == true;
+  }
+
+  Future<void> _deleteEnv(EnvVar env) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('删除环境变量'),
+        content: Text('确定删除“${env.name}”吗？'),
+        actions: [
+          AppLiquidGlassDialogActions(
+            actions: [
+              AppGlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(dialogCtx, false),
+              ),
+              AppGlassDialogAction(
+                label: '删除',
+                onPressed: () => Navigator.pop(dialogCtx, true),
+                variant: AppLiquidGlassButtonVariant.danger,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref.read(envListProvider.notifier).delete(env.id);
+      if (!mounted) return;
+      setState(() => _openSwipeEnvId = null);
+      AppGlassNotice.show(
+        context,
+        '已删除 ${env.name}',
+        type: AppGlassNoticeType.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      AppGlassNotice.show(
+        context,
+        extractErrorMessage(error, '删除环境变量失败'),
+        type: AppGlassNoticeType.error,
+      );
+    }
+  }
+
+  Future<void> _toggleEnv(EnvVar env) async {
+    try {
+      await ref.read(envListProvider.notifier).toggle(env.id, !env.enabled);
+      if (!mounted) return;
+      setState(() => _openSwipeEnvId = null);
+      AppGlassNotice.show(
+        context,
+        env.enabled ? '已禁用 ${env.name}' : '已启用 ${env.name}',
+        type: AppGlassNoticeType.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      AppGlassNotice.show(
+        context,
+        extractErrorMessage(error, '更新环境变量状态失败'),
+        type: AppGlassNoticeType.error,
+      );
+    }
   }
 
   Future<void> _performBatchAction(_EnvBatchAction action) async {
@@ -843,9 +923,16 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
     final selectedCount = _selectedIds.length;
     final allSelected = _isAllSelected(state.envs);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Padding(
+    return PopScope(
+      canPop: _openSwipeEnvId == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _openSwipeEnvId != null) {
+          setState(() => _openSwipeEnvId = null);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Padding(
         padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 12),
         child: Column(
           children: [
@@ -1399,7 +1486,7 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                         itemCount: state.envs.length,
                         itemBuilder: (_, i) {
                           final env = state.envs[i];
-                          return _EnvCard(
+                           return _EnvCard(
                             env: env,
                             isLight: isLight,
                             selectionMode: _selectionMode,
@@ -1418,20 +1505,30 @@ class _EnvListPageState extends ConsumerState<EnvListPage> {
                               }
                             },
                             onSelectedChanged: () => _toggleSelection(env.id),
-                            onCopy: () {
+                             onCopy: () {
                               Clipboard.setData(ClipboardData(text: env.value));
                               AppGlassNotice.show(
                                 context,
                                 '已复制值',
                                 type: AppGlassNoticeType.info,
-                              );
-                            },
-                          );
+                               );
+                             },
+                             open: _openSwipeEnvId == env.id,
+                             onOpen: () => setState(() => _openSwipeEnvId = env.id),
+                             onClose: () {
+                               if (_openSwipeEnvId == env.id) {
+                                 setState(() => _openSwipeEnvId = null);
+                               }
+                             },
+                             onToggle: () => _toggleEnv(env),
+                             onDelete: () => _deleteEnv(env),
+                           );
                         },
                       ),
               ),
             ),
           ],
+        ),
         ),
       ),
     );
@@ -2051,6 +2148,11 @@ class _EnvCard extends StatefulWidget {
   final VoidCallback onLongPress;
   final VoidCallback onSelectedChanged;
   final VoidCallback onCopy;
+  final bool open;
+  final VoidCallback onOpen;
+  final VoidCallback onClose;
+  final VoidCallback onToggle;
+  final VoidCallback onDelete;
 
   const _EnvCard({
     required this.env,
@@ -2061,6 +2163,11 @@ class _EnvCard extends StatefulWidget {
     required this.onLongPress,
     required this.onSelectedChanged,
     required this.onCopy,
+    required this.open,
+    required this.onOpen,
+    required this.onClose,
+    required this.onToggle,
+    required this.onDelete,
   });
 
   @override
@@ -2068,10 +2175,94 @@ class _EnvCard extends StatefulWidget {
 }
 
 class _EnvCardState extends State<_EnvCard> {
+  static const _actionWidth = 144.0;
+  double? _dragOffset;
+
+  double get _offset => _dragOffset ?? (widget.open ? -_actionWidth : 0);
+
+  @override
+  void didUpdateWidget(covariant _EnvCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.open != widget.open) _dragOffset = null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          alignment: Alignment.centerRight,
+          children: [
+            Positioned.fill(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  _EnvSwipeAction(
+                    width: 72,
+                    label: widget.env.enabled ? '禁用' : '启用',
+                    icon: widget.env.enabled
+                        ? Icons.pause_circle_outline
+                        : Icons.play_circle_outline,
+                    color: widget.env.enabled
+                        ? AppColors.slate500
+                        : AppColors.primary,
+                    onTap: widget.onToggle,
+                  ),
+                  _EnvSwipeAction(
+                    width: 72,
+                    label: '删除',
+                    icon: Icons.delete_outline,
+                    color: AppColors.red500,
+                    onTap: widget.onDelete,
+                  ),
+                ],
+              ),
+            ),
+            AnimatedContainer(
+              duration: _dragOffset == null
+                  ? const Duration(milliseconds: 180)
+                  : Duration.zero,
+              curve: Curves.easeOut,
+              transform: Matrix4.translationValues(_offset, 0, 0),
+              child: GestureDetector(
+                onHorizontalDragUpdate: widget.selectionMode
+                    ? null
+                    : (details) {
+                        setState(() {
+                          _dragOffset = (_offset + details.delta.dx)
+                              .clamp(-_actionWidth, 0)
+                              .toDouble();
+                        });
+                      },
+                onHorizontalDragEnd: widget.selectionMode
+                    ? null
+                    : (_) {
+                        final shouldOpen = _offset.abs() > _actionWidth / 2;
+                        setState(() => _dragOffset = null);
+                        if (shouldOpen) {
+                          widget.onOpen();
+                        } else {
+                          widget.onClose();
+                        }
+                      },
+                child: _buildCard(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCard() {
     return GestureDetector(
       onTap: () {
+        if (widget.open) {
+          widget.onClose();
+          return;
+        }
         if (widget.selectionMode) {
           widget.onSelectedChanged();
         } else {
@@ -2079,11 +2270,9 @@ class _EnvCardState extends State<_EnvCard> {
         }
       },
       onLongPress: widget.onLongPress,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: AppCard(
+      child: AppCard(
           stableForScrolling: true,
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: EdgeInsets.zero,
           borderRadius: 16,
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
           child: Column(
@@ -2182,6 +2371,50 @@ class _EnvCardState extends State<_EnvCard> {
                       ),
                     ],
                   ],
+                ),
+              ),
+            ],
+          ),
+      ),
+    );
+  }
+}
+
+class _EnvSwipeAction extends StatelessWidget {
+  final double width;
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _EnvSwipeAction({
+    required this.width,
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: double.infinity,
+      child: Material(
+        color: color.withAlpha(28),
+        child: InkWell(
+          onTap: onTap,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(height: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
