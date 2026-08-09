@@ -16,9 +16,22 @@ class TokenRefreshCoordinator {
 
   static Future<String> refresh({int? epoch}) {
     final refreshEpoch = epoch ?? AuthSessionEpoch.current;
-    return _inFlight[refreshEpoch] ??= _refreshOnce(refreshEpoch).whenComplete(
-      () => _inFlight.remove(refreshEpoch),
-    );
+    if (!AuthSessionEpoch.isCurrent(refreshEpoch)) {
+      return Future.error(
+        StateError('Auth session changed during token refresh'),
+      );
+    }
+    final existing = _inFlight[refreshEpoch];
+    if (existing != null) return existing;
+
+    late final Future<String> operation;
+    operation = _refreshOnce(refreshEpoch).whenComplete(() {
+      if (identical(_inFlight[refreshEpoch], operation)) {
+        _inFlight.remove(refreshEpoch);
+      }
+    });
+    _inFlight[refreshEpoch] = operation;
+    return operation;
   }
 
   static Future<String> _refreshOnce(int epoch) async {
