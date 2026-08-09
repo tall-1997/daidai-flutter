@@ -2190,68 +2190,89 @@ class _EnvCardState extends State<_EnvCard> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Stack(
-          alignment: Alignment.centerRight,
-          children: [
-            Positioned.fill(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  _EnvSwipeAction(
-                    width: 72,
-                    label: widget.env.enabled ? '禁用' : '启用',
-                    icon: widget.env.enabled
-                        ? Icons.pause_circle_outline
-                        : Icons.play_circle_outline,
-                    color: widget.env.enabled
-                        ? AppColors.slate500
-                        : AppColors.primary,
-                    onTap: widget.onToggle,
-                  ),
-                  _EnvSwipeAction(
-                    width: 72,
-                    label: '删除',
-                    icon: Icons.delete_outline,
-                    color: AppColors.red500,
-                    onTap: widget.onDelete,
-                  ),
-                ],
-              ),
-            ),
-            AnimatedContainer(
-              duration: _dragOffset == null
-                  ? const Duration(milliseconds: 180)
-                  : Duration.zero,
-              curve: Curves.easeOut,
-              transform: Matrix4.translationValues(_offset, 0, 0),
-              child: GestureDetector(
-                onHorizontalDragUpdate: widget.selectionMode
-                    ? null
-                    : (details) {
-                        setState(() {
-                          _dragOffset = (_offset + details.delta.dx)
-                              .clamp(-_actionWidth, 0)
-                              .toDouble();
-                        });
-                      },
-                onHorizontalDragEnd: widget.selectionMode
-                    ? null
-                    : (_) {
-                        final shouldOpen = _offset.abs() > _actionWidth / 2;
-                        setState(() => _dragOffset = null);
-                        if (shouldOpen) {
-                          widget.onOpen();
-                        } else {
-                          widget.onClose();
-                        }
-                      },
-                child: _buildCard(),
-              ),
-            ),
-          ],
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(end: _offset),
+        duration: _dragOffset == null
+            ? const Duration(milliseconds: 180)
+            : Duration.zero,
+        curve: Curves.easeOut,
+        child: GestureDetector(
+          onHorizontalDragUpdate: widget.selectionMode
+              ? null
+              : (details) {
+                  setState(() {
+                    _dragOffset = (_offset + details.delta.dx)
+                        .clamp(-_actionWidth, 0)
+                        .toDouble();
+                  });
+                },
+          onHorizontalDragEnd: widget.selectionMode
+              ? null
+              : (_) {
+                  final shouldOpen = _offset.abs() > _actionWidth / 2;
+                  setState(() => _dragOffset = null);
+                  if (shouldOpen) {
+                    widget.onOpen();
+                  } else {
+                    widget.onClose();
+                  }
+                },
+          child: _buildCard(),
         ),
+        builder: (context, animatedOffset, card) {
+          final revealedActionWidth = (-animatedOffset)
+              .clamp(0.0, _actionWidth)
+              .toDouble();
+
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Stack(
+              alignment: Alignment.centerRight,
+              children: [
+                if (revealedActionWidth > 0)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: revealedActionWidth,
+                    child: ClipRect(
+                      child: OverflowBox(
+                        alignment: Alignment.centerRight,
+                        minWidth: _actionWidth,
+                        maxWidth: _actionWidth,
+                        child: Row(
+                          children: [
+                            _EnvSwipeAction(
+                              width: 72,
+                              label: widget.env.enabled ? '禁用' : '启用',
+                              icon: widget.env.enabled
+                                  ? Icons.pause_circle_outline
+                                  : Icons.play_circle_outline,
+                              color: widget.env.enabled
+                                  ? AppColors.slate500
+                                  : AppColors.primary,
+                              onTap: widget.onToggle,
+                            ),
+                            _EnvSwipeAction(
+                              width: 72,
+                              label: '删除',
+                              icon: Icons.delete_outline,
+                              color: AppColors.red500,
+                              onTap: widget.onDelete,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                Transform.translate(
+                  offset: Offset(animatedOffset, 0),
+                  child: card,
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
